@@ -1,0 +1,3 @@
+[submodule "src/msspi"]
+	path = src/msspi
+	url = https://github.com/deemru/msspi.git

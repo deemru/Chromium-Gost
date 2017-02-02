@@ -1,0 +1,11 @@
+*
+!.gitignore
+!chromium-gost-build-debug.bat
+!chromium-gost-build-gostssl.bat
+!chromium-gost-build-release.bat
+!chromium-gost-env.bat
+!chromium-gost-prepare.bat
+!gostssl.rc
+!gostssl.sln
+!gostssl.vcxproj
+!gostssl.vcxproj.filters

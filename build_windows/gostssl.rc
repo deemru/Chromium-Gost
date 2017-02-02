@@ -1,0 +1,25 @@
+#include <windows.h>
+#include "gostssl_ver.rc"
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     DATETIMEVERSION
+PRODUCTVERSION  DATETIMEVERSION
+FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
+
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904E4"
+        BEGIN
+            VALUE "FileDescription", "Mimics BoringSSL in Chromium\0"
+            VALUE "LegalCopyright", "deemru\0"
+            VALUE "ProductName", "gostssl\0"
+            VALUE "ProductVersion", CHROMIUM_TAG
+        END
+    END
+
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1252
+    END
+END

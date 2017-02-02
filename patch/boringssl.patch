@@ -1,0 +1,373 @@
+From 5be142e58001e135505d44d8abbe4a5313709b3a Mon Sep 17 00:00:00 2001
+From: Dmitrii Pichulin <deem@deem.ru>
+Date: Thu, 2 Feb 2017 12:43:59 +0300
+Subject: [PATCH] added GOSTSSL
+
+---
+ include/openssl/ssl.h |   4 ++
+ ssl/internal.h        |  62 +++++++++++++++++++++++++++
+ ssl/s3_pkt.c          |   7 +++
+ ssl/ssl_cipher.c      |  36 ++++++++++++++++
+ ssl/ssl_lib.c         | 116 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 225 insertions(+)
+
+diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
+index 6d7ae2f..014e9d3 100644
+--- a/include/openssl/ssl.h
++++ b/include/openssl/ssl.h
+@@ -163,6 +163,10 @@
+  * However, only a forward declaration is needed. */
+ struct timeval;
+ 
++#if defined(OPENSSL_WINDOWS)
++#define GOSTSSL
++#endif
++
+ #if defined(__cplusplus)
+ extern "C" {
+ #endif
+diff --git a/ssl/internal.h b/ssl/internal.h
+index 8f4300e..b28e1ba 100644
+--- a/ssl/internal.h
++++ b/ssl/internal.h
+@@ -162,6 +162,50 @@ OPENSSL_MSVC_PRAGMA(warning(pop))
+ extern "C" {
+ #endif
+ 
++#if defined(GOSTSSL)
++//
++#if defined ( _M_IX86 )
++#define EXPLICITSSL_CALL __cdecl
++#elif defined ( _M_X64 )
++#define EXPLICITSSL_CALL __fastcall
++#endif
++//
++struct boringssl_method_st
++{
++    void *   ( EXPLICITSSL_CALL * OPENSSL_malloc )( size_t size );
++    void     ( EXPLICITSSL_CALL * OPENSSL_free )( void * ptr );
++    int      ( EXPLICITSSL_CALL * BIO_read )( BIO * bio, void * data, int len );
++    int      ( EXPLICITSSL_CALL * BIO_write )( BIO * bio, const void * data, int len );
++    long     ( EXPLICITSSL_CALL * BIO_ctrl )( BIO * bio, int cmd, long larg, void * parg );    
++    _STACK * ( EXPLICITSSL_CALL * sk_new_null )( void );
++    size_t   ( EXPLICITSSL_CALL * sk_push )( _STACK * sk, void * p );
++    void *   ( EXPLICITSSL_CALL * sk_value )( const _STACK * sk, size_t i );
++    void     ( EXPLICITSSL_CALL * sk_pop_free )( _STACK * sk, void( * free_func )( void * ) );
++    int      ( EXPLICITSSL_CALL * ssl_get_new_session )( SSL * s, int session );
++    X509 *   ( EXPLICITSSL_CALL * d2i_X509 )( X509 ** x, const unsigned char ** in, long len );
++    int		 ( EXPLICITSSL_CALL * X509_up_ref )( X509 * x );
++    void     ( EXPLICITSSL_CALL * X509_free )( X509 * x );
++    void     ( EXPLICITSSL_CALL * ERR_clear_error )( void );
++    const SSL_CIPHER * ( EXPLICITSSL_CALL * SSL_get_cipher_by_value )( uint16_t value );
++};
++//
++typedef struct boringssl_method_st BORINGSSL_METHOD;
++//
++struct gostssl_method_st
++{
++    int  ( EXPLICITSSL_CALL * init )( BORINGSSL_METHOD * bssl );
++    int  ( EXPLICITSSL_CALL * connect )( SSL * s, int * is_gost );
++    int  ( EXPLICITSSL_CALL * read )( SSL * s, void * buf, int len, int * is_gost );
++    int  ( EXPLICITSSL_CALL * write )( SSL * s, const void * buf, int len, int * is_gost );
++    void ( EXPLICITSSL_CALL * free )( SSL * s );
++    void ( EXPLICITSSL_CALL * dispatch_alert )( SSL * s );
++};
++//
++typedef struct gostssl_method_st GOSTSSL_METHOD;
++//
++GOSTSSL_METHOD * gostssl();
++//
++#endif
+ 
+ /* Cipher suites. */
+ 
+@@ -174,6 +218,11 @@ extern "C" {
+ #define SSL_kCECPQ1 0x00000010L
+ #define SSL_kGENERIC 0x00000020L
+ 
++#if defined(GOSTSSL)
++#define SSL_kGOST341001 0x00010000L
++#define SSL_kGOST341012 0x00020000L
++#endif
++
+ /* Bits for |algorithm_auth| (server authentication). */
+ #define SSL_aRSA 0x00000001L
+ #define SSL_aECDSA 0x00000002L
+@@ -181,6 +230,11 @@ extern "C" {
+ #define SSL_aPSK 0x00000004L
+ #define SSL_aGENERIC 0x00000008L
+ 
++#if defined(GOSTSSL)
++#define SSL_aGOST341001 0x00010000L
++#define SSL_aGOST341012 0x00020000L
++#endif
++
+ #define SSL_aCERT (SSL_aRSA | SSL_aECDSA)
+ 
+ /* Bits for |algorithm_enc| (symmetric encryption). */
+@@ -193,6 +247,10 @@ extern "C" {
+ #define SSL_eNULL                0x00000040L
+ #define SSL_CHACHA20POLY1305     0x00000080L
+ 
++#if defined(GOSTSSL)
++#define SSL_eGOST28147 0x00010000L
++#endif
++
+ #define SSL_AES (SSL_AES128 | SSL_AES256 | SSL_AES128GCM | SSL_AES256GCM)
+ 
+ /* Bits for |algorithm_mac| (symmetric authentication). */
+@@ -203,6 +261,10 @@ extern "C" {
+ /* SSL_AEAD is set for all AEADs. */
+ #define SSL_AEAD 0x00000010L
+ 
++#if defined(GOSTSSL)
++#define SSL_iGOST28147 0x00010000L
++#endif
++
+ /* Bits for |algorithm_prf| (handshake digest). */
+ #define SSL_HANDSHAKE_MAC_DEFAULT 0x1
+ #define SSL_HANDSHAKE_MAC_SHA256 0x2
+diff --git a/ssl/s3_pkt.c b/ssl/s3_pkt.c
+index e4116fb..0b0d5bd 100644
+--- a/ssl/s3_pkt.c
++++ b/ssl/s3_pkt.c
+@@ -475,6 +475,13 @@ int ssl3_send_alert(SSL *ssl, int level, int desc) {
+ }
+ 
+ int ssl3_dispatch_alert(SSL *ssl) {
++#if defined(GOSTSSL)
++  {
++      if( gostssl() )
++          gostssl()->dispatch_alert( ssl );
++  }  
++#endif
++
+   ssl->s3->alert_dispatch = 0;
+   int ret = do_ssl3_write(ssl, SSL3_RT_ALERT, &ssl->s3->send_alert[0], 2);
+   if (ret <= 0) {
+diff --git a/ssl/ssl_cipher.c b/ssl/ssl_cipher.c
+index 99aba72..b7ada48 100644
+--- a/ssl/ssl_cipher.c
++++ b/ssl/ssl_cipher.c
+@@ -273,6 +273,19 @@ static const SSL_CIPHER kCiphers[] = {
+      SSL_HANDSHAKE_MAC_SHA256,
+     },
+ 
++#if defined(GOSTSSL)
++     /* Cipher 81 (GOSTSSL) */
++     {
++         "TLS_GOSTR341001_WITH_28147_CNT_IMIT",
++         0x03000081,
++         SSL_kGOST341001,
++         SSL_aGOST341001,
++         SSL_eGOST28147,
++         SSL_iGOST28147,
++         SSL_HANDSHAKE_MAC_DEFAULT,
++     },
++#endif
++
+     /* PSK cipher suites. */
+ 
+     /* Cipher 8C */
+@@ -643,6 +656,19 @@ static const SSL_CIPHER kCiphers[] = {
+      SSL_HANDSHAKE_MAC_SHA256,
+     },
+ 
++#if defined(GOSTSSL)
++     /* Cipher FF85 (GOSTSSL) */
++     {
++         "TLS_GOSTR341012_256_WITH_28147_CNT_IMIT",
++         0x0300FF85,
++         SSL_kGOST341012,
++         SSL_aGOST341012,
++         SSL_eGOST28147,
++         SSL_iGOST28147,
++         SSL_HANDSHAKE_MAC_DEFAULT,
++     },
++#endif
++
+ };
+ 
+ static const size_t kCiphersLen = OPENSSL_ARRAY_SIZE(kCiphers);
+@@ -1420,6 +1446,13 @@ ssl_create_cipher_list(const SSL_PROTOCOL_METHOD *ssl_method,
+   ssl_cipher_apply_rule(0, ~0u, ~0u, SSL_3DES, ~0u, 0, CIPHER_ADD, -1, 0, &head,
+                         &tail);
+ 
++#if defined(GOSTSSL)
++  {
++      if( gostssl() )
++          ssl_cipher_apply_rule( 0, ~0u, ~0u, SSL_eGOST28147, ~0u, 0, CIPHER_ADD, -1, 0, &head, &tail );
++  }
++#endif
++
+   /* Temporarily enable everything else for sorting */
+   ssl_cipher_apply_rule(0, ~0u, ~0u, ~0u, ~0u, 0, CIPHER_ADD, -1, 0, &head,
+                         &tail);
+@@ -1764,6 +1797,9 @@ int SSL_CIPHER_get_bits(const SSL_CIPHER *cipher, int *out_alg_bits) {
+ #if !defined(BORINGSSL_ANDROID_SYSTEM)
+     case SSL_CHACHA20POLY1305_OLD:
+ #endif
++#if defined(GOSTSSL)
++    case SSL_eGOST28147:
++#endif
+     case SSL_CHACHA20POLY1305:
+       alg_bits = 256;
+       strength_bits = 256;
+diff --git a/ssl/ssl_lib.c b/ssl/ssl_lib.c
+index ca3022c..fd60b35 100644
+--- a/ssl/ssl_lib.c
++++ b/ssl/ssl_lib.c
+@@ -227,6 +227,69 @@ static int ssl_session_cmp(const SSL_SESSION *a, const SSL_SESSION *b) {
+   return memcmp(a->session_id, b->session_id, a->session_id_length);
+ }
+ 
++#if defined(GOSTSSL)
++
++static BORINGSSL_METHOD bssl = {
++    OPENSSL_malloc,
++    OPENSSL_free,
++    BIO_read,
++    BIO_write,
++    BIO_ctrl,
++    sk_new_null,
++    sk_push,
++    sk_value,
++    sk_pop_free,
++    ssl_get_new_session,
++    d2i_X509,
++    X509_up_ref,
++    X509_free,
++    ERR_clear_error,
++    SSL_get_cipher_by_value,
++};
++
++GOSTSSL_METHOD * gostssl()
++{
++    static GOSTSSL_METHOD gssl = { 0 };
++    static int is_gost = FALSE;
++    static int is_tried = FALSE;
++
++    if( is_gost )
++        return &gssl;
++
++    if( !is_tried )
++    {
++        HMODULE hGSSL = LoadLibraryA( "gostssl.dll" );
++
++        if( hGSSL )
++        {
++            *(UINT_PTR *)&gssl.init = (UINT_PTR)GetProcAddress( hGSSL, "gostssl_init" );
++            *(UINT_PTR *)&gssl.connect = (UINT_PTR)GetProcAddress( hGSSL, "gostssl_connect" );
++            *(UINT_PTR *)&gssl.read = (UINT_PTR)GetProcAddress( hGSSL, "gostssl_read" );
++            *(UINT_PTR *)&gssl.write = (UINT_PTR)GetProcAddress( hGSSL, "gostssl_write" );
++            *(UINT_PTR *)&gssl.free = (UINT_PTR)GetProcAddress( hGSSL, "gostssl_free" );
++            *(UINT_PTR *)&gssl.dispatch_alert = (UINT_PTR)GetProcAddress( hGSSL, "gostssl_dispatch_alert" );
++
++            if( gssl.init &&
++                gssl.connect &&
++                gssl.read &&
++                gssl.write &&
++                gssl.free &&
++                gssl.dispatch_alert &&
++                gssl.init( &bssl ) )
++            {
++                is_gost = TRUE;
++                return &gssl;
++            }
++        }
++
++        is_tried = TRUE;
++    }
++
++    return NULL;
++}
++
++#endif
++
+ SSL_CTX *SSL_CTX_new(const SSL_METHOD *method) {
+   SSL_CTX *ret = NULL;
+ 
+@@ -489,6 +552,13 @@ void SSL_free(SSL *ssl) {
+     return;
+   }
+ 
++#if defined(GOSTSSL)
++  {
++      if( gostssl() )
++          gostssl()->free( ssl );
++  }  
++#endif
++
+   X509_VERIFY_PARAM_free(ssl->param);
+ 
+   CRYPTO_free_ex_data(&g_ex_data_class_ssl, ssl, &ssl->ex_data);
+@@ -615,6 +685,21 @@ int SSL_do_handshake(SSL *ssl) {
+     return 1;
+   }
+ 
++#if defined(GOSTSSL)
++  {
++      if( gostssl() )
++      {
++          int is_gost;
++          int ret_gost;
++
++          ret_gost = gostssl()->connect( ssl, &is_gost );
++
++          if( is_gost )
++              return ret_gost;
++      }
++  }
++#endif
++
+   return ssl->handshake_func(ssl);
+ }
+ 
+@@ -722,6 +807,22 @@ static int ssl_read_impl(SSL *ssl, void *buf, int num, int peek) {
+       }
+     }
+ 
++
++#if defined(GOSTSSL)
++  {
++      if( gostssl() )
++      {
++          int is_gost;
++          int ret_gost;
++
++          ret_gost = gostssl()->read( ssl, buf, num, &is_gost );
++
++          if( is_gost )
++              return ret_gost;
++      }
++  }  
++#endif
++
+     int got_handshake;
+     int ret = ssl->method->read_app_data(ssl, &got_handshake, buf, num, peek);
+     if (ret > 0 || !got_handshake) {
+@@ -773,6 +874,21 @@ int SSL_write(SSL *ssl, const void *buf, int num) {
+     }
+   }
+ 
++#if defined(GOSTSSL)
++  {
++      if( gostssl() )
++      {
++          int is_gost;
++          int ret_gost;
++
++          ret_gost = gostssl()->write( ssl, buf, num, &is_gost );
++
++          if( is_gost )
++              return ret_gost;
++      }
++  }  
++#endif
++
+   return ssl->method->write_app_data(ssl, buf, num);
+ }
+ 
+-- 
+2.7.2.windows.1
+
