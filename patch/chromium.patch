@@ -1,16 +1,30 @@
-From 4f22411fa235718f371a95a85b95d875f88ba26f Mon Sep 17 00:00:00 2001
+From 975ce017735b07fb414d698abbe96c191165a3b1 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Fri, 2 Sep 2016 14:25:18 +0300
 Subject: [PATCH] added GOSTSSL
 
 ---
+ chrome/app/chrome_dll.rc                        |   2 +-
  chrome/app/chrome_exe.rc                        |   2 +-
  chrome/app/theme/chromium/win/chromium-gost.ico | Bin 0 -> 30761 bytes
  net/socket/ssl_client_socket_impl.cc            |  28 ++++++++++++++++++++++++
  net/ssl/ssl_cipher_suite_names.cc               |  22 +++++++++++++++++++
- 4 files changed, 51 insertions(+), 1 deletion(-)
+ 5 files changed, 52 insertions(+), 2 deletions(-)
  create mode 100644 chrome/app/theme/chromium/win/chromium-gost.ico
 
+diff --git a/chrome/app/chrome_dll.rc b/chrome/app/chrome_dll.rc
+index becda38..3031839 100644
+--- a/chrome/app/chrome_dll.rc
++++ b/chrome/app/chrome_dll.rc
+@@ -168,7 +168,7 @@ END
+ IDR_MAINFRAME       ICON                        "theme\google_chrome\win\chrome.ico"
+ IDR_SXS             ICON                        "theme\google_chrome\win\chrome_sxs.ico"
+ #else
+-IDR_MAINFRAME       ICON                        "theme\chromium\win\chromium.ico"
++IDR_MAINFRAME       ICON                        "theme\chromium\win\chromium-gost.ico"
+ #endif
+ 
+ // We include these resources because all ICON types need to be in the
 diff --git a/chrome/app/chrome_exe.rc b/chrome/app/chrome_exe.rc
 index 6f6f17f..e50cf78f 100644
 --- a/chrome/app/chrome_exe.rc
