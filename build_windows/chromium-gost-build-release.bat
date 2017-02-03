@@ -5,7 +5,7 @@ set DEPOT_TOOLS_WIN_TOOLCHAIN=0
 set GYP_MSVS_VERSION=2015
 
 cd %CHROMIUM_PATH%
-call gn gen out\RELEASE --args="is_debug=false is_official_build=true target_cpu=\"x86\" symbol_level=0"
+call gn gen out\RELEASE --args="is_debug=false is_official_build=true target_cpu=\"x86\" symbol_level=0 %CHROMIUM_PRIVATE_ARGS%"
 call ninja -C out\RELEASE -j 16 mini_installer
 
 set PATH=%SEVENZIP_PATH%;%PATH%
