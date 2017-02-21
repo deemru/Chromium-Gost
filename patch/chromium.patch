@@ -1,4 +1,4 @@
-From 975ce017735b07fb414d698abbe96c191165a3b1 Mon Sep 17 00:00:00 2001
+From a1a45835d25d7e271d44ce9ab5957d72d6f91a55 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Fri, 2 Sep 2016 14:25:18 +0300
 Subject: [PATCH] added GOSTSSL
@@ -7,9 +7,12 @@ Subject: [PATCH] added GOSTSSL
  chrome/app/chrome_dll.rc                        |   2 +-
  chrome/app/chrome_exe.rc                        |   2 +-
  chrome/app/theme/chromium/win/chromium-gost.ico | Bin 0 -> 30761 bytes
+ net/base/net_error_list.h                       |   6 +++++
+ net/http/http_network_transaction.cc            |   8 +++++++
  net/socket/ssl_client_socket_impl.cc            |  28 ++++++++++++++++++++++++
+ net/ssl/openssl_ssl_util.cc                     |   4 ++++
  net/ssl/ssl_cipher_suite_names.cc               |  22 +++++++++++++++++++
- 5 files changed, 52 insertions(+), 2 deletions(-)
+ 8 files changed, 70 insertions(+), 2 deletions(-)
  create mode 100644 chrome/app/theme/chromium/win/chromium-gost.ico
 
 diff --git a/chrome/app/chrome_dll.rc b/chrome/app/chrome_dll.rc
@@ -398,6 +401,42 @@ L`w$n>K-&KYk@}FE
 literal 0
 HcmV?d00001
 
+diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
+index 0694b69..c4cc39c 100644
+--- a/net/base/net_error_list.h
++++ b/net/base/net_error_list.h
+@@ -19,6 +19,12 @@
+ //   700-799 Certificate manager errors
+ //   800-899 DNS resolver errors
+ 
++#define GOSTSSL
++#if defined(GOSTSSL)
++//   3000-3099 GOSTSSL
++NET_ERROR(TLS_GOST_REQUIRED, -3072)
++#endif
++
+ // An asynchronous IO operation is not yet complete.  This usually does not
+ // indicate a fatal error.  Typically this error will be generated as a
+ // notification to wait for some external notification that the IO operation
+diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
+index a8a7d1a..357e2b9 100644
+--- a/net/http/http_network_transaction.cc
++++ b/net/http/http_network_transaction.cc
+@@ -1478,6 +1478,14 @@ int HttpNetworkTransaction::HandleSSLHandshakeError(int error) {
+   DCHECK(request_);
+   HandleClientAuthError(error);
+ 
++#if defined(GOSTSSL)
++  if( error == ERR_TLS_GOST_REQUIRED )
++  {
++    ResetConnectionAndRequestForResend();
++    return OK;
++  }
++#endif
++
+   // Accept deprecated cipher suites, but only on a fallback. This makes UMA
+   // reflect servers require a deprecated cipher rather than merely prefer
+   // it. This, however, has no security benefit until the ciphers are actually
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
 index d20d81e..679b41b 100644
 --- a/net/socket/ssl_client_socket_impl.cc
@@ -437,6 +476,21 @@ index d20d81e..679b41b 100644
    // Second pass: a client certificate should have been selected.
    if (ssl_config_.client_cert.get()) {
      bssl::UniquePtr<X509> leaf_x509 =
+diff --git a/net/ssl/openssl_ssl_util.cc b/net/ssl/openssl_ssl_util.cc
+index f1266d5..56da96de 100644
+--- a/net/ssl/openssl_ssl_util.cc
++++ b/net/ssl/openssl_ssl_util.cc
+@@ -77,6 +77,10 @@ int MapOpenSSLErrorSSL(uint32_t error_code) {
+     case SSL_R_TLSV1_ALERT_PROTOCOL_VERSION:
+     case SSL_R_UNSUPPORTED_PROTOCOL:
+       return ERR_SSL_VERSION_OR_CIPHER_MISMATCH;
++#if defined(GOSTSSL)
++    case SSL_R_TLS_GOST_REQUIRED:
++      return ERR_TLS_GOST_REQUIRED;
++#endif
+     case SSL_R_SSLV3_ALERT_BAD_CERTIFICATE:
+     case SSL_R_SSLV3_ALERT_UNSUPPORTED_CERTIFICATE:
+     case SSL_R_SSLV3_ALERT_CERTIFICATE_REVOKED:
 diff --git a/net/ssl/ssl_cipher_suite_names.cc b/net/ssl/ssl_cipher_suite_names.cc
 index 320c22e..dc45595 100644
 --- a/net/ssl/ssl_cipher_suite_names.cc

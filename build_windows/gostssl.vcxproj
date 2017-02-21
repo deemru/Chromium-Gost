@@ -109,8 +109,8 @@
       <AdditionalDependencies>crypt32.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <CustomBuildStep>
-      <Command>copy /y $(OutDir)$(TargetName)$(TargetExt) u:\chromium\src\out\RELEASE\gostssl.dll</Command>
-      <Outputs>U:\chromium\src\out\RELEASE\gostssl.dll</Outputs>
+      <Command>copy /y $(OutDir)$(TargetName)$(TargetExt) u:\chromium\src\out\DEBUG\gostssl.dll</Command>
+      <Outputs>u:\chromium\src\out\DEBUG\gostssl.dll</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">

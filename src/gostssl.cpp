@@ -23,7 +23,7 @@ extern "C" {
     EXPORT void EXPLICITSSL_CALL gostssl_free( SSL * s );
 
     // Markers
-    EXPORT void EXPLICITSSL_CALL gostssl_dispatch_alert( SSL * s );
+    EXPORT int EXPLICITSSL_CALL gostssl_tls_gost_required( SSL * s );
 
     // Callbacks
     EXPORT void EXPLICITSSL_CALL gostssl_certhook( void * cert );
@@ -71,10 +71,16 @@ static GOSTSSL_METHOD gssl = {
     gostssl_read,
     gostssl_write,
     gostssl_free,
-    gostssl_dispatch_alert,
+    gostssl_tls_gost_required,
 };
 
 static BORINGSSL_METHOD * bssls = NULL;
+
+#define TLS_GOST_CIPHER_2001 0x0081
+#define TLS_GOST_CIPHER_2012 0xFF85
+
+static const SSL_CIPHER * tlsgost2001 = NULL;
+static const SSL_CIPHER * tlsgost2012 = NULL;
 
 int gostssl_init( BORINGSSL_METHOD * bssl_methods )
 {
@@ -85,6 +91,20 @@ int gostssl_init( BORINGSSL_METHOD * bssl_methods )
         return 0;
         
     msspi_close( h );
+
+    HCRYPTPROV hProv;
+
+    if( !CryptAcquireContext( &hProv, NULL, NULL, 75, CRYPT_VERIFYCONTEXT | CRYPT_SILENT ) )
+        return 0;
+
+    CryptReleaseContext( hProv, 0 );
+
+    tlsgost2001 = bssls->SSL_get_cipher_by_value( TLS_GOST_CIPHER_2001 );
+    tlsgost2012 = bssls->SSL_get_cipher_by_value( TLS_GOST_CIPHER_2012 );
+
+    if( !tlsgost2001 || !tlsgost2012 )
+        return 0;
+
     return 1;
 }
 
@@ -460,16 +480,18 @@ GostSSL_Worker * workers_api( SSL * s, WORKER_DB_ACTION action )
     return w;
 }
 
-void gostssl_dispatch_alert( SSL * s )
+int gostssl_tls_gost_required( SSL * s )
 {
-    if( s->s3 &&
-        s->s3->alert_dispatch &&
-        s->s3->send_alert[0] == SSL3_AL_FATAL &&
-        //s->s3->send_alert[1] == SSL3_AD_ILLEGAL_PARAMETER &&
-        s->tlsext_hostname )
+    if( s->s3->tmp.new_cipher == tlsgost2001 ||
+        s->s3->tmp.new_cipher == tlsgost2012 )
     {
+        bssls->ERR_clear_error();
+        bssls->ERR_put_error( ERR_LIB_SSL, 0, SSL_R_TLS_GOST_REQUIRED, __FILE__, __LINE__ );
         host_status_set( s->tlsext_hostname, GOSTSSL_HOST_PROBING );
+        return 1;
     }
+
+    return 0;
 }
 
 static int msspi_to_ssl_version( DWORD dwProtocol )
@@ -677,6 +699,7 @@ int gostssl_connect( SSL * s, int * is_gost )
                 return 0;
 
             s->version = msspi_to_ssl_version( cipher_info->dwProtocol );
+            s->s3->have_version = 1;
             s->s3->established_session->ssl_version = s->version;
             s->s3->established_session->cipher = cipher;
 
