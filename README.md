@@ -22,7 +22,8 @@
 
 # Сборка
 
-![MSVS](https://deem.visualstudio.com/_apis/public/build/definitions/2f245d40-b5be-4754-a914-1876f55cf9e7/4/badge)
+[![appveyor](https://img.shields.io/appveyor/ci/deemru/chromium-gost.svg?label=appveyor)](https://ci.appveyor.com/project/deemru/chromium-gost)
+[![visualstudio](https://img.shields.io/vso/build/deem/2f245d40-b5be-4754-a914-1876f55cf9e7/4.svg?label=visualstudio)](https://deem.visualstudio.com/builder/_build/index?definitionId=4)
 
 - Требуется Windows система с установленной Visual Studio 2015
 - [Создать](https://technet.microsoft.com/ru-ru/library/gg318052(v=ws.10).aspx) или смонтировать диск `U:` (не менее 128 Гб)
