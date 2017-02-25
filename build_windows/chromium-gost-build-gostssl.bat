@@ -19,3 +19,5 @@ cl /c /Ox /Ot /GL /GF /GS /W4 /EHa ../src/msspi/src/msspi.cpp
 rc -r gostssl.rc
 
 link /DLL /LTCG gostssl.obj msspi.obj gostssl.res crypt32.lib advapi32.lib /OUT:gostssl.dll
+
+if "%1"=="" timeout 86400

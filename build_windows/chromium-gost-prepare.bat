@@ -19,4 +19,5 @@ cd %BORINGSSL_PATH%
 call git checkout -b GOSTSSL-%CHROMIUM_TAG%
 call git checkout -f GOSTSSL-%CHROMIUM_TAG%
 call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\boringssl.patch
-timeout 60
+
+if "%1"=="" timeout 86400
