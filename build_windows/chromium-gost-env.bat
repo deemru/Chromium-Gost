@@ -5,4 +5,5 @@ set DEPOT_TOOLS_PATH=u:\depot_tools\
 set CHROMIUM_GOST_REPO=%~dp0..\
 set SEVENZIP_PATH="C:\Program Files\7-Zip\"
 set CHROMIUM_PRIVATE_ARGS= 
-call chromium-gost-env-private.bat
+if exist chromium-gost-env-private.bat call chromium-gost-env-private.bat
+if exist %USERPROFILE%\chromium-gost-env-private.bat call %USERPROFILE%\chromium-gost-env-private.bat
