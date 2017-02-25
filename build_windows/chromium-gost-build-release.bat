@@ -17,6 +17,5 @@ cd RELEASE
 copy ..\gostssl.dll Chrome-bin\%CHROMIUM_TAG%
 move Chrome-bin chromium-gost-%CHROMIUM_TAG%-win32
 7z a -mx=9 -md=256m chromium-gost-%CHROMIUM_TAG%-win32.7z chromium-gost-%CHROMIUM_TAG%-win32
-explorer .
 
 if "%1"=="" timeout 86400
