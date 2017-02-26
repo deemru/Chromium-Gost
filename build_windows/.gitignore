@@ -5,6 +5,7 @@
 !chromium-gost-build-release.bat
 !chromium-gost-env.bat
 !chromium-gost-prepare.bat
+!chromium-gost-publish-release.bat
 !gostssl.rc
 !gostssl.sln
 !gostssl.vcxproj
