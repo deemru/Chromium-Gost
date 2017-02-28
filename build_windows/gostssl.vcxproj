@@ -161,7 +161,7 @@
     </Link>
     <CustomBuildStep>
       <Command>copy /y $(OutDir)$(TargetName)$(TargetExt) u:\chromium\src\out\RELEASE\gostssl.dll</Command>
-      <Outputs>U:\chromium\src\out\RELEASE\gostssl.dll</Outputs>
+      <Outputs>u:\chromium\src\out\RELEASE\gostssl.dll</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

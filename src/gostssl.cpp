@@ -533,7 +533,6 @@ static int msspi_to_ssl_state_ret( MSSPI_STATE state, SSL * s, int ret )
             break;
         case MSSPI_X509_LOOKUP:
             s->rwstate = SSL_X509_LOOKUP;
-            s->state = SSL_CB_CONNECT_LOOP;
             break;
         case MSSPI_SHUTDOWN:
             s->rwstate = SSL_NOTHING;
@@ -559,8 +558,6 @@ int gostssl_read( SSL * s, void * buf, int len, int * is_gost )
 
     *is_gost = TRUE;
 
-    bssls->ERR_clear_error();
-
     int ret = msspi_read( w->h, buf, len );
     return msspi_to_ssl_state_ret( msspi_state( w->h ), s, ret );
 }
@@ -577,8 +574,6 @@ int gostssl_write( SSL * s, const void * buf, int len, int * is_gost )
     }
 
     *is_gost = TRUE;
-
-    bssls->ERR_clear_error();
 
     int ret = msspi_write( w->h, buf, len );
     return msspi_to_ssl_state_ret( msspi_state( w->h ), s, ret );
@@ -598,7 +593,7 @@ int gostssl_connect( SSL * s, int * is_gost )
     *is_gost = TRUE;
 
     if( s->state == SSL_ST_INIT )
-        s->state = SSL_CB_CONNECT_LOOP;
+        s->state = SSL_ST_CONNECT;
 
     int ret = msspi_connect( w->h );
 
@@ -648,14 +643,21 @@ int gostssl_connect( SSL * s, int * is_gost )
             if( !sk )
                 return 0;
 
-            void * bufs[64];
-            int lens[64];
-            int count = 64;
+            std::vector<const char *> bufs;
+            std::vector<int> lens;
+            size_t count;
+
+            if( !msspi_get_peercerts( w->h, NULL, NULL, &count ) )
+                return 0;            
+
+            bufs.resize( count );
+            lens.resize( count );
+
             bool is_OK = false;
 
-            if( msspi_get_peercerts( w->h, bufs, lens, &count ) )
+            if( msspi_get_peercerts( w->h, &bufs[0], &lens[0], &count ) )
             {
-                for( int i = 0; i < count; i++ )
+                for( size_t i = 0; i < count; i++ )
                 {
                     const unsigned char * buf = (const unsigned char *)bufs[i];
                     X509 * x = bssls->d2i_X509( NULL, &buf, lens[i] );
@@ -666,8 +668,6 @@ int gostssl_connect( SSL * s, int * is_gost )
                     bssls->sk_push( CHECKED_CAST( _STACK *, STACK_OF( X509 ) *, sk ), CHECKED_CAST( void *, X509 *, x ) );
                     is_OK = true;
                 }
-
-                msspi_get_peercerts_free( w->h, bufs, count );
             }
 
             if( !is_OK )
