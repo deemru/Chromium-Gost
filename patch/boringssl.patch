@@ -1,6 +1,6 @@
-From c49f75b04391a685e4040598011758b6ba64985d Mon Sep 17 00:00:00 2001
+From 142a1a8f2f803788478fe2b97ad1f6b111a697e5 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
-Date: Thu, 2 Feb 2017 12:43:59 +0300
+Date: Fri, 10 Mar 2017 14:06:05 +0300
 Subject: [PATCH] added GOSTSSL
 
 ---
@@ -8,11 +8,11 @@ Subject: [PATCH] added GOSTSSL
  ssl/handshake_client.c |  11 +++++
  ssl/internal.h         |  63 ++++++++++++++++++++++++++++
  ssl/ssl_cipher.c       |  36 ++++++++++++++++
- ssl/ssl_lib.c          | 111 +++++++++++++++++++++++++++++++++++++++++++++++++
- 5 files changed, 229 insertions(+)
+ ssl/ssl_lib.c          | 110 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 228 insertions(+)
 
 diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
-index 6d7ae2f..e1b824d 100644
+index 70646b0..9822685 100644
 --- a/include/openssl/ssl.h
 +++ b/include/openssl/ssl.h
 @@ -163,6 +163,10 @@
@@ -26,7 +26,7 @@ index 6d7ae2f..e1b824d 100644
  #if defined(__cplusplus)
  extern "C" {
  #endif
-@@ -4369,6 +4373,10 @@ BORINGSSL_MAKE_DELETER(SSL_SESSION, SSL_SESSION_free)
+@@ -4412,6 +4416,10 @@ BORINGSSL_MAKE_DELETER(SSL_SESSION, SSL_SESSION_free)
  
  #endif
  
@@ -38,10 +38,10 @@ index 6d7ae2f..e1b824d 100644
  #define SSL_R_ATTEMPT_TO_REUSE_SESSION_IN_DIFFERENT_CONTEXT 101
  #define SSL_R_BAD_ALERT 102
 diff --git a/ssl/handshake_client.c b/ssl/handshake_client.c
-index 70d8d96..d10b210 100644
+index 720c215..a760631 100644
 --- a/ssl/handshake_client.c
 +++ b/ssl/handshake_client.c
-@@ -980,6 +980,17 @@ static int ssl3_get_server_hello(SSL *ssl) {
+@@ -978,6 +978,17 @@ static int ssl3_get_server_hello(SSL_HANDSHAKE *hs) {
    }
    ssl->s3->tmp.new_cipher = c;
  
@@ -60,7 +60,7 @@ index 70d8d96..d10b210 100644
    if (!ssl3_init_handshake_hash(ssl)) {
      goto f_err;
 diff --git a/ssl/internal.h b/ssl/internal.h
-index 8f4300e..e0f2c51 100644
+index eb47785..e5a475a 100644
 --- a/ssl/internal.h
 +++ b/ssl/internal.h
 @@ -162,6 +162,51 @@ OPENSSL_MSVC_PRAGMA(warning(pop))
@@ -77,8 +77,8 @@ index 8f4300e..e0f2c51 100644
 +//
 +struct boringssl_method_st
 +{
-+    void *   ( EXPLICITSSL_CALL * OPENSSL_malloc )( size_t size );
-+    void     ( EXPLICITSSL_CALL * OPENSSL_free )( void * ptr );
++    void *   ( EXPLICITSSL_CALL * BORINGSSL_malloc )( _In_ _CRT_GUARDOVERFLOW size_t size );
++    void     ( EXPLICITSSL_CALL * BORINGSSL_free )( void * ptr );
 +    int      ( EXPLICITSSL_CALL * BIO_read )( BIO * bio, void * data, int len );
 +    int      ( EXPLICITSSL_CALL * BIO_write )( BIO * bio, const void * data, int len );
 +    long     ( EXPLICITSSL_CALL * BIO_ctrl )( BIO * bio, int cmd, long larg, void * parg );    
@@ -86,7 +86,7 @@ index 8f4300e..e0f2c51 100644
 +    size_t   ( EXPLICITSSL_CALL * sk_push )( _STACK * sk, void * p );
 +    void *   ( EXPLICITSSL_CALL * sk_value )( const _STACK * sk, size_t i );
 +    void     ( EXPLICITSSL_CALL * sk_pop_free )( _STACK * sk, void( * free_func )( void * ) );
-+    int      ( EXPLICITSSL_CALL * ssl_get_new_session )( SSL * s, int session );
++    int      ( EXPLICITSSL_CALL * ssl_get_new_session )( SSL_HANDSHAKE * hs, int is_server );
 +    X509 *   ( EXPLICITSSL_CALL * d2i_X509 )( X509 ** x, const unsigned char ** in, long len );
 +    int      ( EXPLICITSSL_CALL * X509_up_ref )( X509 * x );
 +    void     ( EXPLICITSSL_CALL * X509_free )( X509 * x );
@@ -115,9 +115,9 @@ index 8f4300e..e0f2c51 100644
  
  /* Cipher suites. */
  
-@@ -174,6 +219,11 @@ extern "C" {
- #define SSL_kCECPQ1 0x00000010L
- #define SSL_kGENERIC 0x00000020L
+@@ -173,6 +218,11 @@ extern "C" {
+ #define SSL_kPSK 0x00000008L
+ #define SSL_kGENERIC 0x00000010L
  
 +#if defined(GOSTSSL)
 +#define SSL_kGOST341001 0x00010000L
@@ -127,7 +127,7 @@ index 8f4300e..e0f2c51 100644
  /* Bits for |algorithm_auth| (server authentication). */
  #define SSL_aRSA 0x00000001L
  #define SSL_aECDSA 0x00000002L
-@@ -181,6 +231,11 @@ extern "C" {
+@@ -180,6 +230,11 @@ extern "C" {
  #define SSL_aPSK 0x00000004L
  #define SSL_aGENERIC 0x00000008L
  
@@ -139,7 +139,7 @@ index 8f4300e..e0f2c51 100644
  #define SSL_aCERT (SSL_aRSA | SSL_aECDSA)
  
  /* Bits for |algorithm_enc| (symmetric encryption). */
-@@ -193,6 +248,10 @@ extern "C" {
+@@ -192,6 +247,10 @@ extern "C" {
  #define SSL_eNULL                0x00000040L
  #define SSL_CHACHA20POLY1305     0x00000080L
  
@@ -150,9 +150,9 @@ index 8f4300e..e0f2c51 100644
  #define SSL_AES (SSL_AES128 | SSL_AES256 | SSL_AES128GCM | SSL_AES256GCM)
  
  /* Bits for |algorithm_mac| (symmetric authentication). */
-@@ -203,6 +262,10 @@ extern "C" {
+@@ -201,6 +260,10 @@ extern "C" {
  /* SSL_AEAD is set for all AEADs. */
- #define SSL_AEAD 0x00000010L
+ #define SSL_AEAD 0x00000008L
  
 +#if defined(GOSTSSL)
 +#define SSL_iGOST28147 0x00010000L
@@ -162,7 +162,7 @@ index 8f4300e..e0f2c51 100644
  #define SSL_HANDSHAKE_MAC_DEFAULT 0x1
  #define SSL_HANDSHAKE_MAC_SHA256 0x2
 diff --git a/ssl/ssl_cipher.c b/ssl/ssl_cipher.c
-index 99aba72..c88aaab 100644
+index 7ca79ab..289b06c 100644
 --- a/ssl/ssl_cipher.c
 +++ b/ssl/ssl_cipher.c
 @@ -273,6 +273,19 @@ static const SSL_CIPHER kCiphers[] = {
@@ -185,7 +185,7 @@ index 99aba72..c88aaab 100644
      /* PSK cipher suites. */
  
      /* Cipher 8C */
-@@ -643,6 +656,19 @@ static const SSL_CIPHER kCiphers[] = {
+@@ -597,6 +610,19 @@ static const SSL_CIPHER kCiphers[] = {
       SSL_HANDSHAKE_MAC_SHA256,
      },
  
@@ -205,7 +205,7 @@ index 99aba72..c88aaab 100644
  };
  
  static const size_t kCiphersLen = OPENSSL_ARRAY_SIZE(kCiphers);
-@@ -1420,6 +1446,13 @@ ssl_create_cipher_list(const SSL_PROTOCOL_METHOD *ssl_method,
+@@ -1371,6 +1397,13 @@ ssl_create_cipher_list(const SSL_PROTOCOL_METHOD *ssl_method,
    ssl_cipher_apply_rule(0, ~0u, ~0u, SSL_3DES, ~0u, 0, CIPHER_ADD, -1, 0, &head,
                          &tail);
  
@@ -219,7 +219,7 @@ index 99aba72..c88aaab 100644
    /* Temporarily enable everything else for sorting */
    ssl_cipher_apply_rule(0, ~0u, ~0u, ~0u, ~0u, 0, CIPHER_ADD, -1, 0, &head,
                          &tail);
-@@ -1764,6 +1797,9 @@ int SSL_CIPHER_get_bits(const SSL_CIPHER *cipher, int *out_alg_bits) {
+@@ -1703,6 +1736,9 @@ int SSL_CIPHER_get_bits(const SSL_CIPHER *cipher, int *out_alg_bits) {
  #if !defined(BORINGSSL_ANDROID_SYSTEM)
      case SSL_CHACHA20POLY1305_OLD:
  #endif
@@ -230,11 +230,11 @@ index 99aba72..c88aaab 100644
        alg_bits = 256;
        strength_bits = 256;
 diff --git a/ssl/ssl_lib.c b/ssl/ssl_lib.c
-index ca3022c..4afc0bd 100644
+index e0ab803..c7f51d2 100644
 --- a/ssl/ssl_lib.c
 +++ b/ssl/ssl_lib.c
 @@ -227,6 +227,70 @@ static int ssl_session_cmp(const SSL_SESSION *a, const SSL_SESSION *b) {
-   return memcmp(a->session_id, b->session_id, a->session_id_length);
+   return OPENSSL_memcmp(a->session_id, b->session_id, a->session_id_length);
  }
  
 +#if defined(GOSTSSL)
@@ -304,7 +304,7 @@ index ca3022c..4afc0bd 100644
  SSL_CTX *SSL_CTX_new(const SSL_METHOD *method) {
    SSL_CTX *ret = NULL;
  
-@@ -489,6 +553,13 @@ void SSL_free(SSL *ssl) {
+@@ -500,6 +564,13 @@ void SSL_free(SSL *ssl) {
      return;
    }
  
@@ -318,8 +318,8 @@ index ca3022c..4afc0bd 100644
    X509_VERIFY_PARAM_free(ssl->param);
  
    CRYPTO_free_ex_data(&g_ex_data_class_ssl, ssl, &ssl->ex_data);
-@@ -615,6 +686,19 @@ int SSL_do_handshake(SSL *ssl) {
-     return 1;
+@@ -637,6 +708,19 @@ int SSL_do_handshake(SSL *ssl) {
+     return -1;
    }
  
 +#if defined(GOSTSSL)
@@ -335,14 +335,13 @@ index ca3022c..4afc0bd 100644
 +  }
 +#endif
 +
-   return ssl->handshake_func(ssl);
- }
- 
-@@ -722,6 +806,20 @@ static int ssl_read_impl(SSL *ssl, void *buf, int num, int peek) {
+   /* Run the handshake. */
+   assert(ssl->s3->hs != NULL);
+   int ret = ssl->handshake_func(ssl->s3->hs);
+@@ -762,6 +846,19 @@ static int ssl_read_impl(SSL *ssl, void *buf, int num, int peek) {
        }
      }
  
-+
 +#if defined(GOSTSSL)
 +  if( gostssl() )
 +  {
@@ -359,7 +358,7 @@ index ca3022c..4afc0bd 100644
      int got_handshake;
      int ret = ssl->method->read_app_data(ssl, &got_handshake, buf, num, peek);
      if (ret > 0 || !got_handshake) {
-@@ -773,6 +871,19 @@ int SSL_write(SSL *ssl, const void *buf, int num) {
+@@ -810,6 +907,19 @@ int SSL_write(SSL *ssl, const void *buf, int num) {
      }
    }
  
@@ -380,5 +379,5 @@ index ca3022c..4afc0bd 100644
  }
  
 -- 
-2.7.2.windows.1
+2.10.0.windows.1
 

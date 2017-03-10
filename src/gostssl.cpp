@@ -581,7 +581,7 @@ int gostssl_write( SSL * s, const void * buf, int len, int * is_gost )
 
 int gostssl_connect( SSL * s, int * is_gost )
 {
-    GostSSL_Worker * w = workers_api( s, s->state == SSL_ST_INIT ? WDB_NEW : WDB_SEARCH );
+    GostSSL_Worker * w = workers_api( s, s->s3->hs->state == SSL_ST_INIT ? WDB_NEW : WDB_SEARCH );
 
     // fallback
     if( !w || w->host_status == GOSTSSL_HOST_AUTO || w->host_status == GOSTSSL_HOST_NO )
@@ -592,8 +592,8 @@ int gostssl_connect( SSL * s, int * is_gost )
 
     *is_gost = TRUE;
 
-    if( s->state == SSL_ST_INIT )
-        s->state = SSL_ST_CONNECT;
+    if( s->s3->hs->state == SSL_ST_INIT )
+        s->s3->hs->state = SSL_ST_CONNECT;
 
     int ret = msspi_connect( w->h );
 
@@ -607,7 +607,7 @@ int gostssl_connect( SSL * s, int * is_gost )
             s->s3->aead_write_ctx &&
             s->s3->aead_write_ctx->cipher )
         {
-            s->state = SSL_ST_OK;
+            s->s3->hs->state = SSL_ST_OK;
             return 1;
         }
 
@@ -617,9 +617,9 @@ int gostssl_connect( SSL * s, int * is_gost )
             static const size_t SSPI_ALPN_PROTO_LEN = sizeof( SSPI_ALPN_PROTO ) - 1;
 
             if( s->s3->alpn_selected )
-                bssls->OPENSSL_free( s->s3->alpn_selected );
+                bssls->BORINGSSL_free( s->s3->alpn_selected );
 
-            s->s3->alpn_selected = (uint8_t *)bssls->OPENSSL_malloc( SSPI_ALPN_PROTO_LEN );
+            s->s3->alpn_selected = (uint8_t *)bssls->BORINGSSL_malloc( SSPI_ALPN_PROTO_LEN );
 
             if( !s->s3->alpn_selected )
                 return 0;
@@ -629,7 +629,7 @@ int gostssl_connect( SSL * s, int * is_gost )
         }
 
         // заполняем оригинальные структуры (мимикрия)
-        if( bssls->ssl_get_new_session( s, 0 ) <= 0 )
+        if( bssls->ssl_get_new_session( s->s3->hs, 0 ) <= 0 )
             return 0;
 
         s->s3->established_session = s->s3->new_session;
@@ -705,9 +705,9 @@ int gostssl_connect( SSL * s, int * is_gost )
 
             {
                 if( s->s3->aead_write_ctx )
-                    bssls->OPENSSL_free( s->s3->aead_write_ctx );
+                    bssls->BORINGSSL_free( s->s3->aead_write_ctx );
 
-                s->s3->aead_write_ctx = (SSL_AEAD_CTX *)bssls->OPENSSL_malloc( sizeof( ssl_aead_ctx_st ) );
+                s->s3->aead_write_ctx = (SSL_AEAD_CTX *)bssls->BORINGSSL_malloc( sizeof( ssl_aead_ctx_st ) );
 
                 if( !s->s3->aead_write_ctx )
                     return 0;
@@ -723,7 +723,7 @@ int gostssl_connect( SSL * s, int * is_gost )
         else if( s->ctx->info_callback != NULL )
             s->ctx->info_callback( s, SSL_CB_HANDSHAKE_DONE, 1 );
 
-        s->state = SSL_ST_OK;
+        s->s3->hs->state = SSL_ST_OK;
         w->host_status = GOSTSSL_HOST_YES;
 
         if( s->tlsext_hostname )
