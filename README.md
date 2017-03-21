@@ -10,8 +10,8 @@
 
 [chromium-gost](https://github.com/deemru/chromium-gost) — веб-браузер с открытым исходным кодом на основе [Chromium](https://ru.wikipedia.org/wiki/Chromium) с поддержкой криптографических алгоритмов ГОСТ при установке [защищённых соединений](https://ru.wikipedia.org/wiki/TLS) через интерфейс [msspi](https://github.com/deemru/msspi)
 
-# [Скачать](https://github.com/deemru/chromium-gost/release/latest)
-[chromium-gost](https://github.com/deemru/chromium-gost) доступен для операционных систем Windows и Linux, вы можете скачать соответствующий дистрибутив в [chromium-gost/release/latest](https://github.com/deemru/chromium-gost/release/latest)
+# [Скачать](https://github.com/deemru/chromium-gost/releases/latest)
+[chromium-gost](https://github.com/deemru/chromium-gost) доступен для операционных систем Windows и Linux, вы можете скачать соответствующий дистрибутив в [chromium-gost/releases/latest](https://github.com/deemru/chromium-gost/releases/latest)
 
 # Принцип работы
 
