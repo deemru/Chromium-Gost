@@ -17,4 +17,4 @@ ninja -C out/RELEASE "chrome/installer/linux:stable_rpm"
 
 cd $(dirname $0)
 mv -f $CHROMIUM_PATH/out/RELEASE/chromium-gost-stable_${CHROMIUM_TAG}-1_amd64.deb chromium-gost-${CHROMIUM_TAG}-x64-beta.deb
-mv -f $CHROMIUM_PATH/out/RELEASE/chromium-gost-stable_${CHROMIUM_TAG}-1.x86_64.rpm chromium-gost-${CHROMIUM_TAG}-x64-beta.rpm
+mv -f $CHROMIUM_PATH/out/RELEASE/chromium-gost-stable-${CHROMIUM_TAG}-1.x86_64.rpm chromium-gost-${CHROMIUM_TAG}-x64-beta.rpm
