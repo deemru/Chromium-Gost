@@ -1,10 +1,17 @@
+<h3 align="center">
+  <img src="extra/chromium-gost-header.png"/>
+</h3>
+
 # chromium-gost 
 
 [![version](https://img.shields.io/github/release/deemru/chromium-gost.svg)](https://github.com/deemru/chromium-gost/releases/latest)
+[![appveyor](https://img.shields.io/appveyor/ci/deemru/chromium-gost.svg?label=appveyor)](https://ci.appveyor.com/project/deemru/chromium-gost)
+[![visualstudio](https://img.shields.io/vso/build/deem/2f245d40-b5be-4754-a914-1876f55cf9e7/4.svg?label=visualstudio)](https://deem.visualstudio.com/builder/_build/index?definitionId=4)
 
-[chromium-gost](https://github.com/deemru/chromium-gost) — веб-браузер с открытым исходным кодом на основе [Chromium](https://ru.wikipedia.org/wiki/Chromium) с поддержкой криптографических алгоритмов ГОСТ при установке [защищённых соединений](https://ru.wikipedia.org/wiki/TLS) через интерфейс [msspi](https://github.com/deemru/msspi).
+[chromium-gost](https://github.com/deemru/chromium-gost) — веб-браузер с открытым исходным кодом на основе [Chromium](https://ru.wikipedia.org/wiki/Chromium) с поддержкой криптографических алгоритмов ГОСТ при установке [защищённых соединений](https://ru.wikipedia.org/wiki/TLS) через интерфейс [msspi](https://github.com/deemru/msspi)
 
-[![logo](http://update.cryptopro.ru/chromium-gost/img/chromium-gost.svg)](https://github.com/deemru/chromium-gost)
+# [Скачать](https://github.com/deemru/chromium-gost/release/latest)
+[chromium-gost](https://github.com/deemru/chromium-gost) доступен для операционных систем Windows и Linux, вы можете скачать соответствующий дистрибутив в [chromium-gost/release/latest](https://github.com/deemru/chromium-gost/release/latest)
 
 # Принцип работы
 

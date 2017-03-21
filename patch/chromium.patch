@@ -1,22 +1,26 @@
-From a1a45835d25d7e271d44ce9ab5957d72d6f91a55 Mon Sep 17 00:00:00 2001
+From d7793ea055625f742bec21dce7dcc5ffaac230d2 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Fri, 2 Sep 2016 14:25:18 +0300
 Subject: [PATCH] added GOSTSSL
 
 ---
- chrome/app/chrome_dll.rc                        |   2 +-
- chrome/app/chrome_exe.rc                        |   2 +-
- chrome/app/theme/chromium/win/chromium-gost.ico | Bin 0 -> 30761 bytes
- net/base/net_error_list.h                       |   6 +++++
- net/http/http_network_transaction.cc            |   8 +++++++
- net/socket/ssl_client_socket_impl.cc            |  28 ++++++++++++++++++++++++
- net/ssl/openssl_ssl_util.cc                     |   4 ++++
- net/ssl/ssl_cipher_suite_names.cc               |  22 +++++++++++++++++++
- 8 files changed, 70 insertions(+), 2 deletions(-)
+ chrome/app/chrome_dll.rc                           |   2 +-
+ chrome/app/chrome_exe.rc                           |   2 +-
+ chrome/app/theme/chromium/win/chromium-gost.ico    | Bin 0 -> 30761 bytes
+ .../ui/views/ssl_client_certificate_selector.cc    |   3 +-
+ .../common/chromium-browser/chromium-browser.info  |  10 +-
+ chrome/installer/linux/common/installer.include    |   5 +
+ net/base/net_error_list.h                          |   6 +
+ net/http/http_network_transaction.cc               |   8 ++
+ net/socket/ssl_client_socket_impl.cc               | 129 +++++++++++++++++++++
+ net/ssl/client_cert_store_nss.cc                   |  46 ++++++++
+ net/ssl/openssl_ssl_util.cc                        |   4 +
+ net/ssl/ssl_cipher_suite_names.cc                  |  22 ++++
+ 12 files changed, 229 insertions(+), 8 deletions(-)
  create mode 100644 chrome/app/theme/chromium/win/chromium-gost.ico
 
 diff --git a/chrome/app/chrome_dll.rc b/chrome/app/chrome_dll.rc
-index becda38..3031839 100644
+index e932703f..84b4a32 100644
 --- a/chrome/app/chrome_dll.rc
 +++ b/chrome/app/chrome_dll.rc
 @@ -168,7 +168,7 @@ END
@@ -401,8 +405,70 @@ L`w$n>K-&KYk@}FE
 literal 0
 HcmV?d00001
 
+diff --git a/chrome/browser/ui/views/ssl_client_certificate_selector.cc b/chrome/browser/ui/views/ssl_client_certificate_selector.cc
+index 0830efb..2787539 100644
+--- a/chrome/browser/ui/views/ssl_client_certificate_selector.cc
++++ b/chrome/browser/ui/views/ssl_client_certificate_selector.cc
+@@ -69,7 +69,8 @@ bool SSLClientCertificateSelector::Accept() {
+     // notification while waiting for the unlock dialog, causing us to delete
+     // ourself before the Unlocked callback gets called.
+     StopObserving();
+-#if defined(USE_NSS_CERTS) && !defined(OS_CHROMEOS)
++#define GOSTSSL
++#if !defined(GOSTSSL) && defined(USE_NSS_CERTS) && !defined(OS_CHROMEOS)
+     chrome::UnlockCertSlotIfNecessary(
+         cert.get(), chrome::kCryptoModulePasswordClientAuth,
+         cert_request_info()->host_and_port, GetWidget()->GetNativeView(),
+diff --git a/chrome/installer/linux/common/chromium-browser/chromium-browser.info b/chrome/installer/linux/common/chromium-browser/chromium-browser.info
+index 3593c9e..9826523 100644
+--- a/chrome/installer/linux/common/chromium-browser/chromium-browser.info
++++ b/chrome/installer/linux/common/chromium-browser/chromium-browser.info
+@@ -6,22 +6,22 @@
+ # chromium-browser packages for various platforms.
+ 
+ # Base name of the package.
+-PACKAGE="chromium-browser"
++PACKAGE="chromium-gost"
+ 
+ # Filename of the main executable (for generating launcher scripts, etc.)
+ PROGNAME=chrome
+ 
+ # Base directory for package installation.
+-INSTALLDIR=/opt/chromium.org/chromium
++INSTALLDIR=/opt/chromium-gost
+ 
+ # Display string for desktop menu/icon.
+-MENUNAME="Chromium Web Browser"
++MENUNAME="chromium-gost"
+ 
+ # Brief package description.
+-SHORTDESC="The web browser from Chromium.org"
++SHORTDESC="Chromium browser with GOST cryptography support"
+ 
+ # Detailed package description.
+-FULLDESC="Chromium is a browser that combines a minimal design with sophisticated technology to make the web faster, safer, and easier."
++FULLDESC="Chromium is a browser that combines a minimal design with sophisticated technology to make the web faster, safer, and easier. This version supports GOST cryptography in TLS-connections."
+ 
+ # Package maintainer information.
+ # TODO(mmoss) Setup a mailbox for this address
+diff --git a/chrome/installer/linux/common/installer.include b/chrome/installer/linux/common/installer.include
+index d606238..0aa6594d 100644
+--- a/chrome/installer/linux/common/installer.include
++++ b/chrome/installer/linux/common/installer.include
+@@ -162,6 +162,11 @@ stage_install_common() {
+     install -m 644 "${BUILDDIR}/libwidevinecdm.so" "${STAGEDIR}/${INSTALLDIR}/"
+   fi
+ 
++  # GOSTSSL
++  if [ -f "${BUILDDIR}/gostssl.so" ]; then
++    install -m 644 "${BUILDDIR}/gostssl.so" "${STAGEDIR}/${INSTALLDIR}/"
++  fi
++
+   # ANGLE
+   if [ "${CHANNEL}" != "stable" ]; then
+     install -m 644 "${BUILDDIR}/libGLESv2.so" "${STAGEDIR}/${INSTALLDIR}/"
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
-index 0694b69..c4cc39c 100644
+index 617a56d..f5007d5 100644
 --- a/net/base/net_error_list.h
 +++ b/net/base/net_error_list.h
 @@ -19,6 +19,12 @@
@@ -413,16 +479,16 @@ index 0694b69..c4cc39c 100644
 +#if defined(GOSTSSL)
 +//   3000-3099 GOSTSSL
 +NET_ERROR(TLS_GOST_REQUIRED, -3072)
-+#endif
++#endif // GOSTSSL
 +
  // An asynchronous IO operation is not yet complete.  This usually does not
  // indicate a fatal error.  Typically this error will be generated as a
  // notification to wait for some external notification that the IO operation
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index a8a7d1a..357e2b9 100644
+index b7ceb43..e7c6984 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
-@@ -1478,6 +1478,14 @@ int HttpNetworkTransaction::HandleSSLHandshakeError(int error) {
+@@ -1479,6 +1479,14 @@ int HttpNetworkTransaction::HandleSSLHandshakeError(int error) {
    DCHECK(request_);
    HandleClientAuthError(error);
  
@@ -432,52 +498,231 @@ index a8a7d1a..357e2b9 100644
 +    ResetConnectionAndRequestForResend();
 +    return OK;
 +  }
-+#endif
++#endif // GOSTSSL
 +
    // Accept deprecated cipher suites, but only on a fallback. This makes UMA
    // reflect servers require a deprecated cipher rather than merely prefer
    // it. This, however, has no security benefit until the ciphers are actually
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index d20d81e..679b41b 100644
+index 4be80d7..b507e39 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
-@@ -1626,6 +1626,34 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
-     return -1;
-   }
+@@ -1144,6 +1144,26 @@ int SSLClientSocketImpl::DoHandshake() {
+   return net_error;
+ }
  
-+#if defined(GOSTSSL)
-+
++#ifdef GOSTSSL
++#ifdef _WIN32
 +#if defined ( _M_IX86 )
 +#define EXPLICITSSL_CALL __cdecl
 +#elif defined ( _M_X64 )
 +#define EXPLICITSSL_CALL __fastcall
 +#endif
++#define GOSTSSLLIB "gostssl.dll"
++#define LIBLOAD( name ) LoadLibraryA( name )
++#define LIBFUNC( lib, name ) (UINT_PTR)GetProcAddress( lib, name )
++#else // not _WIN32
++#define EXPLICITSSL_CALL
++#include <dlfcn.h>
++#define GOSTSSLLIB "gostssl.so"
++#define LIBLOAD( name ) dlopen( name, RTLD_LAZY )
++#define LIBFUNC( lib, name ) dlsym( lib, name )
++typedef void * HMODULE;
++#endif // _WIN32
++#endif // GOSTSSL
 +
-+	if( ssl_config_.client_cert.get() )
+ int SSLClientSocketImpl::DoHandshakeComplete(int result) {
+   if (result < 0)
+     return result;
+@@ -1275,6 +1295,86 @@ int SSLClientSocketImpl::DoVerifyCert(int result) {
+ 
+   start_cert_verification_time_ = base::TimeTicks::Now();
+ 
++#if defined(GOSTSSL) && defined(OPENSSL_LINUX)
++#define TRUST_E_CERT_SIGNATURE          0x80096004L
++#define CRYPT_E_REVOKED                 0x80092010L
++#define CERT_E_UNTRUSTEDROOT            0x800B0109L
++#define CERT_E_UNTRUSTEDTESTROOT        0x800B010DL
++#define CERT_E_REVOCATION_FAILURE       0x800B010EL
++#define CERT_E_EXPIRED                  0x800B0101L
++#define CERT_E_INVALID_NAME             0x800B0114L
++#define CERT_E_CN_NO_MATCH              0x800B010FL
++#define CERT_E_VALIDITYPERIODNESTING    0x800B0102L
++#define CRYPT_E_NO_REVOCATION_CHECK     0x80092012L
++#define CRYPT_E_REVOCATION_OFFLINE      0x80092013L
++#define CERT_E_CHAINING                 0x800B010AL
++
 +    {
-+        static void ( EXPLICITSSL_CALL * certhook )( void * cert ) = NULL;
-+        static int is_tried = FALSE;
++        static void ( EXPLICITSSL_CALL * verifyhook )( void * ssl, unsigned * gost_status ) = NULL;
++        static int is_tried = 0;
 +
 +        if( !is_tried )
 +        {
-+            HMODULE hGSSL = LoadLibraryA( "gostssl.dll" );
++            HMODULE hGSSL = LIBLOAD( GOSTSSLLIB );
 +
 +            if( hGSSL )
-+                *(UINT_PTR *)&certhook = (UINT_PTR)GetProcAddress( hGSSL, "gostssl_certhook" );
++                *(uintptr_t *)&verifyhook = (uintptr_t)LIBFUNC( hGSSL, "gostssl_verifyhook" );
 +
-+            is_tried = TRUE;
++            is_tried = 1;
++        }
++
++        if( verifyhook )
++        {
++            unsigned gost_status;
++
++            verifyhook( (void *)ssl_.get(), &gost_status );
++
++            if( gost_status )
++            {
++                int gost_rv = OK;
++
++                switch( gost_status )
++                {
++                    case 1:
++                        break;
++                    case CERT_E_CN_NO_MATCH:
++                    case CERT_E_INVALID_NAME:
++                        gost_rv = ERR_CERT_COMMON_NAME_INVALID;
++                        break;
++                    case CERT_E_UNTRUSTEDROOT:
++                    case TRUST_E_CERT_SIGNATURE:
++                    case CERT_E_UNTRUSTEDTESTROOT:
++                    case CERT_E_CHAINING:
++                        gost_rv = ERR_CERT_AUTHORITY_INVALID;
++                        break;
++                    case CERT_E_EXPIRED:
++                    case CERT_E_VALIDITYPERIODNESTING:
++                        gost_rv = ERR_CERT_DATE_INVALID;
++                        break;
++                    case CRYPT_E_NO_REVOCATION_CHECK:
++                    case CERT_E_REVOCATION_FAILURE:
++                        gost_rv = ERR_CERT_NO_REVOCATION_MECHANISM;
++                        break;
++                    case CRYPT_E_REVOCATION_OFFLINE:
++                        gost_rv = ERR_CERT_UNABLE_TO_CHECK_REVOCATION;
++                        break;
++                    case CRYPT_E_REVOKED:
++                        gost_rv = ERR_CERT_REVOKED;
++                        break;
++                    default:
++                        gost_rv = ERR_CERT_INVALID;
++                        break;
++                }
++
++                if( gost_rv != OK )
++                    server_cert_verify_result_.cert_status = MapNetErrorToCertStatus( gost_rv );
++                server_cert_verify_result_.verified_cert = server_cert_;
++                return gost_rv;
++            }
++        }
++    }
++#endif // GOSTSSL && OPENSSL_LINUX
++
+   const uint8_t* ocsp_response_raw;
+   size_t ocsp_response_len;
+   SSL_get0_ocsp_response(ssl_.get(), &ocsp_response_raw, &ocsp_response_len);
+@@ -1669,6 +1769,35 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+     return -1;
+   }
+ 
++#if defined(GOSTSSL)
++    if( ssl_config_.client_cert.get() )
++    {
++        static void ( EXPLICITSSL_CALL * certhook )( void * cert, int size ) = NULL;
++        static int is_tried = 0;
++
++        if( !is_tried )
++        {
++            HMODULE hGSSL = LIBLOAD( GOSTSSLLIB );
++
++            if( hGSSL )
++                *(uintptr_t *)&certhook = (uintptr_t)LIBFUNC( hGSSL, "gostssl_certhook" );
++
++            is_tried = 1;
 +        }
 +
 +        if( certhook )
-+            certhook( (void *)ssl_config_.client_cert->os_cert_handle() );
++        {
++#ifdef OPENSSL_WINDOWS
++            certhook( (void *)ssl_config_.client_cert->os_cert_handle(), 0 );
++#else // not OPENSSL_WINDOWS
++            std::string cert_pem;
++            if( ssl_config_.client_cert->GetDEREncoded( ssl_config_.client_cert->os_cert_handle(), &cert_pem ) )
++                certhook( (void *)&cert_pem[0], cert_pem.size() );
++#endif // OPENSSL_WINDOWS
++        }
 +    }
-+#endif
++#endif // GOSTSSL
 +
    // Second pass: a client certificate should have been selected.
    if (ssl_config_.client_cert.get()) {
      bssl::UniquePtr<X509> leaf_x509 =
+diff --git a/net/ssl/client_cert_store_nss.cc b/net/ssl/client_cert_store_nss.cc
+index dab4728..36749f0 100644
+--- a/net/ssl/client_cert_store_nss.cc
++++ b/net/ssl/client_cert_store_nss.cc
+@@ -107,6 +107,16 @@ void ClientCertStoreNSS::FilterCertsOnWorkerThread(
+             x509_util::ClientCertSorter());
+ }
+ 
++#define GOSTSSL
++#ifdef GOSTSSL
++#define EXPLICITSSL_CALL
++#include <dlfcn.h>
++#define GOSTSSLLIB "gostssl.so"
++#define LIBLOAD( name ) dlopen( name, RTLD_LAZY )
++#define LIBFUNC( lib, name ) dlsym( lib, name )
++typedef void * HMODULE;
++#endif // GOSTSSL
++
+ void ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
+     std::unique_ptr<crypto::CryptoModuleBlockingPasswordDelegate>
+         password_delegate,
+@@ -115,6 +125,42 @@ void ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
+   CertificateList platform_certs;
+   GetPlatformCertsOnWorkerThread(std::move(password_delegate), &platform_certs);
+   FilterCertsOnWorkerThread(platform_certs, *request, selected_certs);
++
++#if defined(GOSTSSL)
++    {
++        static unsigned ( EXPLICITSSL_CALL * clientcertshook )( char *** certs, int ** lens, int * count, int * is_gost ) = NULL;
++        static int is_tried = 0;
++
++        if( !is_tried )
++        {
++            HMODULE hGSSL = LIBLOAD( GOSTSSLLIB );
++
++            if( hGSSL )
++                *(uintptr_t *)&clientcertshook = (uintptr_t)LIBFUNC( hGSSL, "gostssl_clientcertshook" );
++
++            is_tried = 1;
++        }
++
++        if( clientcertshook )
++        {
++            char ** certs;
++            int * lens;
++            int count;
++            int is_gost;
++
++            clientcertshook( &certs, &lens, &count, &is_gost );
++
++            if( is_gost )
++            {
++                selected_certs->clear();
++                for( int i = 0; i < count; i++ )
++                    selected_certs->push_back( X509Certificate::CreateFromBytes( certs[i], lens[i] ) );
++                std::sort( selected_certs->begin(), selected_certs->end(), x509_util::ClientCertSorter() );
++            }
++        }
++    }
++#endif // GOSTSSL
++
+ }
+ 
+ // static
 diff --git a/net/ssl/openssl_ssl_util.cc b/net/ssl/openssl_ssl_util.cc
-index f1266d5..56da96de 100644
+index f1266d5..90f6439 100644
 --- a/net/ssl/openssl_ssl_util.cc
 +++ b/net/ssl/openssl_ssl_util.cc
 @@ -77,6 +77,10 @@ int MapOpenSSLErrorSSL(uint32_t error_code) {
@@ -487,12 +732,12 @@ index f1266d5..56da96de 100644
 +#if defined(GOSTSSL)
 +    case SSL_R_TLS_GOST_REQUIRED:
 +      return ERR_TLS_GOST_REQUIRED;
-+#endif
++#endif // GOSTSSL
      case SSL_R_SSLV3_ALERT_BAD_CERTIFICATE:
      case SSL_R_SSLV3_ALERT_UNSUPPORTED_CERTIFICATE:
      case SSL_R_SSLV3_ALERT_CERTIFICATE_REVOKED:
 diff --git a/net/ssl/ssl_cipher_suite_names.cc b/net/ssl/ssl_cipher_suite_names.cc
-index 320c22e..dc45595 100644
+index 320c22e..44a03e8 100644
 --- a/net/ssl/ssl_cipher_suite_names.cc
 +++ b/net/ssl/ssl_cipher_suite_names.cc
 @@ -365,6 +365,28 @@ void SSLCipherSuiteToStrings(const char** key_exchange_str,
@@ -519,11 +764,11 @@ index 320c22e..dc45595 100644
 +      break;
 +
 +  }
-+#endif
++#endif // GOSTSSL
 +
    int key_exchange, cipher, mac;
    if (!GetCipherProperties(cipher_suite, &key_exchange, &cipher, &mac))
      return;
 -- 
-2.7.2.windows.1
+2.10.0.windows.1
 

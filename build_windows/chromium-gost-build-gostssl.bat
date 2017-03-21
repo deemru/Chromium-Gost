@@ -14,7 +14,7 @@ if "%DATETIMEVERSION%" == " " (
 ( echo #define DATETIMEVERSION %DATETIMEVERSION%) > gostssl_ver.rc
 ( echo #define CHROMIUM_TAG "%CHROMIUM_TAG%") >> gostssl_ver.rc
 
-cl /c /Ox /Ot /GL /GF /GS /W4 /EHa /I%BORINGSSL_PATH%\include ../src/gostssl.cpp
+cl /c /Ox /Ot /GL /GF /GS /W4 /EHa /I%BORINGSSL_PATH%\include /I..\src\msspi\src ../src/gostssl.cpp
 cl /c /Ox /Ot /GL /GF /GS /W4 /EHa ../src/msspi/src/msspi.cpp
 rc -r gostssl.rc
 

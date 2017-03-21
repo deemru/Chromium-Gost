@@ -4,9 +4,6 @@ extern "C" {
 
 #include <openssl/ssl.h>
 #include <../ssl/internal.h>
-#ifndef _WIN32
-#define EXPLICITSSL_CALL
-#endif
 #ifdef _WIN32
 #define EXPORT __declspec(dllexport)
 #else
@@ -25,13 +22,10 @@ extern "C" {
     // Markers
     EXPORT int EXPLICITSSL_CALL gostssl_tls_gost_required( SSL * s );
 
-    // Callbacks
-    EXPORT void EXPLICITSSL_CALL gostssl_certhook( void * cert );
-
-    // Linux Callbacks
-    EXPORT void EXPLICITSSL_CALL gostssl_rawcerthook( void * cert, int size );
-    EXPORT void EXPLICITSSL_CALL gostssl_verifyhook( SSL * s, int * is_gost );
-    EXPORT unsigned EXPLICITSSL_CALL gostssl_clientcertshook( char *** certs, int ** lens );
+    // Hooks
+    EXPORT void EXPLICITSSL_CALL gostssl_certhook( void * cert, int size );
+    EXPORT void EXPLICITSSL_CALL gostssl_verifyhook( void * s, unsigned * is_gost );
+    EXPORT void EXPLICITSSL_CALL gostssl_clientcertshook( char *** certs, int ** lens, int * count, int * is_gost );
 
 #if defined( __cplusplus )
 }
@@ -42,16 +36,6 @@ extern "C" {
 #else
 #include "CSP_WinDef.h"
 #include "CSP_WinCrypt.h"
-#include <sys/time.h>
-
-unsigned GetTickCount()
-{
-    struct timeval tv;
-    if( gettimeofday( &tv, NULL ) != 0 )
-        return 0;
-
-    return ( tv.tv_sec * 1000 ) + ( tv.tv_usec / 1000 );
-}
 #endif // WIN32
 
 #include <stdio.h>
@@ -61,8 +45,9 @@ unsigned GetTickCount()
 #include <unordered_map>
 #include <string>
 #include <vector>
+#include <mutex>
 
-#include "msspi\src\msspi.h"
+#include "msspi.h"
 
 // Тест корректности типов на этапе компиляции
 static GOSTSSL_METHOD gssl = {
@@ -71,7 +56,7 @@ static GOSTSSL_METHOD gssl = {
     gostssl_read,
     gostssl_write,
     gostssl_free,
-    gostssl_tls_gost_required,
+    gostssl_tls_gost_required
 };
 
 static BORINGSSL_METHOD * bssls = NULL;
@@ -81,6 +66,7 @@ static BORINGSSL_METHOD * bssls = NULL;
 
 static const SSL_CIPHER * tlsgost2001 = NULL;
 static const SSL_CIPHER * tlsgost2012 = NULL;
+static char g_is_gost = 0;
 
 int gostssl_init( BORINGSSL_METHOD * bssl_methods )
 {
@@ -104,6 +90,8 @@ int gostssl_init( BORINGSSL_METHOD * bssl_methods )
 
     if( !tlsgost2001 || !tlsgost2012 )
         return 0;
+
+    (void)gssl;
 
     return 1;
 }
@@ -160,6 +148,7 @@ static int gostssl_cert_cb( GostSSL_Worker * w )
             gcert = NULL;
         }
 
+        g_is_gost = 1;
         int ret = w->s->cert->cert_cb( w->s, w->s->cert->cert_cb_arg );
 
         if( !gcert )
@@ -181,7 +170,7 @@ static int gostssl_cert_cb( GostSSL_Worker * w )
     return 1;
 }
 
-void gostssl_certhook( void * cert )
+void gostssl_certhook( void * cert, int size )
 {
     if( !cert )
         return;
@@ -189,7 +178,10 @@ void gostssl_certhook( void * cert )
     if( gcert )
         return;
 
-    gcert = CertDuplicateCertificateContext( (PCCERT_CONTEXT)cert );
+    if( size == 0 )
+        gcert = CertDuplicateCertificateContext( (PCCERT_CONTEXT)cert );
+    else
+        gcert = CertCreateCertificateContext( X509_ASN_ENCODING, (BYTE *)cert, size );
 }
 
 typedef std::map< void *, GostSSL_Worker * > WORKERS_DB;
@@ -198,43 +190,11 @@ typedef std::pair< std::string, GOSTSSL_HOST_STATUS > HOST_STATUSES_DB_PAIR;
 
 static WORKERS_DB workers_db;
 static HOST_STATUSES_DB host_statuses_db;
-
-struct GostSSL_CriticalSection
-{
-    GostSSL_CriticalSection()
-    {
-        InitializeCriticalSectionAndSpinCount( &crit_section, 0x1000 );
-    }
-
-    ~GostSSL_CriticalSection()
-    {
-        DeleteCriticalSection( &crit_section );
-    }
-
-    CRITICAL_SECTION crit_section;
-};
-
-struct GostSSL_Lock
-{
-    GostSSL_Lock( GostSSL_CriticalSection & section )
-    {
-        locked_section = &section.crit_section;
-        EnterCriticalSection( locked_section );
-    }
-
-    ~GostSSL_Lock()
-    {
-        LeaveCriticalSection( locked_section );
-    }
-
-    CRITICAL_SECTION * locked_section;
-};
-
-static GostSSL_CriticalSection gssl_critsect;
+static std::recursive_mutex gmutex;
 
 void host_status_set( const char * site, GOSTSSL_HOST_STATUS status )
 {
-    GostSSL_Lock lock( gssl_critsect );
+    std::unique_lock<std::recursive_mutex> lck( gmutex );
 
     HOST_STATUSES_DB::iterator lb = host_statuses_db.find( site );
 
@@ -393,7 +353,7 @@ GOSTSSL_HOST_STATUS host_status_get( char * site )
 {
     if( host_statuses_db.size() )
     {
-        GostSSL_Lock lock( gssl_critsect );
+        std::unique_lock<std::recursive_mutex> lck( gmutex );
 
         HOST_STATUSES_DB::iterator lb = host_statuses_db.find( site );
 
@@ -437,7 +397,7 @@ GostSSL_Worker * workers_api( SSL * s, WORKER_DB_ACTION action )
         }
     }
 
-    GostSSL_Lock lock( gssl_critsect );
+    std::unique_lock<std::recursive_mutex> lck( gmutex );
 
     WORKERS_DB::iterator lb = workers_db.lower_bound( s );
 
@@ -738,4 +698,79 @@ int gostssl_connect( SSL * s, int * is_gost )
 void gostssl_free( SSL * s )
 {
     workers_api( s, WDB_FREE );
+}
+
+void gostssl_verifyhook( void * s, unsigned * gost_status )
+{
+    *gost_status = 0;
+
+    GostSSL_Worker * w = workers_api( (SSL *)s, WDB_SEARCH );
+
+    if( !w || w->host_status != GOSTSSL_HOST_YES )
+        return;
+
+    unsigned verify_status = msspi_verify( w->h );
+
+    switch( verify_status )
+    {
+        case MSSPI_VERIFY_OK:
+            *gost_status = 1;
+            break;
+        case MSSPI_VERIFY_ERROR:
+            *gost_status = (unsigned)CERT_E_CRITICAL;
+            break;
+        default:
+            *gost_status = verify_status;
+    }
+}
+
+static std::vector<char *> g_certs;
+static std::vector<int> g_certlens;
+static std::vector<std::string> g_certbufs;
+
+void gostssl_clientcertshook( char *** certs, int ** lens, int * count, int * is_gost )
+{
+    *is_gost = g_is_gost;
+
+    if( !g_is_gost )
+        return;
+
+    HCERTSTORE hStore = CertOpenStore( CERT_STORE_PROV_SYSTEM_A, 0, 0, CERT_STORE_OPEN_EXISTING_FLAG | CERT_STORE_READONLY_FLAG, "MY" );
+
+    if( !hStore )
+        return;
+
+    int i = 0;
+    g_certs.clear();
+    g_certlens.clear();
+    g_certbufs.clear();
+
+    for(
+        PCCERT_CONTEXT pcert = CertFindCertificateInStore( hStore, ( PKCS_7_ASN_ENCODING | X509_ASN_ENCODING ), 0, CERT_FIND_ANY, 0, 0 );
+        pcert;
+        pcert = CertFindCertificateInStore( hStore, ( PKCS_7_ASN_ENCODING | X509_ASN_ENCODING ), 0, CERT_FIND_ANY, 0, pcert ) )
+    {
+        BYTE bUsage;
+        DWORD dw = 0;
+        // basic cert validation
+        if( ( CertGetIntendedKeyUsage( X509_ASN_ENCODING, pcert->pCertInfo, &bUsage, 1 ) ) &&
+            ( bUsage & CERT_DIGITAL_SIGNATURE_KEY_USAGE ) &&
+            ( CertVerifyTimeValidity( NULL, pcert->pCertInfo ) == 0 ) &&
+            ( CertGetCertificateContextProperty( pcert, CERT_KEY_PROV_INFO_PROP_ID, NULL, &dw ) ) )
+        {
+            g_certbufs.push_back( std::string( (char *)pcert->pbCertEncoded, pcert->cbCertEncoded ) );
+            g_certlens.push_back( (int)g_certbufs[i].size() );
+            g_certs.push_back( &g_certbufs[i][0] );
+            i++;
+        }
+    }
+
+    if( i )
+    {
+        *certs = &g_certs[0];
+        *lens = &g_certlens[0];
+        *count = i;
+    }
+
+    CertCloseStore( hStore, 0 );
 }

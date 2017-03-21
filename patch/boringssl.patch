@@ -1,4 +1,4 @@
-From 142a1a8f2f803788478fe2b97ad1f6b111a697e5 Mon Sep 17 00:00:00 2001
+From fd982df697830d7f8ed95af0d20ffe0d7a4616b2 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Fri, 10 Mar 2017 14:06:05 +0300
 Subject: [PATCH] added GOSTSSL
@@ -6,20 +6,20 @@ Subject: [PATCH] added GOSTSSL
 ---
  include/openssl/ssl.h  |   8 ++++
  ssl/handshake_client.c |  11 +++++
- ssl/internal.h         |  63 ++++++++++++++++++++++++++++
- ssl/ssl_cipher.c       |  36 ++++++++++++++++
- ssl/ssl_lib.c          | 110 +++++++++++++++++++++++++++++++++++++++++++++++++
- 5 files changed, 228 insertions(+)
+ ssl/internal.h         |  67 ++++++++++++++++++++++++++
+ ssl/ssl_cipher.c       |  36 ++++++++++++++
+ ssl/ssl_lib.c          | 128 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 250 insertions(+)
 
 diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
-index 70646b0..9822685 100644
+index 70646b0..96d6cad 100644
 --- a/include/openssl/ssl.h
 +++ b/include/openssl/ssl.h
 @@ -163,6 +163,10 @@
   * However, only a forward declaration is needed. */
  struct timeval;
  
-+#if defined(OPENSSL_WINDOWS)
++#if defined(OPENSSL_WINDOWS) || defined(OPENSSL_LINUX)
 +#define GOSTSSL
 +#endif
 +
@@ -60,28 +60,32 @@ index 720c215..a760631 100644
    if (!ssl3_init_handshake_hash(ssl)) {
      goto f_err;
 diff --git a/ssl/internal.h b/ssl/internal.h
-index eb47785..e5a475a 100644
+index eb47785..a340cd9 100644
 --- a/ssl/internal.h
 +++ b/ssl/internal.h
-@@ -162,6 +162,51 @@ OPENSSL_MSVC_PRAGMA(warning(pop))
+@@ -162,6 +162,55 @@ OPENSSL_MSVC_PRAGMA(warning(pop))
  extern "C" {
  #endif
  
 +#if defined(GOSTSSL)
 +//
++#ifndef _WIN32
++#define EXPLICITSSL_CALL
++#else
 +#if defined ( _M_IX86 )
 +#define EXPLICITSSL_CALL __cdecl
 +#elif defined ( _M_X64 )
 +#define EXPLICITSSL_CALL __fastcall
 +#endif
++#endif // _WIN32
 +//
 +struct boringssl_method_st
 +{
-+    void *   ( EXPLICITSSL_CALL * BORINGSSL_malloc )( _In_ _CRT_GUARDOVERFLOW size_t size );
++    void *   ( EXPLICITSSL_CALL * BORINGSSL_malloc )( size_t size );
 +    void     ( EXPLICITSSL_CALL * BORINGSSL_free )( void * ptr );
 +    int      ( EXPLICITSSL_CALL * BIO_read )( BIO * bio, void * data, int len );
 +    int      ( EXPLICITSSL_CALL * BIO_write )( BIO * bio, const void * data, int len );
-+    long     ( EXPLICITSSL_CALL * BIO_ctrl )( BIO * bio, int cmd, long larg, void * parg );    
++    long     ( EXPLICITSSL_CALL * BIO_ctrl )( BIO * bio, int cmd, long larg, void * parg );
 +    _STACK * ( EXPLICITSSL_CALL * sk_new_null )( void );
 +    size_t   ( EXPLICITSSL_CALL * sk_push )( _STACK * sk, void * p );
 +    void *   ( EXPLICITSSL_CALL * sk_value )( const _STACK * sk, size_t i );
@@ -115,7 +119,7 @@ index eb47785..e5a475a 100644
  
  /* Cipher suites. */
  
-@@ -173,6 +218,11 @@ extern "C" {
+@@ -173,6 +222,11 @@ extern "C" {
  #define SSL_kPSK 0x00000008L
  #define SSL_kGENERIC 0x00000010L
  
@@ -127,7 +131,7 @@ index eb47785..e5a475a 100644
  /* Bits for |algorithm_auth| (server authentication). */
  #define SSL_aRSA 0x00000001L
  #define SSL_aECDSA 0x00000002L
-@@ -180,6 +230,11 @@ extern "C" {
+@@ -180,6 +234,11 @@ extern "C" {
  #define SSL_aPSK 0x00000004L
  #define SSL_aGENERIC 0x00000008L
  
@@ -139,7 +143,7 @@ index eb47785..e5a475a 100644
  #define SSL_aCERT (SSL_aRSA | SSL_aECDSA)
  
  /* Bits for |algorithm_enc| (symmetric encryption). */
-@@ -192,6 +247,10 @@ extern "C" {
+@@ -192,6 +251,10 @@ extern "C" {
  #define SSL_eNULL                0x00000040L
  #define SSL_CHACHA20POLY1305     0x00000080L
  
@@ -150,7 +154,7 @@ index eb47785..e5a475a 100644
  #define SSL_AES (SSL_AES128 | SSL_AES256 | SSL_AES128GCM | SSL_AES256GCM)
  
  /* Bits for |algorithm_mac| (symmetric authentication). */
-@@ -201,6 +260,10 @@ extern "C" {
+@@ -201,6 +264,10 @@ extern "C" {
  /* SSL_AEAD is set for all AEADs. */
  #define SSL_AEAD 0x00000008L
  
@@ -230,14 +234,32 @@ index 7ca79ab..289b06c 100644
        alg_bits = 256;
        strength_bits = 256;
 diff --git a/ssl/ssl_lib.c b/ssl/ssl_lib.c
-index e0ab803..c7f51d2 100644
+index e0ab803..cc25aea 100644
 --- a/ssl/ssl_lib.c
 +++ b/ssl/ssl_lib.c
-@@ -227,6 +227,70 @@ static int ssl_session_cmp(const SSL_SESSION *a, const SSL_SESSION *b) {
+@@ -227,6 +227,88 @@ static int ssl_session_cmp(const SSL_SESSION *a, const SSL_SESSION *b) {
    return OPENSSL_memcmp(a->session_id, b->session_id, a->session_id_length);
  }
  
 +#if defined(GOSTSSL)
++
++#ifdef _WIN32
++#if defined ( _M_IX86 )
++#define EXPLICITSSL_CALL __cdecl
++#elif defined ( _M_X64 )
++#define EXPLICITSSL_CALL __fastcall
++#endif
++#define GOSTSSLLIB "gostssl.dll"
++#define LIBLOAD( name ) LoadLibraryA( name )
++#define LIBFUNC( lib, name ) (UINT_PTR)GetProcAddress( lib, name )
++#else // not _WIN32
++#define EXPLICITSSL_CALL
++#include <dlfcn.h>
++#define GOSTSSLLIB "gostssl.so"
++#define LIBLOAD( name ) dlopen( name, RTLD_LAZY )
++#define LIBFUNC( lib, name ) dlsym( lib, name )
++typedef void * HMODULE;
++#endif // _WIN32
 +
 +static BORINGSSL_METHOD bssl = {
 +    OPENSSL_malloc,
@@ -261,24 +283,24 @@ index e0ab803..c7f51d2 100644
 +GOSTSSL_METHOD * gostssl()
 +{
 +    static GOSTSSL_METHOD gssl = { 0 };
-+    static int is_gost = FALSE;
-+    static int is_tried = FALSE;
++    static int is_gost = 0;
++    static int is_tried = 0;
 +
 +    if( is_gost )
 +        return &gssl;
 +
 +    if( !is_tried )
 +    {
-+        HMODULE hGSSL = LoadLibraryA( "gostssl.dll" );
++        HMODULE hGSSL = LIBLOAD( GOSTSSLLIB );
 +
 +        if( hGSSL )
 +        {
-+            *(UINT_PTR *)&gssl.init = (UINT_PTR)GetProcAddress( hGSSL, "gostssl_init" );
-+            *(UINT_PTR *)&gssl.connect = (UINT_PTR)GetProcAddress( hGSSL, "gostssl_connect" );
-+            *(UINT_PTR *)&gssl.read = (UINT_PTR)GetProcAddress( hGSSL, "gostssl_read" );
-+            *(UINT_PTR *)&gssl.write = (UINT_PTR)GetProcAddress( hGSSL, "gostssl_write" );
-+            *(UINT_PTR *)&gssl.free = (UINT_PTR)GetProcAddress( hGSSL, "gostssl_free" );
-+            *(UINT_PTR *)&gssl.tls_gost_required = (UINT_PTR)GetProcAddress( hGSSL, "gostssl_tls_gost_required" );
++            *(uintptr_t *)&gssl.init = (uintptr_t)LIBFUNC( hGSSL, "gostssl_init" );
++            *(uintptr_t *)&gssl.connect = (uintptr_t)LIBFUNC( hGSSL, "gostssl_connect" );
++            *(uintptr_t *)&gssl.read = (uintptr_t)LIBFUNC( hGSSL, "gostssl_read" );
++            *(uintptr_t *)&gssl.write = (uintptr_t)LIBFUNC( hGSSL, "gostssl_write" );
++            *(uintptr_t *)&gssl.free = (uintptr_t)LIBFUNC( hGSSL, "gostssl_free" );
++            *(uintptr_t *)&gssl.tls_gost_required = (uintptr_t)LIBFUNC( hGSSL, "gostssl_tls_gost_required" );
 +
 +            if( gssl.init &&
 +                gssl.connect &&
@@ -288,12 +310,12 @@ index e0ab803..c7f51d2 100644
 +                gssl.tls_gost_required &&
 +                gssl.init( &bssl ) )
 +            {
-+                is_gost = TRUE;
++                is_gost = 1;
 +                return &gssl;
 +            }
 +        }
 +
-+        is_tried = TRUE;
++        is_tried = 1;
 +    }
 +
 +    return NULL;
@@ -304,7 +326,7 @@ index e0ab803..c7f51d2 100644
  SSL_CTX *SSL_CTX_new(const SSL_METHOD *method) {
    SSL_CTX *ret = NULL;
  
-@@ -500,6 +564,13 @@ void SSL_free(SSL *ssl) {
+@@ -500,6 +582,13 @@ void SSL_free(SSL *ssl) {
      return;
    }
  
@@ -318,7 +340,7 @@ index e0ab803..c7f51d2 100644
    X509_VERIFY_PARAM_free(ssl->param);
  
    CRYPTO_free_ex_data(&g_ex_data_class_ssl, ssl, &ssl->ex_data);
-@@ -637,6 +708,19 @@ int SSL_do_handshake(SSL *ssl) {
+@@ -637,6 +726,19 @@ int SSL_do_handshake(SSL *ssl) {
      return -1;
    }
  
@@ -338,7 +360,7 @@ index e0ab803..c7f51d2 100644
    /* Run the handshake. */
    assert(ssl->s3->hs != NULL);
    int ret = ssl->handshake_func(ssl->s3->hs);
-@@ -762,6 +846,19 @@ static int ssl_read_impl(SSL *ssl, void *buf, int num, int peek) {
+@@ -762,6 +864,19 @@ static int ssl_read_impl(SSL *ssl, void *buf, int num, int peek) {
        }
      }
  
@@ -358,7 +380,7 @@ index e0ab803..c7f51d2 100644
      int got_handshake;
      int ret = ssl->method->read_app_data(ssl, &got_handshake, buf, num, peek);
      if (ret > 0 || !got_handshake) {
-@@ -810,6 +907,19 @@ int SSL_write(SSL *ssl, const void *buf, int num) {
+@@ -810,6 +925,19 @@ int SSL_write(SSL *ssl, const void *buf, int num) {
      }
    }
  
