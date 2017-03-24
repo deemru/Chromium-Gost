@@ -1,5 +1,6 @@
 *
 !.gitignore
+!.gitattributes
 !chromium-gost-build-debug.sh
 !chromium-gost-build-gostssl.sh
 !chromium-gost-build-release.sh
