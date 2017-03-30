@@ -1,4 +1,4 @@
-From cf132c5d312f61319a2572ea2fde2148c85195ac Mon Sep 17 00:00:00 2001
+From 04c20afa3d57fcbee46aea02f02a194cf6746001 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Fri, 2 Sep 2016 14:25:18 +0300
 Subject: [PATCH] added GOSTSSL
@@ -7,13 +7,14 @@ Subject: [PATCH] added GOSTSSL
  .../ui/views/ssl_client_certificate_selector.cc    |   3 +-
  .../common/chromium-browser/chromium-browser.info  |  10 +-
  chrome/installer/linux/common/installer.include    |   3 +
+ chrome/installer/linux/rpm/chrome.spec.template    |   4 +
  net/base/net_error_list.h                          |   6 +
  net/http/http_network_transaction.cc               |   8 ++
  net/socket/ssl_client_socket_impl.cc               | 129 +++++++++++++++++++++
  net/ssl/client_cert_store_nss.cc                   |  46 ++++++++
  net/ssl/openssl_ssl_util.cc                        |   4 +
  net/ssl/ssl_cipher_suite_names.cc                  |  22 ++++
- 9 files changed, 225 insertions(+), 6 deletions(-)
+ 10 files changed, 229 insertions(+), 6 deletions(-)
 
 diff --git a/chrome/browser/ui/views/ssl_client_certificate_selector.cc b/chrome/browser/ui/views/ssl_client_certificate_selector.cc
 index 0830efb..2787539 100644
@@ -75,6 +76,28 @@ index d606238..4130b76 100644
    # ANGLE
    if [ "${CHANNEL}" != "stable" ]; then
      install -m 644 "${BUILDDIR}/libGLESv2.so" "${STAGEDIR}/${INSTALLDIR}/"
+diff --git a/chrome/installer/linux/rpm/chrome.spec.template b/chrome/installer/linux/rpm/chrome.spec.template
+index 08c402c..433e6f6 100644
+--- a/chrome/installer/linux/rpm/chrome.spec.template
++++ b/chrome/installer/linux/rpm/chrome.spec.template
+@@ -120,6 +120,8 @@ add_nss_symlinks
+ 
+ remove_udev_symlinks
+ 
++if false; then
++
+ DEFAULTS_FILE="/etc/default/@@PACKAGE@@"
+ if [ ! -e "$DEFAULTS_FILE" ]; then
+   echo 'repo_add_once="true"' > "$DEFAULTS_FILE"
+@@ -155,6 +157,8 @@ fi
+ service atd start
+ echo "sh /etc/cron.daily/@@PACKAGE@@" | at now + 2 minute > /dev/null 2>&1
+ 
++fi
++
+ CHANNEL=@@CHANNEL@@
+ case $CHANNEL in
+   stable )
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
 index 617a56d..f5007d5 100644
 --- a/net/base/net_error_list.h
