@@ -35,6 +35,7 @@ extern "C" {
 #ifdef _WIN32
 #include <windows.h>
 #else
+#define UNIX
 #include "CSP_WinDef.h"
 #include "CSP_WinCrypt.h"
 #endif // WIN32
