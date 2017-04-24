@@ -1,4 +1,4 @@
-From 87fb93c4ee885bca0a4877f014791bb324a31103 Mon Sep 17 00:00:00 2001
+From fd9e23f9b1bf40b2874d046454b6bd22976b6f53 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Mon, 24 Apr 2017 13:25:48 +0300
 Subject: [PATCH] added GOSTSSL
@@ -6,10 +6,10 @@ Subject: [PATCH] added GOSTSSL
 ---
  include/openssl/ssl.h  |   8 ++++
  ssl/handshake_client.c |  11 +++++
- ssl/internal.h         |  67 ++++++++++++++++++++++++++
+ ssl/internal.h         |  68 +++++++++++++++++++++++++-
  ssl/ssl_cipher.c       |  36 ++++++++++++++
  ssl/ssl_lib.c          | 128 +++++++++++++++++++++++++++++++++++++++++++++++++
- 5 files changed, 250 insertions(+)
+ 5 files changed, 250 insertions(+), 1 deletion(-)
 
 diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
 index 3131539..fcc1fd5 100644
@@ -60,12 +60,66 @@ index c4f5e8e..477587c 100644
     * ServerHello. */
    if (!SSL_TRANSCRIPT_init_hash(&hs->transcript, ssl3_protocol_version(ssl),
 diff --git a/ssl/internal.h b/ssl/internal.h
-index a6dfad5..1debe32 100644
+index a6dfad5..e75b435 100644
 --- a/ssl/internal.h
 +++ b/ssl/internal.h
-@@ -162,6 +162,55 @@ OPENSSL_MSVC_PRAGMA(warning(pop))
+@@ -162,7 +162,6 @@ OPENSSL_MSVC_PRAGMA(warning(pop))
  extern "C" {
  #endif
+ 
+-
+ /* Cipher suites. */
+ 
+ /* Bits for |algorithm_mkey| (key exchange algorithm). */
+@@ -173,6 +172,11 @@ extern "C" {
+ #define SSL_kPSK 0x00000008L
+ #define SSL_kGENERIC 0x00000010L
+ 
++#if defined(GOSTSSL)
++#define SSL_kGOST341001 0x00010000L
++#define SSL_kGOST341012 0x00020000L
++#endif
++
+ /* Bits for |algorithm_auth| (server authentication). */
+ #define SSL_aRSA 0x00000001L
+ #define SSL_aECDSA 0x00000002L
+@@ -180,6 +184,11 @@ extern "C" {
+ #define SSL_aPSK 0x00000004L
+ #define SSL_aGENERIC 0x00000008L
+ 
++#if defined(GOSTSSL)
++#define SSL_aGOST341001 0x00010000L
++#define SSL_aGOST341012 0x00020000L
++#endif
++
+ #define SSL_aCERT (SSL_aRSA | SSL_aECDSA)
+ 
+ /* Bits for |algorithm_enc| (symmetric encryption). */
+@@ -191,6 +200,10 @@ extern "C" {
+ #define SSL_eNULL                0x00000020L
+ #define SSL_CHACHA20POLY1305     0x00000040L
+ 
++#if defined(GOSTSSL)
++#define SSL_eGOST28147 0x00010000L
++#endif
++
+ #define SSL_AES (SSL_AES128 | SSL_AES256 | SSL_AES128GCM | SSL_AES256GCM)
+ 
+ /* Bits for |algorithm_mac| (symmetric authentication). */
+@@ -200,6 +213,10 @@ extern "C" {
+ /* SSL_AEAD is set for all AEADs. */
+ #define SSL_AEAD 0x00000008L
+ 
++#if defined(GOSTSSL)
++#define SSL_iGOST28147 0x00010000L
++#endif
++
+ /* Bits for |algorithm_prf| (handshake digest). */
+ #define SSL_HANDSHAKE_MAC_DEFAULT 0x1
+ #define SSL_HANDSHAKE_MAC_SHA256 0x2
+@@ -2177,6 +2194,55 @@ void ssl_get_current_time(const SSL *ssl, struct timeval *out_clock);
+ /* ssl_reset_error_state resets state for |SSL_get_error|. */
+ void ssl_reset_error_state(SSL *ssl);
  
 +#if defined(GOSTSSL)
 +//
@@ -90,7 +144,7 @@ index a6dfad5..1debe32 100644
 +    size_t   ( EXPLICITSSL_CALL * sk_push )( _STACK * sk, void * p );
 +    void *   ( EXPLICITSSL_CALL * sk_value )( const _STACK * sk, size_t i );
 +    void     ( EXPLICITSSL_CALL * sk_pop_free )( _STACK * sk, void( * free_func )( void * ) );
-+    int      ( EXPLICITSSL_CALL * ssl_get_new_session )( void * hs, int is_server );
++    int      ( EXPLICITSSL_CALL * ssl_get_new_session )( SSL_HANDSHAKE * hs, int is_server );
 +    X509 *   ( EXPLICITSSL_CALL * d2i_X509 )( X509 ** x, const unsigned char ** in, long len );
 +    int      ( EXPLICITSSL_CALL * X509_up_ref )( X509 * x );
 +    void     ( EXPLICITSSL_CALL * X509_free )( X509 * x );
@@ -117,54 +171,8 @@ index a6dfad5..1debe32 100644
 +//
 +#endif
  
- /* Cipher suites. */
- 
-@@ -173,6 +222,11 @@ extern "C" {
- #define SSL_kPSK 0x00000008L
- #define SSL_kGENERIC 0x00000010L
- 
-+#if defined(GOSTSSL)
-+#define SSL_kGOST341001 0x00010000L
-+#define SSL_kGOST341012 0x00020000L
-+#endif
-+
- /* Bits for |algorithm_auth| (server authentication). */
- #define SSL_aRSA 0x00000001L
- #define SSL_aECDSA 0x00000002L
-@@ -180,6 +234,11 @@ extern "C" {
- #define SSL_aPSK 0x00000004L
- #define SSL_aGENERIC 0x00000008L
- 
-+#if defined(GOSTSSL)
-+#define SSL_aGOST341001 0x00010000L
-+#define SSL_aGOST341012 0x00020000L
-+#endif
-+
- #define SSL_aCERT (SSL_aRSA | SSL_aECDSA)
- 
- /* Bits for |algorithm_enc| (symmetric encryption). */
-@@ -191,6 +250,10 @@ extern "C" {
- #define SSL_eNULL                0x00000020L
- #define SSL_CHACHA20POLY1305     0x00000040L
- 
-+#if defined(GOSTSSL)
-+#define SSL_eGOST28147 0x00010000L
-+#endif
-+
- #define SSL_AES (SSL_AES128 | SSL_AES256 | SSL_AES128GCM | SSL_AES256GCM)
- 
- /* Bits for |algorithm_mac| (symmetric authentication). */
-@@ -200,6 +263,10 @@ extern "C" {
- /* SSL_AEAD is set for all AEADs. */
- #define SSL_AEAD 0x00000008L
- 
-+#if defined(GOSTSSL)
-+#define SSL_iGOST28147 0x00010000L
-+#endif
-+
- /* Bits for |algorithm_prf| (handshake digest). */
- #define SSL_HANDSHAKE_MAC_DEFAULT 0x1
- #define SSL_HANDSHAKE_MAC_SHA256 0x2
+ #if defined(__cplusplus)
+ } /* extern C */
 diff --git a/ssl/ssl_cipher.c b/ssl/ssl_cipher.c
 index 4a7459f..2a51a8a 100644
 --- a/ssl/ssl_cipher.c
