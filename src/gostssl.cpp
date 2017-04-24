@@ -35,9 +35,9 @@ extern "C" {
 #ifdef _WIN32
 #include <windows.h>
 #else
-#define UNIX
 #include "CSP_WinDef.h"
 #include "CSP_WinCrypt.h"
+#define UNIX
 #endif // WIN32
 #include "WinCryptEx.h"
 
@@ -52,7 +52,7 @@ extern "C" {
 
 #include "msspi.h"
 
-// Òåñò êîððåêòíîñòè òèïîâ íà ýòàïå êîìïèëÿöèè
+// Ã’Ã¥Ã±Ã² ÃªÃ®Ã°Ã°Ã¥ÃªÃ²Ã­Ã®Ã±Ã²Ã¨ Ã²Ã¨Ã¯Ã®Ã¢ Ã­Ã  Ã½Ã²Ã Ã¯Ã¥ ÃªÃ®Ã¬Ã¯Ã¨Ã«Ã¿Ã¶Ã¨Ã¨
 static GOSTSSL_METHOD gssl = {
     gostssl_init,
     gostssl_connect,
@@ -589,7 +589,7 @@ int gostssl_connect( SSL * s, int * is_gost )
     {
         s->rwstate = SSL_NOTHING;
 
-        // Íå çàïîëíÿåì ïîâòîðíî
+        // ÃÃ¥ Ã§Ã Ã¯Ã®Ã«Ã­Ã¿Ã¥Ã¬ Ã¯Ã®Ã¢Ã²Ã®Ã°Ã­Ã®
         if( s->s3->established_session &&
             s->s3->established_session->cipher &&
             s->s3->aead_write_ctx &&
@@ -599,7 +599,7 @@ int gostssl_connect( SSL * s, int * is_gost )
             return 1;
         }
 
-        // Ïîêà ïîääåðæèâàåì òîëüêî http/1.1
+        // ÃÃ®ÃªÃ  Ã¯Ã®Ã¤Ã¤Ã¥Ã°Ã¦Ã¨Ã¢Ã Ã¥Ã¬ Ã²Ã®Ã«Ã¼ÃªÃ® http/1.1
         {
             static const char SSPI_ALPN_PROTO[] = "http/1.1";
             static const size_t SSPI_ALPN_PROTO_LEN = sizeof( SSPI_ALPN_PROTO ) - 1;
@@ -631,7 +631,7 @@ int gostssl_connect( SSL * s, int * is_gost )
             s->version = msspi_to_ssl_version( cipher_info->dwProtocol );
             s->s3->have_version = 1;
 
-            // çàïîëíÿåì îðèãèíàëüíûå ñòðóêòóðû (ìèìèêðèÿ)
+            // Ã§Ã Ã¯Ã®Ã«Ã­Ã¿Ã¥Ã¬ Ã®Ã°Ã¨Ã£Ã¨Ã­Ã Ã«Ã¼Ã­Ã»Ã¥ Ã±Ã²Ã°Ã³ÃªÃ²Ã³Ã°Ã» (Ã¬Ã¨Ã¬Ã¨ÃªÃ°Ã¨Ã¿)
             if( bssls->ssl_get_new_session( s->s3->hs, 0 ) <= 0 )
                 return 0;
 
@@ -655,7 +655,7 @@ int gostssl_connect( SSL * s, int * is_gost )
             }
         }
 
-        // ìèìèêà ssl3_get_server_certificate
+        // Ã¬Ã¨Ã¬Ã¨ÃªÃ  ssl3_get_server_certificate
         {
             STACK_OF( X509 ) * sk;
             sk = ( STACK_OF( X509 ) * )bssls->sk_new_null();
