@@ -52,7 +52,7 @@ extern "C" {
 
 #include "msspi.h"
 
-// Òåñò êîððåêòíîñòè òèïîâ íà ýòàïå êîìïèëÿöèè
+// type correctness test
 static GOSTSSL_METHOD gssl = {
     gostssl_init,
     gostssl_connect,
@@ -78,7 +78,7 @@ int gostssl_init( BORINGSSL_METHOD * bssl_methods )
     MSSPI_HANDLE h = msspi_open( NULL, (msspi_read_cb)(uintptr_t)1, (msspi_write_cb)(uintptr_t)1 );
     if( !h )
         return 0;
-        
+
     msspi_close( h );
 
     HCRYPTPROV hProv;
@@ -417,7 +417,7 @@ GostSSL_Worker * workers_api( SSL * s, WORKER_DB_ACTION action )
 
         msspi_set_cert_cb( w->h, (msspi_cert_cb)gostssl_cert_cb );
         w->s = s;
-        
+
         if( s->tlsext_hostname )
         {
             msspi_set_hostname( w->h, s->tlsext_hostname );
@@ -589,7 +589,7 @@ int gostssl_connect( SSL * s, int * is_gost )
     {
         s->rwstate = SSL_NOTHING;
 
-        // Íå çàïîëíÿåì ïîâòîðíî
+        // skip
         if( s->s3->established_session &&
             s->s3->established_session->cipher &&
             s->s3->aead_write_ctx &&
@@ -599,7 +599,7 @@ int gostssl_connect( SSL * s, int * is_gost )
             return 1;
         }
 
-        // Ïîêà ïîääåðæèâàåì òîëüêî http/1.1
+        // TODO: support more than http/1.1
         {
             static const char SSPI_ALPN_PROTO[] = "http/1.1";
             static const size_t SSPI_ALPN_PROTO_LEN = sizeof( SSPI_ALPN_PROTO ) - 1;
@@ -631,7 +631,7 @@ int gostssl_connect( SSL * s, int * is_gost )
             s->version = msspi_to_ssl_version( cipher_info->dwProtocol );
             s->s3->have_version = 1;
 
-            // çàïîëíÿåì îðèãèíàëüíûå ñòðóêòóðû (ìèìèêðèÿ)
+            // mimic boringssl
             if( bssls->ssl_get_new_session( s->s3->hs, 0 ) <= 0 )
                 return 0;
 
@@ -655,7 +655,7 @@ int gostssl_connect( SSL * s, int * is_gost )
             }
         }
 
-        // ìèìèêà ssl3_get_server_certificate
+        // mimic ssl3_get_server_certificate (TODO: deprecated)
         {
             STACK_OF( X509 ) * sk;
             sk = ( STACK_OF( X509 ) * )bssls->sk_new_null();
@@ -668,7 +668,7 @@ int gostssl_connect( SSL * s, int * is_gost )
             size_t count;
 
             if( !msspi_get_peercerts( w->h, NULL, NULL, &count ) )
-                return 0;            
+                return 0;
 
             bufs.resize( count );
             lens.resize( count );
