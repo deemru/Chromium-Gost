@@ -98,7 +98,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalIncludeDirectories>../src/msspi/src/;u:/chromium/src/third_party/boringssl/src/include/;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../src/msspi/src/;../src/msspi/third_party/cprocsp/include/;u:/chromium/src/third_party/boringssl/src/include/;</AdditionalIncludeDirectories>
       <ExceptionHandling>Async</ExceptionHandling>
       <OmitFramePointers />
       <TreatWarningAsError>true</TreatWarningAsError>
@@ -121,7 +121,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalIncludeDirectories>../src/msspi/src/;u:/chromium/src/third_party/boringssl/src/include/;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../src/msspi/src/;../src/msspi/third_party/cprocsp/include/;u:/chromium/src/third_party/boringssl/src/include/;</AdditionalIncludeDirectories>
       <ExceptionHandling>Async</ExceptionHandling>
       <OmitFramePointers>
       </OmitFramePointers>
@@ -144,7 +144,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>../src/msspi/src/;u:/chromium/src/third_party/boringssl/src/include/;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../src/msspi/src/;../src/msspi/third_party/cprocsp/include/;u:/chromium/src/third_party/boringssl/src/include/;</AdditionalIncludeDirectories>
       <ExceptionHandling>Async</ExceptionHandling>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <StringPooling>true</StringPooling>
@@ -175,7 +175,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>../src/msspi/src/;u:/chromium/src/third_party/boringssl/src/include/;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../src/msspi/src/;../src/msspi/third_party/cprocsp/include/;u:/chromium/src/third_party/boringssl/src/include/;</AdditionalIncludeDirectories>
       <ExceptionHandling>Async</ExceptionHandling>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <StringPooling>true</StringPooling>

@@ -1,4 +1,4 @@
-From 04c20afa3d57fcbee46aea02f02a194cf6746001 Mon Sep 17 00:00:00 2001
+From 05fd1486dccb687a92dc511c7056c3148d922f0d Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Fri, 2 Sep 2016 14:25:18 +0300
 Subject: [PATCH] added GOSTSSL
@@ -9,12 +9,13 @@ Subject: [PATCH] added GOSTSSL
  chrome/installer/linux/common/installer.include    |   3 +
  chrome/installer/linux/rpm/chrome.spec.template    |   4 +
  net/base/net_error_list.h                          |   6 +
+ net/cert/cert_verify_proc.cc                       |  56 +++++++++
  net/http/http_network_transaction.cc               |   8 ++
  net/socket/ssl_client_socket_impl.cc               | 129 +++++++++++++++++++++
  net/ssl/client_cert_store_nss.cc                   |  46 ++++++++
  net/ssl/openssl_ssl_util.cc                        |   4 +
  net/ssl/ssl_cipher_suite_names.cc                  |  22 ++++
- 10 files changed, 229 insertions(+), 6 deletions(-)
+ 11 files changed, 285 insertions(+), 6 deletions(-)
 
 diff --git a/chrome/browser/ui/views/ssl_client_certificate_selector.cc b/chrome/browser/ui/views/ssl_client_certificate_selector.cc
 index 0830efb..2787539 100644
@@ -115,11 +116,85 @@ index 617a56d..f5007d5 100644
  // An asynchronous IO operation is not yet complete.  This usually does not
  // indicate a fatal error.  Typically this error will be generated as a
  // notification to wait for some external notification that the IO operation
+diff --git a/net/cert/cert_verify_proc.cc b/net/cert/cert_verify_proc.cc
+index da49688..3af087a 100644
+--- a/net/cert/cert_verify_proc.cc
++++ b/net/cert/cert_verify_proc.cc
+@@ -519,6 +519,27 @@ CertVerifyProc* CertVerifyProc::CreateDefault() {
+ #endif
+ }
+ 
++#ifdef GOSTSSL
++#ifdef _WIN32
++#if defined ( _M_IX86 )
++#define EXPLICITSSL_CALL __cdecl
++#elif defined ( _M_X64 )
++#define EXPLICITSSL_CALL __fastcall
++#endif
++#define GOSTSSLLIB "gostssl.dll"
++#define LIBLOAD( name ) LoadLibraryA( name )
++#define LIBFUNC( lib, name ) (UINT_PTR)GetProcAddress( lib, name )
++#else // not _WIN32
++#define EXPLICITSSL_CALL
++#include <dlfcn.h>
++#define GOSTSSLLIB "gostssl.so"
++#define LIBLOAD( name ) dlopen( name, RTLD_LAZY )
++#define LIBFUNC( lib, name ) dlsym( lib, name )
++typedef void * HMODULE;
++#endif // _WIN32
++#endif // GOSTSSL
++
++
+ CertVerifyProc::CertVerifyProc()
+     : sha1_legacy_mode_enabled(base::FeatureList::IsEnabled(kSHA1LegacyMode)) {}
+ 
+@@ -549,6 +570,41 @@ int CertVerifyProc::Verify(X509Certificate* cert,
+   int rv = VerifyInternal(cert, hostname, ocsp_response, flags, crl_set,
+                           additional_trust_anchors, verify_result);
+ 
++#if defined(GOSTSSL)
++  int is_gost = 0;
++  {
++      static void ( EXPLICITSSL_CALL * isgostcerthook )( void * cert, int size, int * is_gost ) = NULL;
++      static int is_tried = 0;
++
++      if( !is_tried )
++      {
++          HMODULE hGSSL = LIBLOAD( GOSTSSLLIB );
++
++          if( hGSSL )
++              *(uintptr_t *)&isgostcerthook = (uintptr_t)LIBFUNC( hGSSL, "gostssl_isgostcerthook" );
++
++          is_tried = 1;
++      }
++
++      if( isgostcerthook )
++      {
++#ifdef OPENSSL_WINDOWS
++          isgostcerthook( (void *)cert->os_cert_handle(), 0, &is_gost );
++#else // not OPENSSL_WINDOWS
++          std::string cert_pem;
++          if( cert->GetDEREncoded( cert->os_cert_handle(), &cert_pem ) )
++              isgostcerthook( (void *)&cert_pem[0], cert_pem.size(), &is_gost );
++#endif // OPENSSL_WINDOWS
++      }
++  }
++
++  if( is_gost == 1 )
++  {
++      // TODO: we can check for weak GOST algos after 2018
++  }
++  else
++#endif // GOSTSSL
++
+   // Check for mismatched signature algorithms and unknown signature algorithms
+   // in the chain. Also fills in the has_* booleans for the digest algorithms
+   // present in the chain.
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index b7ceb43..e7c6984 100644
+index a5395d7..24355b3 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
-@@ -1479,6 +1479,14 @@ int HttpNetworkTransaction::HandleSSLHandshakeError(int error) {
+@@ -1484,6 +1484,14 @@ int HttpNetworkTransaction::HandleSSLHandshakeError(int error) {
    DCHECK(request_);
    HandleClientAuthError(error);
  
@@ -135,10 +210,10 @@ index b7ceb43..e7c6984 100644
    // reflect servers require a deprecated cipher rather than merely prefer
    // it. This, however, has no security benefit until the ciphers are actually
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 4be80d7..b507e39 100644
+index a81e331..0ff9a1b 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
-@@ -1144,6 +1144,26 @@ int SSLClientSocketImpl::DoHandshake() {
+@@ -1143,6 +1143,26 @@ int SSLClientSocketImpl::DoHandshake() {
    return net_error;
  }
  
@@ -165,7 +240,7 @@ index 4be80d7..b507e39 100644
  int SSLClientSocketImpl::DoHandshakeComplete(int result) {
    if (result < 0)
      return result;
-@@ -1275,6 +1295,86 @@ int SSLClientSocketImpl::DoVerifyCert(int result) {
+@@ -1264,6 +1284,86 @@ int SSLClientSocketImpl::DoVerifyCert(int result) {
  
    start_cert_verification_time_ = base::TimeTicks::Now();
  
@@ -252,7 +327,7 @@ index 4be80d7..b507e39 100644
    const uint8_t* ocsp_response_raw;
    size_t ocsp_response_len;
    SSL_get0_ocsp_response(ssl_.get(), &ocsp_response_raw, &ocsp_response_len);
-@@ -1669,6 +1769,35 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1658,6 +1758,35 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  

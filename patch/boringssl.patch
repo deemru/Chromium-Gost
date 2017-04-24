@@ -1,6 +1,6 @@
-From fd982df697830d7f8ed95af0d20ffe0d7a4616b2 Mon Sep 17 00:00:00 2001
+From 87fb93c4ee885bca0a4877f014791bb324a31103 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
-Date: Fri, 10 Mar 2017 14:06:05 +0300
+Date: Mon, 24 Apr 2017 13:25:48 +0300
 Subject: [PATCH] added GOSTSSL
 
 ---
@@ -12,7 +12,7 @@ Subject: [PATCH] added GOSTSSL
  5 files changed, 250 insertions(+)
 
 diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
-index 70646b0..96d6cad 100644
+index 3131539..fcc1fd5 100644
 --- a/include/openssl/ssl.h
 +++ b/include/openssl/ssl.h
 @@ -163,6 +163,10 @@
@@ -26,7 +26,7 @@ index 70646b0..96d6cad 100644
  #if defined(__cplusplus)
  extern "C" {
  #endif
-@@ -4412,6 +4416,10 @@ BORINGSSL_MAKE_DELETER(SSL_SESSION, SSL_SESSION_free)
+@@ -4282,6 +4286,10 @@ BORINGSSL_MAKE_DELETER(SSL_SESSION, SSL_SESSION_free)
  
  #endif
  
@@ -38,12 +38,12 @@ index 70646b0..96d6cad 100644
  #define SSL_R_ATTEMPT_TO_REUSE_SESSION_IN_DIFFERENT_CONTEXT 101
  #define SSL_R_BAD_ALERT 102
 diff --git a/ssl/handshake_client.c b/ssl/handshake_client.c
-index 720c215..a760631 100644
+index c4f5e8e..477587c 100644
 --- a/ssl/handshake_client.c
 +++ b/ssl/handshake_client.c
-@@ -978,6 +978,17 @@ static int ssl3_get_server_hello(SSL_HANDSHAKE *hs) {
+@@ -960,6 +960,17 @@ static int ssl3_get_server_hello(SSL_HANDSHAKE *hs) {
    }
-   ssl->s3->tmp.new_cipher = c;
+   hs->new_cipher = c;
  
 +#if defined(GOSTSSL)
 +  if( gostssl() )
@@ -56,11 +56,11 @@ index 720c215..a760631 100644
 +  }
 +#endif
 +
-   /* Now that the cipher is known, initialize the handshake hash. */
-   if (!ssl3_init_handshake_hash(ssl)) {
-     goto f_err;
+   /* Now that the cipher is known, initialize the handshake hash and hash the
+    * ServerHello. */
+   if (!SSL_TRANSCRIPT_init_hash(&hs->transcript, ssl3_protocol_version(ssl),
 diff --git a/ssl/internal.h b/ssl/internal.h
-index eb47785..a340cd9 100644
+index a6dfad5..1debe32 100644
 --- a/ssl/internal.h
 +++ b/ssl/internal.h
 @@ -162,6 +162,55 @@ OPENSSL_MSVC_PRAGMA(warning(pop))
@@ -90,7 +90,7 @@ index eb47785..a340cd9 100644
 +    size_t   ( EXPLICITSSL_CALL * sk_push )( _STACK * sk, void * p );
 +    void *   ( EXPLICITSSL_CALL * sk_value )( const _STACK * sk, size_t i );
 +    void     ( EXPLICITSSL_CALL * sk_pop_free )( _STACK * sk, void( * free_func )( void * ) );
-+    int      ( EXPLICITSSL_CALL * ssl_get_new_session )( SSL_HANDSHAKE * hs, int is_server );
++    int      ( EXPLICITSSL_CALL * ssl_get_new_session )( void * hs, int is_server );
 +    X509 *   ( EXPLICITSSL_CALL * d2i_X509 )( X509 ** x, const unsigned char ** in, long len );
 +    int      ( EXPLICITSSL_CALL * X509_up_ref )( X509 * x );
 +    void     ( EXPLICITSSL_CALL * X509_free )( X509 * x );
@@ -143,9 +143,9 @@ index eb47785..a340cd9 100644
  #define SSL_aCERT (SSL_aRSA | SSL_aECDSA)
  
  /* Bits for |algorithm_enc| (symmetric encryption). */
-@@ -192,6 +251,10 @@ extern "C" {
- #define SSL_eNULL                0x00000040L
- #define SSL_CHACHA20POLY1305     0x00000080L
+@@ -191,6 +250,10 @@ extern "C" {
+ #define SSL_eNULL                0x00000020L
+ #define SSL_CHACHA20POLY1305     0x00000040L
  
 +#if defined(GOSTSSL)
 +#define SSL_eGOST28147 0x00010000L
@@ -154,7 +154,7 @@ index eb47785..a340cd9 100644
  #define SSL_AES (SSL_AES128 | SSL_AES256 | SSL_AES128GCM | SSL_AES256GCM)
  
  /* Bits for |algorithm_mac| (symmetric authentication). */
-@@ -201,6 +264,10 @@ extern "C" {
+@@ -200,6 +263,10 @@ extern "C" {
  /* SSL_AEAD is set for all AEADs. */
  #define SSL_AEAD 0x00000008L
  
@@ -166,7 +166,7 @@ index eb47785..a340cd9 100644
  #define SSL_HANDSHAKE_MAC_DEFAULT 0x1
  #define SSL_HANDSHAKE_MAC_SHA256 0x2
 diff --git a/ssl/ssl_cipher.c b/ssl/ssl_cipher.c
-index 7ca79ab..289b06c 100644
+index 4a7459f..2a51a8a 100644
 --- a/ssl/ssl_cipher.c
 +++ b/ssl/ssl_cipher.c
 @@ -273,6 +273,19 @@ static const SSL_CIPHER kCiphers[] = {
@@ -189,7 +189,7 @@ index 7ca79ab..289b06c 100644
      /* PSK cipher suites. */
  
      /* Cipher 8C */
-@@ -597,6 +610,19 @@ static const SSL_CIPHER kCiphers[] = {
+@@ -575,6 +588,19 @@ static const SSL_CIPHER kCiphers[] = {
       SSL_HANDSHAKE_MAC_SHA256,
      },
  
@@ -209,7 +209,7 @@ index 7ca79ab..289b06c 100644
  };
  
  static const size_t kCiphersLen = OPENSSL_ARRAY_SIZE(kCiphers);
-@@ -1371,6 +1397,13 @@ ssl_create_cipher_list(const SSL_PROTOCOL_METHOD *ssl_method,
+@@ -1321,6 +1347,13 @@ ssl_create_cipher_list(const SSL_PROTOCOL_METHOD *ssl_method,
    ssl_cipher_apply_rule(0, ~0u, ~0u, SSL_3DES, ~0u, 0, CIPHER_ADD, -1, 0, &head,
                          &tail);
  
@@ -223,10 +223,10 @@ index 7ca79ab..289b06c 100644
    /* Temporarily enable everything else for sorting */
    ssl_cipher_apply_rule(0, ~0u, ~0u, ~0u, ~0u, 0, CIPHER_ADD, -1, 0, &head,
                          &tail);
-@@ -1703,6 +1736,9 @@ int SSL_CIPHER_get_bits(const SSL_CIPHER *cipher, int *out_alg_bits) {
- #if !defined(BORINGSSL_ANDROID_SYSTEM)
-     case SSL_CHACHA20POLY1305_OLD:
- #endif
+@@ -1644,6 +1677,9 @@ int SSL_CIPHER_get_bits(const SSL_CIPHER *cipher, int *out_alg_bits) {
+ 
+     case SSL_AES256:
+     case SSL_AES256GCM:
 +#if defined(GOSTSSL)
 +    case SSL_eGOST28147:
 +#endif
@@ -234,7 +234,7 @@ index 7ca79ab..289b06c 100644
        alg_bits = 256;
        strength_bits = 256;
 diff --git a/ssl/ssl_lib.c b/ssl/ssl_lib.c
-index e0ab803..cc25aea 100644
+index e37f9f9..b20c713 100644
 --- a/ssl/ssl_lib.c
 +++ b/ssl/ssl_lib.c
 @@ -227,6 +227,88 @@ static int ssl_session_cmp(const SSL_SESSION *a, const SSL_SESSION *b) {
@@ -326,7 +326,7 @@ index e0ab803..cc25aea 100644
  SSL_CTX *SSL_CTX_new(const SSL_METHOD *method) {
    SSL_CTX *ret = NULL;
  
-@@ -500,6 +582,13 @@ void SSL_free(SSL *ssl) {
+@@ -481,6 +563,13 @@ void SSL_free(SSL *ssl) {
      return;
    }
  
@@ -340,7 +340,7 @@ index e0ab803..cc25aea 100644
    X509_VERIFY_PARAM_free(ssl->param);
  
    CRYPTO_free_ex_data(&g_ex_data_class_ssl, ssl, &ssl->ex_data);
-@@ -637,6 +726,19 @@ int SSL_do_handshake(SSL *ssl) {
+@@ -597,6 +686,19 @@ int SSL_do_handshake(SSL *ssl) {
      return -1;
    }
  
@@ -360,7 +360,7 @@ index e0ab803..cc25aea 100644
    /* Run the handshake. */
    assert(ssl->s3->hs != NULL);
    int ret = ssl->handshake_func(ssl->s3->hs);
-@@ -762,6 +864,19 @@ static int ssl_read_impl(SSL *ssl, void *buf, int num, int peek) {
+@@ -722,6 +824,19 @@ static int ssl_read_impl(SSL *ssl, void *buf, int num, int peek) {
        }
      }
  
@@ -380,7 +380,7 @@ index e0ab803..cc25aea 100644
      int got_handshake;
      int ret = ssl->method->read_app_data(ssl, &got_handshake, buf, num, peek);
      if (ret > 0 || !got_handshake) {
-@@ -810,6 +925,19 @@ int SSL_write(SSL *ssl, const void *buf, int num) {
+@@ -770,6 +885,19 @@ int SSL_write(SSL *ssl, const void *buf, int num) {
      }
    }
  

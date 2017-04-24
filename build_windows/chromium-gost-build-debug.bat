@@ -5,7 +5,7 @@ set DEPOT_TOOLS_WIN_TOOLCHAIN=0
 set GYP_MSVS_VERSION=2015
 
 cd %CHROMIUM_PATH%
-call gn gen out\DEBUG --args="is_debug=true is_component_build=true target_cpu=\"x86\" remove_webcore_debug_symbols=true %CHROMIUM_PRIVATE_ARGS%"
+call gn gen out\DEBUG --args="is_debug=true is_component_build=true target_cpu=\"x86\" remove_webcore_debug_symbols=true fatal_linker_warnings=false %CHROMIUM_PRIVATE_ARGS%"
 call ninja -C out\DEBUG chrome
 
 if "%1"=="" timeout 86400

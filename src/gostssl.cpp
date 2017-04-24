@@ -26,6 +26,7 @@ extern "C" {
     EXPORT void EXPLICITSSL_CALL gostssl_certhook( void * cert, int size );
     EXPORT void EXPLICITSSL_CALL gostssl_verifyhook( void * s, unsigned * is_gost );
     EXPORT void EXPLICITSSL_CALL gostssl_clientcertshook( char *** certs, int ** lens, int * count, int * is_gost );
+    EXPORT void EXPLICITSSL_CALL gostssl_isgostcerthook( void * cert, int size, int * is_gost );
 
 #if defined( __cplusplus )
 }
@@ -37,6 +38,7 @@ extern "C" {
 #include "CSP_WinDef.h"
 #include "CSP_WinCrypt.h"
 #endif // WIN32
+#include "WinCryptEx.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -184,6 +186,31 @@ void gostssl_certhook( void * cert, int size )
         gcert = CertCreateCertificateContext( X509_ASN_ENCODING, (BYTE *)cert, size );
 }
 
+void gostssl_isgostcerthook( void * cert, int size, int * is_gost )
+{
+    PCCERT_CONTEXT certctx = NULL;
+
+    *is_gost = 0;
+
+    if( size == 0 )
+        certctx = CertDuplicateCertificateContext( (PCCERT_CONTEXT)cert );
+    else
+        certctx = CertCreateCertificateContext( X509_ASN_ENCODING, (BYTE *)cert, size );
+
+    if( !certctx || !certctx->pCertInfo || !certctx->pCertInfo->SignatureAlgorithm.pszObjId )
+        return;
+
+    LPSTR pszObjId = certctx->pCertInfo->SignatureAlgorithm.pszObjId;
+
+    if( 0 == strcmp( pszObjId, szOID_CP_GOST_R3411_R3410EL ) ||
+        0 == strcmp( pszObjId, szOID_CP_GOST_R3411_12_256_R3410 ) ||
+        0 == strcmp( pszObjId, szOID_CP_GOST_R3411_12_512_R3410 ) )
+        *is_gost = 1;
+
+    CertFreeCertificateContext( certctx );
+    return;
+}
+
 typedef std::map< void *, GostSSL_Worker * > WORKERS_DB;
 typedef std::unordered_map< std::string, GOSTSSL_HOST_STATUS > HOST_STATUSES_DB;
 typedef std::pair< std::string, GOSTSSL_HOST_STATUS > HOST_STATUSES_DB_PAIR;
@@ -192,7 +219,7 @@ static WORKERS_DB workers_db;
 static HOST_STATUSES_DB host_statuses_db;
 static std::recursive_mutex gmutex;
 
-void host_status_set( const char * site, GOSTSSL_HOST_STATUS status )
+static void host_status_set( const char * site, GOSTSSL_HOST_STATUS status )
 {
     std::unique_lock<std::recursive_mutex> lck( gmutex );
 
@@ -442,8 +469,8 @@ GostSSL_Worker * workers_api( SSL * s, WORKER_DB_ACTION action )
 
 int gostssl_tls_gost_required( SSL * s )
 {
-    if( s->s3->tmp.new_cipher == tlsgost2001 ||
-        s->s3->tmp.new_cipher == tlsgost2012 )
+    if( s->s3->hs->new_cipher == tlsgost2001 ||
+        s->s3->hs->new_cipher == tlsgost2012 )
     {
         bssls->ERR_clear_error();
         bssls->ERR_put_error( ERR_LIB_SSL, 0, SSL_R_TLS_GOST_REQUIRED, __FILE__, __LINE__ );
@@ -588,12 +615,44 @@ int gostssl_connect( SSL * s, int * is_gost )
             s->s3->alpn_selected_len = SSPI_ALPN_PROTO_LEN;
         }
 
-        // заполняем оригинальные структуры (мимикрия)
-        if( bssls->ssl_get_new_session( s->s3->hs, 0 ) <= 0 )
-            return 0;
+        // cipher
+        {
+            PSecPkgContext_CipherInfo cipher_info = msspi_get_cipherinfo( w->h );
 
-        s->s3->established_session = s->s3->new_session;
-        s->s3->new_session = NULL;
+            if( !cipher_info )
+                return 0;
+
+            const SSL_CIPHER * cipher = bssls->SSL_get_cipher_by_value( (uint16_t)cipher_info->dwCipherSuite );
+
+            if( !cipher )
+                return 0;
+
+            s->version = msspi_to_ssl_version( cipher_info->dwProtocol );
+            s->s3->have_version = 1;
+
+            // заполняем оригинальные структуры (мимикрия)
+            if( bssls->ssl_get_new_session( s->s3->hs, 0 ) <= 0 )
+                return 0;
+
+            s->s3->established_session = s->s3->hs->new_session;
+            s->s3->hs->new_session = NULL;
+
+            s->s3->established_session->ssl_version = s->version;
+            s->s3->established_session->cipher = cipher;
+
+            {
+                if( s->s3->aead_write_ctx )
+                    bssls->BORINGSSL_free( s->s3->aead_write_ctx );
+
+                s->s3->aead_write_ctx = (SSL_AEAD_CTX *)bssls->BORINGSSL_malloc( sizeof( ssl_aead_ctx_st ) );
+
+                if( !s->s3->aead_write_ctx )
+                    return 0;
+
+                memset( s->s3->aead_write_ctx, 0, sizeof( ssl_aead_ctx_st ) );
+                s->s3->aead_write_ctx->cipher = cipher;
+            }
+        }
 
         // мимика ssl3_get_server_certificate
         {
@@ -643,37 +702,6 @@ int gostssl_connect( SSL * s, int * is_gost )
                 bssls->X509_free( s->s3->established_session->x509_peer );
                 bssls->X509_up_ref( leaf );
                 s->s3->established_session->x509_peer = leaf;
-            }
-        }
-
-        // cipher
-        {
-            PSecPkgContext_CipherInfo cipher_info = msspi_get_cipherinfo( w->h );
-
-            if( !cipher_info )
-                return 0;
-
-            const SSL_CIPHER * cipher = bssls->SSL_get_cipher_by_value( (uint16_t)cipher_info->dwCipherSuite );
-
-            if( !cipher )
-                return 0;
-
-            s->version = msspi_to_ssl_version( cipher_info->dwProtocol );
-            s->s3->have_version = 1;
-            s->s3->established_session->ssl_version = s->version;
-            s->s3->established_session->cipher = cipher;
-
-            {
-                if( s->s3->aead_write_ctx )
-                    bssls->BORINGSSL_free( s->s3->aead_write_ctx );
-
-                s->s3->aead_write_ctx = (SSL_AEAD_CTX *)bssls->BORINGSSL_malloc( sizeof( ssl_aead_ctx_st ) );
-
-                if( !s->s3->aead_write_ctx )
-                    return 0;
-
-                memset( s->s3->aead_write_ctx, 0, sizeof( ssl_aead_ctx_st ) );
-                s->s3->aead_write_ctx->cipher = cipher;
             }
         }
 
