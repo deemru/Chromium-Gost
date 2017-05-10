@@ -83,7 +83,7 @@ int gostssl_init( BORINGSSL_METHOD * bssl_methods )
 
     HCRYPTPROV hProv;
 
-    if( !CryptAcquireContext( &hProv, NULL, NULL, 75, CRYPT_VERIFYCONTEXT | CRYPT_SILENT ) )
+    if( !CryptAcquireContext( &hProv, NULL, NULL, PROV_GOST_2001_DH, CRYPT_VERIFYCONTEXT | CRYPT_SILENT ) )
         return 0;
 
     CryptReleaseContext( hProv, 0 );
