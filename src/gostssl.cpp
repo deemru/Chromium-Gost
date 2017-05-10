@@ -470,8 +470,8 @@ GostSSL_Worker * workers_api( SSL * s, WORKER_DB_ACTION action )
 
 int gostssl_tls_gost_required( SSL * s )
 {
-    if( s->s3->hs->new_cipher == tlsgost2001 ||
-        s->s3->hs->new_cipher == tlsgost2012 )
+    if( s->tlsext_hostname && 
+        ( s->s3->hs->new_cipher == tlsgost2001 || s->s3->hs->new_cipher == tlsgost2012 ) )
     {
         bssls->ERR_clear_error();
         bssls->ERR_put_error( ERR_LIB_SSL, 0, SSL_R_TLS_GOST_REQUIRED, __FILE__, __LINE__ );
