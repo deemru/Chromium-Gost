@@ -655,13 +655,15 @@ int gostssl_connect( SSL * s, int * is_gost )
             }
         }
 
-        // mimic ssl3_get_server_certificate (TODO: deprecated)
+        // mimic ssl3_get_server_certificate
         {
-            STACK_OF( X509 ) * sk;
-            sk = ( STACK_OF( X509 ) * )bssls->sk_new_null();
+            STACK_OF( CRYPTO_BUFFER ) * sk;
+            sk = ( STACK_OF( CRYPTO_BUFFER ) * )bssls->sk_new_null();
 
             if( !sk )
                 return 0;
+
+            s->s3->established_session->certs = sk;
 
             std::vector<const char *> bufs;
             std::vector<int> lens;
@@ -679,31 +681,18 @@ int gostssl_connect( SSL * s, int * is_gost )
             {
                 for( size_t i = 0; i < count; i++ )
                 {
-                    const unsigned char * buf = (const unsigned char *)bufs[i];
-                    X509 * x = bssls->d2i_X509( NULL, &buf, lens[i] );
+                    CRYPTO_BUFFER * buf = bssls->CRYPTO_BUFFER_new( (const uint8_t *)bufs[i], lens[i], s->ctx->pool );
 
-                    if( !x )
+                    if( !buf )
                         break;
 
-                    bssls->sk_push( CHECKED_CAST( _STACK *, STACK_OF( X509 ) *, sk ), CHECKED_CAST( void *, X509 *, x ) );
+                    bssls->sk_push( CHECKED_CAST( _STACK *, STACK_OF( CRYPTO_BUFFER ) *, sk ), CHECKED_CAST( void *, CRYPTO_BUFFER *, buf ) );
                     is_OK = true;
                 }
             }
 
             if( !is_OK )
                 return 0;
-
-            {
-                X509 * leaf = (X509 *)bssls->sk_value( CHECKED_CAST( _STACK *, const STACK_OF( X509 ) *, sk ), ( 0 ) );
-
-                bssls->sk_pop_free( CHECKED_CAST( _STACK *, STACK_OF( X509 ) *, s->s3->established_session->x509_chain ),
-                    CHECKED_CAST( void( *)( void * ), void( *)( X509 * ), bssls->X509_free ) );
-
-                s->s3->established_session->x509_chain = sk;
-                bssls->X509_free( s->s3->established_session->x509_peer );
-                bssls->X509_up_ref( leaf );
-                s->s3->established_session->x509_peer = leaf;
-            }
         }
 
         // callback SSL_CB_HANDSHAKE_DONE
