@@ -1,4 +1,4 @@
-export CHROMIUM_TAG=59.0.3071.104
+export CHROMIUM_TAG=60.0.3112.78
 export CHROMIUM_PATH=/c/chromium/src
 export BORINGSSL_PATH=$CHROMIUM_PATH/third_party/boringssl/src
 export DEPOT_TOOLS_PATH=/c/depot_tools/
