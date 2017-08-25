@@ -506,29 +506,27 @@ static int msspi_to_ssl_version( DWORD dwProtocol )
     }
 }
 
-static int msspi_to_ssl_state_ret( MSSPI_STATE state, SSL * s, int ret )
+static int msspi_to_ssl_state_ret( int state, SSL * s, int ret )
 {
-    switch( state )
+    if( state & MSSPI_ERROR )
+        s->rwstate = SSL_NOTHING;
+    else if( state & MSSPI_SENT_SHUTDOWN && state & MSSPI_RECEIVED_SHUTDOWN )
+        s->rwstate = SSL_NOTHING;
+    else if( state & MSSPI_X509_LOOKUP )
+        s->rwstate = SSL_X509_LOOKUP;
+    else if( state & MSSPI_WRITING )
     {
-        case MSSPI_NOTHING:
-            s->rwstate = SSL_NOTHING;
-            break;
-        case MSSPI_READING:
-            s->rwstate = SSL_READING;
-            break;
-        case MSSPI_WRITING:
+        if( state & MSSPI_LAST_PROC_WRITE )
             s->rwstate = SSL_WRITING;
-            break;
-        case MSSPI_X509_LOOKUP:
-            s->rwstate = SSL_X509_LOOKUP;
-            break;
-        case MSSPI_SHUTDOWN:
-            s->rwstate = SSL_NOTHING;
-            break;
-        default:
-            s->rwstate = SSL_NOTHING;
-            break;
+        else if( state & MSSPI_READING )
+            s->rwstate = SSL_READING;
+        else
+            s->rwstate = SSL_WRITING;
     }
+    else if( state & MSSPI_READING )
+        s->rwstate = SSL_READING;
+    else
+        s->rwstate = SSL_NOTHING;
 
     return ret;
 }
