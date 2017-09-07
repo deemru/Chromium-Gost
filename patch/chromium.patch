@@ -1,4 +1,4 @@
-From 8e05841e7c344b74cc27d065f7248f61713b2689 Mon Sep 17 00:00:00 2001
+From 98fd97babea6a2e7961b5357206397f17fd14719 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 6 Sep 2017 00:50:26 +0300
 Subject: [PATCH] added GOSTSSL
@@ -12,10 +12,10 @@ Subject: [PATCH] added GOSTSSL
  net/cert/cert_verify_proc.cc                       |  52 +++++++++
  net/http/http_network_transaction.cc               |   9 ++
  net/socket/ssl_client_socket_impl.cc               | 125 +++++++++++++++++++++
- net/ssl/client_cert_store_nss.cc                   |  39 +++++++
+ net/ssl/client_cert_store_nss.cc                   |  59 ++++++++++
  net/ssl/openssl_ssl_util.cc                        |   4 +
  net/ssl/ssl_cipher_suite_names.cc                  |  22 ++++
- 11 files changed, 270 insertions(+), 6 deletions(-)
+ 11 files changed, 290 insertions(+), 6 deletions(-)
 
 diff --git a/chrome/installer/linux/common/chromium-browser/chromium-browser.info b/chrome/installer/linux/common/chromium-browser/chromium-browser.info
 index 3593c9e..9826523 100644
@@ -356,10 +356,37 @@ index 03b12a2..3630b43 100644
    if (ssl_config_.client_cert.get()) {
      if (!ssl_config_.client_private_key) {
 diff --git a/net/ssl/client_cert_store_nss.cc b/net/ssl/client_cert_store_nss.cc
-index b3c2766..ef16d34 100644
+index b3c2766..01950d8 100644
 --- a/net/ssl/client_cert_store_nss.cc
 +++ b/net/ssl/client_cert_store_nss.cc
-@@ -154,6 +154,45 @@ ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
+@@ -146,6 +146,26 @@ void ClientCertStoreNSS::FilterCertsOnWorkerThread(
+   std::sort(identities->begin(), identities->end(), ClientCertIdentitySorter());
+ }
+ 
++#ifdef GOSTSSL
++#ifdef _WIN32
++#if defined ( _M_IX86 )
++#define EXPLICITSSL_CALL __cdecl
++#elif defined ( _M_X64 )
++#define EXPLICITSSL_CALL __fastcall
++#endif
++#define GOSTSSLLIB "gostssl.dll"
++#define LIBLOAD( name ) LoadLibraryA( name )
++#define LIBFUNC( lib, name ) (UINT_PTR)GetProcAddress( lib, name )
++#else // not _WIN32
++#define EXPLICITSSL_CALL
++#include <dlfcn.h>
++#define GOSTSSLLIB "gostssl.so"
++#define LIBLOAD( name ) dlopen( name, RTLD_LAZY )
++#define LIBFUNC( lib, name ) dlsym( lib, name )
++typedef void * HMODULE;
++#endif // _WIN32
++#endif // GOSTSSL
++
+ ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
+     scoped_refptr<crypto::CryptoModuleBlockingPasswordDelegate>
+         password_delegate,
+@@ -154,6 +174,45 @@ ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
    GetPlatformCertsOnWorkerThread(std::move(password_delegate),
                                   &selected_identities);
    FilterCertsOnWorkerThread(&selected_identities, *request);
@@ -394,8 +421,8 @@ index b3c2766..ef16d34 100644
 +                for( int i = 0; i < count; i++ )
 +                {
 +                    scoped_refptr<X509Certificate> cert( X509Certificate::CreateFromBytes( certs[i], lens[i] ) );
-+                    selected_identities->push_back( std::make_unique<ClientCertIdentityNSS>( cert, NULL, password_delegate ) );
-+                    std::sort(selected_identities->begin(), selected_identities->end(), ClientCertIdentitySorter());
++                    selected_identities.push_back( base::MakeUnique<ClientCertIdentityNSS>( cert, password_delegate ) );
++                    std::sort(selected_identities.begin(), selected_identities.end(), ClientCertIdentitySorter());
 +                }
 +            }
 +        }
