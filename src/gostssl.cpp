@@ -423,6 +423,10 @@ GostSSL_Worker * workers_api( SSL * s, WORKER_DB_ACTION action )
             msspi_set_hostname( w->h, s->tlsext_hostname );
             w->host_status = host_status_get( s->tlsext_hostname );
         }
+        else
+        {
+            w->host_status = GOSTSSL_HOST_YES;
+        }
     }
 
     std::unique_lock<std::recursive_mutex> lck( gmutex );
@@ -626,7 +630,7 @@ int gostssl_connect( SSL * s, int * is_gost )
             if( !cipher )
                 return 0;
 
-            s->version = msspi_to_ssl_version( cipher_info->dwProtocol );
+            s->version = (uint16_t)msspi_to_ssl_version( cipher_info->dwProtocol );
             s->s3->have_version = 1;
 
             // mimic boringssl
