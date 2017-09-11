@@ -1,4 +1,4 @@
-From 5f487610fb398e6bbef191a5c11c323608d70dc7 Mon Sep 17 00:00:00 2001
+From dac8972b7510c847120c77f69d9b1d4ccdf60a81 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 6 Sep 2017 12:35:51 +0300
 Subject: [PATCH] added GOSTSSL
@@ -8,9 +8,9 @@ Subject: [PATCH] added GOSTSSL
  include/openssl/tls1.h  |   5 ++
  ssl/handshake_client.cc |  11 +++++
  ssl/internal.h          |  63 ++++++++++++++++++++++++
- ssl/ssl_cipher.cc       |  38 +++++++++++++++
+ ssl/ssl_cipher.cc       |  42 ++++++++++++++++
  ssl/ssl_lib.cc          | 125 ++++++++++++++++++++++++++++++++++++++++++++++++
- 6 files changed, 250 insertions(+)
+ 6 files changed, 254 insertions(+)
 
 diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
 index 4a1a726..833e0f3 100644
@@ -179,7 +179,7 @@ index e2a3af4..ddff63d 100644
  /* Utility macros */
  
 diff --git a/ssl/ssl_cipher.cc b/ssl/ssl_cipher.cc
-index c0f4122..a4091f6 100644
+index c0f4122..29a130e 100644
 --- a/ssl/ssl_cipher.cc
 +++ b/ssl/ssl_cipher.cc
 @@ -235,6 +235,20 @@ static const SSL_CIPHER kCiphers[] = {
@@ -224,7 +224,7 @@ index c0f4122..a4091f6 100644
  };
  
  static const size_t kCiphersLen = OPENSSL_ARRAY_SIZE(kCiphers);
-@@ -1276,6 +1304,13 @@ int ssl_create_cipher_list(
+@@ -1276,6 +1304,17 @@ int ssl_create_cipher_list(
    ssl_cipher_apply_rule(0, ~0u, ~0u, SSL_3DES, ~0u, 0, CIPHER_ADD, -1, 0, &head,
                          &tail);
  
@@ -233,12 +233,16 @@ index c0f4122..a4091f6 100644
 +  {
 +      ssl_cipher_apply_rule( 0, ~0u, ~0u, SSL_eGOST28147, ~0u, 0, CIPHER_ADD, -1, 0, &head, &tail );
 +  }
++  else
++  {
++      ssl_cipher_apply_rule( 0, ~0u, ~0u, SSL_eGOST28147, ~0u, 0, CIPHER_KILL, -1, 0, &head, &tail );
++  }
 +#endif
 +
    /* Temporarily enable everything else for sorting */
    ssl_cipher_apply_rule(0, ~0u, ~0u, ~0u, ~0u, 0, CIPHER_ADD, -1, 0, &head,
                          &tail);
-@@ -1535,6 +1570,9 @@ int SSL_CIPHER_get_bits(const SSL_CIPHER *cipher, int *out_alg_bits) {
+@@ -1535,6 +1574,9 @@ int SSL_CIPHER_get_bits(const SSL_CIPHER *cipher, int *out_alg_bits) {
  
      case SSL_AES256:
      case SSL_AES256GCM:
