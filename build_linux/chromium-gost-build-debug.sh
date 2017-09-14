@@ -5,7 +5,7 @@ cd $(dirname $0)
 export PATH=$DEPOT_TOOLS_PATH:$PATH
 
 cd $CHROMIUM_PATH
-gn gen out/DEBUG --args="is_debug=true is_component_build=true remove_webcore_debug_symbols=true $CHROMIUM_PRIVATE_ARGS"
+gn gen out/DEBUG --args="is_debug=true is_component_build=true remove_webcore_debug_symbols=true fatal_linker_warnings=false treat_warnings_as_errors=false $CHROMIUM_PRIVATE_ARGS"
 ninja -C out/DEBUG chrome
 
 cd $(dirname $0)

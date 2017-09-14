@@ -1,4 +1,4 @@
-From 98fd97babea6a2e7961b5357206397f17fd14719 Mon Sep 17 00:00:00 2001
+From f52783dc45f8fca195020f2ae4bab7c1c9cea342 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 6 Sep 2017 00:50:26 +0300
 Subject: [PATCH] added GOSTSSL
@@ -9,13 +9,14 @@ Subject: [PATCH] added GOSTSSL
  chrome/installer/linux/rpm/chrome.spec.template    |   4 +
  .../ssl_config/ssl_config_service_manager_pref.cc  |   2 +-
  net/base/net_error_list.h                          |   6 +
- net/cert/cert_verify_proc.cc                       |  52 +++++++++
+ net/cert/cert_verify_proc.cc                       |  52 ++++++++
  net/http/http_network_transaction.cc               |   9 ++
- net/socket/ssl_client_socket_impl.cc               | 125 +++++++++++++++++++++
- net/ssl/client_cert_store_nss.cc                   |  59 ++++++++++
+ net/socket/ssl_client_socket_impl.cc               | 145 +++++++++++++++++++++
+ net/spdy/chromium/spdy_session.cc                  |  13 ++
+ net/ssl/client_cert_store_nss.cc                   |  59 +++++++++
  net/ssl/openssl_ssl_util.cc                        |   4 +
  net/ssl/ssl_cipher_suite_names.cc                  |  22 ++++
- 11 files changed, 290 insertions(+), 6 deletions(-)
+ 12 files changed, 323 insertions(+), 6 deletions(-)
 
 diff --git a/chrome/installer/linux/common/chromium-browser/chromium-browser.info b/chrome/installer/linux/common/chromium-browser/chromium-browser.info
 index 3593c9e..9826523 100644
@@ -206,11 +207,11 @@ index 7b81b91..0472e45 100644
  }
  
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 03b12a2..3630b43 100644
+index 03b12a2..09fe625 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
-@@ -1137,6 +1137,26 @@ int SSLClientSocketImpl::DoHandshake() {
-   return net_error;
+@@ -613,6 +613,26 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
+   return OK;
  }
  
 +#ifdef GOSTSSL
@@ -233,10 +234,37 @@ index 03b12a2..3630b43 100644
 +#endif // _WIN32
 +#endif // GOSTSSL
 +
- int SSLClientSocketImpl::DoHandshakeComplete(int result) {
-   if (result < 0)
-     return result;
-@@ -1267,6 +1287,86 @@ int SSLClientSocketImpl::DoVerifyCert(int result) {
+ int SSLClientSocketImpl::Connect(const CompletionCallback& callback) {
+   // Although StreamSocket does allow calling Connect() after Disconnect(),
+   // this has never worked for layered sockets. CHECK to detect any consumers
+@@ -631,6 +651,26 @@ int SSLClientSocketImpl::Connect(const CompletionCallback& callback) {
+     return rv;
+   }
+ 
++#ifdef GOSTSSL
++  {
++      static void ( EXPLICITSSL_CALL * cachestring )( void * ssl, const char * uniq ) = NULL;
++      static int is_tried = 0;
++
++      if( !is_tried )
++      {
++          HMODULE hGSSL = LIBLOAD( GOSTSSLLIB );
++
++          if( hGSSL )
++              *(uintptr_t *)&cachestring = (uintptr_t)LIBFUNC( hGSSL, "gostssl_cachestring" );
++
++          is_tried = 1;
++      }
++
++      if( cachestring )
++          cachestring( ssl_.get(), GetSessionCacheKey().data() );
++  }
++#endif
++
+   // Set SSL to client mode. Handshake happens in the loop below.
+   SSL_set_connect_state(ssl_.get());
+ 
+@@ -1267,6 +1307,86 @@ int SSLClientSocketImpl::DoVerifyCert(int result) {
  
    start_cert_verification_time_ = base::TimeTicks::Now();
  
@@ -323,7 +351,7 @@ index 03b12a2..3630b43 100644
    const uint8_t* ocsp_response_raw;
    size_t ocsp_response_len;
    SSL_get0_ocsp_response(ssl_.get(), &ocsp_response_raw, &ocsp_response_len);
-@@ -1646,6 +1746,31 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1646,6 +1766,31 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
@@ -355,6 +383,30 @@ index 03b12a2..3630b43 100644
    // Second pass: a client certificate should have been selected.
    if (ssl_config_.client_cert.get()) {
      if (!ssl_config_.client_private_key) {
+diff --git a/net/spdy/chromium/spdy_session.cc b/net/spdy/chromium/spdy_session.cc
+index 665cc54..6367d742b 100644
+--- a/net/spdy/chromium/spdy_session.cc
++++ b/net/spdy/chromium/spdy_session.cc
+@@ -1320,6 +1320,19 @@ bool SpdySession::HasAcceptableTransportSecurity() const {
+   SSLInfo ssl_info;
+   CHECK(GetSSLInfo(&ssl_info));
+ 
++#define GOSTSSL
++#ifdef GOSTSSL
++  // GOST is acceptable, even in TLS 1.0
++  switch( SSLConnectionStatusToCipherSuite( ssl_info.connection_status ) )
++  {
++  case 0xff85: // GOST2012-GOST8912-GOST8912
++  case 0x0081: // GOST2001-GOST89-GOST89
++      return true;
++  default:
++      break;
++  }
++#endif
++
+   // HTTP/2 requires TLS 1.2+
+   if (SSLConnectionStatusToVersion(ssl_info.connection_status) <
+       SSL_CONNECTION_VERSION_TLS1_2) {
 diff --git a/net/ssl/client_cert_store_nss.cc b/net/ssl/client_cert_store_nss.cc
 index b3c2766..01950d8 100644
 --- a/net/ssl/client_cert_store_nss.cc

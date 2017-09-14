@@ -11,9 +11,10 @@ extern "C" {
 #endif
 
     // Initialize
-    EXPORT int EXPLICITSSL_CALL gostssl_init( BORINGSSL_METHOD * bssl );
+    EXPORT int EXPLICITSSL_CALL gostssl_init( BORINGSSL_METHOD * bssl_methods );
 
     // Functionality
+    EXPORT void EXPLICITSSL_CALL gostssl_cachestring( SSL * s, const char * cachestring );
     EXPORT int EXPLICITSSL_CALL gostssl_connect( SSL * s, int * is_gost );
     EXPORT int EXPLICITSSL_CALL gostssl_read( SSL * s, void * buf, int len, int * is_gost );
     EXPORT int EXPLICITSSL_CALL gostssl_write( SSL * s, const void * buf, int len, int * is_gost );
@@ -127,6 +128,7 @@ struct GostSSL_Worker
     MSSPI_HANDLE h;
     SSL * s;
     GOSTSSL_HOST_STATUS host_status;
+    std::string host_string;
 };
 
 static int gostssl_read_cb( GostSSL_Worker * w, void * buf, int len )
@@ -149,6 +151,41 @@ static int gostssl_cert_cb( GostSSL_Worker * w )
         {
             CertFreeCertificateContext( gcert );
             gcert = NULL;
+        }
+
+        // mimic ssl3_get_certificate_request
+        if( !w->s->s3->hs->ca_names )
+        {
+            STACK_OF( CRYPTO_BUFFER ) * sk;
+            sk = ( STACK_OF( CRYPTO_BUFFER ) * )bssls->sk_new_null();
+
+            if( !sk )
+                return 0;
+
+            w->s->s3->hs->ca_names = sk;
+
+            std::vector<const char *> bufs;
+            std::vector<int> lens;
+            size_t count;
+
+            if( msspi_get_issuerlist( w->h, NULL, NULL, &count ) )
+            {
+                bufs.resize( count );
+                lens.resize( count );
+
+                if( msspi_get_issuerlist( w->h, &bufs[0], &lens[0], &count ) )
+                {
+                    for( size_t i = 0; i < count; i++ )
+                    {
+                        CRYPTO_BUFFER * buf = bssls->CRYPTO_BUFFER_new( (const uint8_t *)bufs[i], lens[i], w->s->ctx->pool );
+
+                        if( !buf )
+                            break;
+
+                        bssls->sk_push( CHECKED_CAST( _STACK *, STACK_OF( CRYPTO_BUFFER ) *, sk ), CHECKED_CAST( void *, CRYPTO_BUFFER *, buf ) );
+                    }
+                }
+            }
         }
 
         g_is_gost = 1;
@@ -220,7 +257,7 @@ static WORKERS_DB workers_db;
 static HOST_STATUSES_DB host_statuses_db;
 static std::recursive_mutex gmutex;
 
-static void host_status_set( const char * site, GOSTSSL_HOST_STATUS status )
+static void host_status_set( std::string & site, GOSTSSL_HOST_STATUS status )
 {
     std::unique_lock<std::recursive_mutex> lck( gmutex );
 
@@ -369,7 +406,7 @@ GOSTSSL_HOST_STATUS host_status_first( const char * site )
 
 #else
 
-GOSTSSL_HOST_STATUS host_status_first( char * site )
+GOSTSSL_HOST_STATUS host_status_first( std::string & site )
 {
     (void)site;
     return GOSTSSL_HOST_AUTO;
@@ -377,7 +414,7 @@ GOSTSSL_HOST_STATUS host_status_first( char * site )
 
 #endif
 
-GOSTSSL_HOST_STATUS host_status_get( char * site )
+GOSTSSL_HOST_STATUS host_status_get( std::string & site )
 {
     if( host_statuses_db.size() )
     {
@@ -400,7 +437,7 @@ typedef enum
 }
 WORKER_DB_ACTION;
 
-GostSSL_Worker * workers_api( SSL * s, WORKER_DB_ACTION action )
+GostSSL_Worker * workers_api( SSL * s, WORKER_DB_ACTION action, const char * cachestring = NULL )
 {
     GostSSL_Worker * w = NULL;
 
@@ -419,14 +456,17 @@ GostSSL_Worker * workers_api( SSL * s, WORKER_DB_ACTION action )
         w->s = s;
 
         if( s->tlsext_hostname )
-        {
             msspi_set_hostname( w->h, s->tlsext_hostname );
-            w->host_status = host_status_get( s->tlsext_hostname );
-        }
-        else
-        {
-            w->host_status = GOSTSSL_HOST_YES;
-        }
+        if( cachestring )
+            msspi_set_cachestring( w->h, cachestring );
+        if( s->alpn_client_proto_list && s->alpn_client_proto_list_len )
+            msspi_set_alpn( w->h, s->alpn_client_proto_list, s->alpn_client_proto_list_len );
+
+        w->host_string = s->tlsext_hostname ? s->tlsext_hostname : "*";
+        w->host_string += ":";
+        w->host_string += cachestring ? cachestring : "*";
+
+        w->host_status = host_status_get( w->host_string );
     }
 
     std::unique_lock<std::recursive_mutex> lck( gmutex );
@@ -435,51 +475,53 @@ GostSSL_Worker * workers_api( SSL * s, WORKER_DB_ACTION action )
 
     if( lb != workers_db.end() && !( workers_db.key_comp()( s, lb->first ) ) )
     {
+        GostSSL_Worker * w_found = lb->second;
+
         if( action == WDB_NEW )
         {
-            delete lb->second;
+            delete w_found;
             lb->second = w;
+            return w;
         }
         else if( action == WDB_FREE )
         {
-            if( lb->second->host_status >= GOSTSSL_HOST_PROBING &&
-                lb->second->host_status <= GOSTSSL_HOST_PROBING_END &&
-                s->tlsext_hostname )
+            if( w_found->host_status >= GOSTSSL_HOST_PROBING &&
+                w_found->host_status <= GOSTSSL_HOST_PROBING_END )
             {
                 GOSTSSL_HOST_STATUS status;
 
-                if( lb->second->host_status == GOSTSSL_HOST_PROBING_END )
+                if( w_found->host_status == GOSTSSL_HOST_PROBING_END )
                     status = GOSTSSL_HOST_AUTO;
                 else
-                    status = (GOSTSSL_HOST_STATUS)( (int)lb->second->host_status + 1 );
+                    status = (GOSTSSL_HOST_STATUS)( (int)w_found->host_status + 1 );
 
-                host_status_set( s->tlsext_hostname, status );
+                host_status_set( w_found->host_string, status );
             }
 
-            delete lb->second;
+            delete w_found;
             workers_db.erase( lb );
             return NULL;
         }
 
-        w = lb->second;
+        return w_found;
     }
-    else
-    {
-        if( action == WDB_NEW )
-            workers_db.insert( lb, WORKERS_DB::value_type( s, w ) );
-    }
+
+    if( action == WDB_NEW )
+        workers_db.insert( lb, WORKERS_DB::value_type( s, w ) );
 
     return w;
 }
 
 int gostssl_tls_gost_required( SSL * s )
 {
-    if( s->tlsext_hostname && 
+    GostSSL_Worker * w = workers_api( s, WDB_SEARCH );
+
+    if( w && 
         ( s->s3->hs->new_cipher == tlsgost2001 || s->s3->hs->new_cipher == tlsgost2012 ) )
     {
         bssls->ERR_clear_error();
         bssls->ERR_put_error( ERR_LIB_SSL, 0, SSL_R_TLS_GOST_REQUIRED, __FILE__, __LINE__ );
-        host_status_set( s->tlsext_hostname, GOSTSSL_HOST_PROBING );
+        host_status_set( w->host_string, GOSTSSL_HOST_PROBING );
         return 1;
     }
 
@@ -569,9 +611,14 @@ int gostssl_write( SSL * s, const void * buf, int len, int * is_gost )
     return msspi_to_ssl_state_ret( msspi_state( w->h ), s, ret );
 }
 
+void gostssl_cachestring( SSL * s, const char * cachestring )
+{
+    workers_api( s, WDB_NEW, cachestring );
+}
+
 int gostssl_connect( SSL * s, int * is_gost )
 {
-    GostSSL_Worker * w = workers_api( s, s->s3->hs->state == SSL_ST_INIT ? WDB_NEW : WDB_SEARCH );
+    GostSSL_Worker * w = workers_api( s, WDB_SEARCH );
 
     // fallback
     if( !w || w->host_status == GOSTSSL_HOST_AUTO || w->host_status == GOSTSSL_HOST_NO )
@@ -601,21 +648,25 @@ int gostssl_connect( SSL * s, int * is_gost )
             return 1;
         }
 
-        // TODO: support more than http/1.1
         {
-            static const char SSPI_ALPN_PROTO[] = "http/1.1";
-            static const size_t SSPI_ALPN_PROTO_LEN = sizeof( SSPI_ALPN_PROTO ) - 1;
+            const char * alpn = msspi_get_alpn( w->h );
+            size_t alpn_len;
 
             if( s->s3->alpn_selected )
                 bssls->BORINGSSL_free( s->s3->alpn_selected );
 
-            s->s3->alpn_selected = (uint8_t *)bssls->BORINGSSL_malloc( SSPI_ALPN_PROTO_LEN );
+            if( !alpn )
+                alpn = "http/1.1";
+
+            alpn_len = strlen( alpn );
+
+            s->s3->alpn_selected = (uint8_t *)bssls->BORINGSSL_malloc( alpn_len );
 
             if( !s->s3->alpn_selected )
                 return 0;
 
-            memcpy( s->s3->alpn_selected, SSPI_ALPN_PROTO, SSPI_ALPN_PROTO_LEN );
-            s->s3->alpn_selected_len = SSPI_ALPN_PROTO_LEN;
+            memcpy( s->s3->alpn_selected, alpn, alpn_len );
+            s->s3->alpn_selected_len = alpn_len;
         }
 
         // cipher
@@ -705,9 +756,7 @@ int gostssl_connect( SSL * s, int * is_gost )
 
         s->s3->hs->state = SSL_ST_OK;
         w->host_status = GOSTSSL_HOST_YES;
-
-        if( s->tlsext_hostname )
-            host_status_set( s->tlsext_hostname, GOSTSSL_HOST_YES );
+        host_status_set( w->host_string, GOSTSSL_HOST_YES );
 
         return 1;
     }
