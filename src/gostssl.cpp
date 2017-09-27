@@ -153,41 +153,6 @@ static int gostssl_cert_cb( GostSSL_Worker * w )
             gcert = NULL;
         }
 
-        // mimic ssl3_get_certificate_request
-        if( !w->s->s3->hs->ca_names )
-        {
-            STACK_OF( CRYPTO_BUFFER ) * sk;
-            sk = ( STACK_OF( CRYPTO_BUFFER ) * )bssls->sk_new_null();
-
-            if( !sk )
-                return 0;
-
-            w->s->s3->hs->ca_names = sk;
-
-            std::vector<const char *> bufs;
-            std::vector<int> lens;
-            size_t count;
-
-            if( msspi_get_issuerlist( w->h, NULL, NULL, &count ) )
-            {
-                bufs.resize( count );
-                lens.resize( count );
-
-                if( msspi_get_issuerlist( w->h, &bufs[0], &lens[0], &count ) )
-                {
-                    for( size_t i = 0; i < count; i++ )
-                    {
-                        CRYPTO_BUFFER * buf = bssls->CRYPTO_BUFFER_new( (const uint8_t *)bufs[i], lens[i], w->s->ctx->pool );
-
-                        if( !buf )
-                            break;
-
-                        bssls->sk_push( CHECKED_CAST( _STACK *, STACK_OF( CRYPTO_BUFFER ) *, sk ), CHECKED_CAST( void *, CRYPTO_BUFFER *, buf ) );
-                    }
-                }
-            }
-        }
-
         g_is_gost = 1;
         int ret = w->s->cert->cert_cb( w->s, w->s->cert->cert_cb_arg );
 
@@ -517,7 +482,7 @@ int gostssl_tls_gost_required( SSL * s )
     GostSSL_Worker * w = workers_api( s, WDB_SEARCH );
 
     if( w && 
-        ( s->s3->hs->new_cipher == tlsgost2001 || s->s3->hs->new_cipher == tlsgost2012 ) )
+        ( s->s3->tmp.new_cipher == tlsgost2001 || s->s3->tmp.new_cipher == tlsgost2012 ) )
     {
         bssls->ERR_clear_error();
         bssls->ERR_put_error( ERR_LIB_SSL, 0, SSL_R_TLS_GOST_REQUIRED, __FILE__, __LINE__ );
@@ -629,8 +594,8 @@ int gostssl_connect( SSL * s, int * is_gost )
 
     *is_gost = TRUE;
 
-    if( s->s3->hs->state == SSL_ST_INIT )
-        s->s3->hs->state = SSL_ST_CONNECT;
+    if( s->state == SSL_ST_INIT )
+        s->state = SSL_ST_CONNECT;
 
     int ret = msspi_connect( w->h );
 
@@ -639,12 +604,12 @@ int gostssl_connect( SSL * s, int * is_gost )
         s->rwstate = SSL_NOTHING;
 
         // skip
-        if( s->s3->established_session &&
-            s->s3->established_session->cipher &&
-            s->s3->aead_write_ctx &&
-            s->s3->aead_write_ctx->cipher )
+        if( s->session &&
+            s->session->cipher &&
+            s->aead_write_ctx &&
+            s->aead_write_ctx->cipher )
         {
-            s->s3->hs->state = SSL_ST_OK;
+            s->state = SSL_ST_OK;
             return 1;
         }
 
@@ -685,38 +650,33 @@ int gostssl_connect( SSL * s, int * is_gost )
             s->s3->have_version = 1;
 
             // mimic boringssl
-            if( bssls->ssl_get_new_session( s->s3->hs, 0 ) <= 0 )
+            if( bssls->ssl_get_new_session( s, 0 ) <= 0 )
                 return 0;
 
-            s->s3->established_session = s->s3->hs->new_session;
-            s->s3->hs->new_session = NULL;
-
-            s->s3->established_session->ssl_version = s->version;
-            s->s3->established_session->cipher = cipher;
+            s->session->ssl_version = s->version;
+            s->session->cipher = cipher;
 
             {
-                if( s->s3->aead_write_ctx )
-                    bssls->BORINGSSL_free( s->s3->aead_write_ctx );
+                if( s->aead_write_ctx )
+                    bssls->BORINGSSL_free( s->aead_write_ctx );
 
-                s->s3->aead_write_ctx = (SSL_AEAD_CTX *)bssls->BORINGSSL_malloc( sizeof( ssl_aead_ctx_st ) );
+                s->aead_write_ctx = (SSL_AEAD_CTX *)bssls->BORINGSSL_malloc( sizeof( ssl_aead_ctx_st ) );
 
-                if( !s->s3->aead_write_ctx )
+                if( !s->aead_write_ctx )
                     return 0;
 
-                memset( s->s3->aead_write_ctx, 0, sizeof( ssl_aead_ctx_st ) );
-                s->s3->aead_write_ctx->cipher = cipher;
+                memset( s->aead_write_ctx, 0, sizeof( ssl_aead_ctx_st ) );
+                s->aead_write_ctx->cipher = cipher;
             }
         }
 
         // mimic ssl3_get_server_certificate
         {
-            STACK_OF( CRYPTO_BUFFER ) * sk;
-            sk = ( STACK_OF( CRYPTO_BUFFER ) * )bssls->sk_new_null();
+            STACK_OF( X509 ) * sk;
+            sk = ( STACK_OF( X509 ) * )bssls->sk_new_null();
 
             if( !sk )
                 return 0;
-
-            s->s3->established_session->certs = sk;
 
             std::vector<const char *> bufs;
             std::vector<int> lens;
@@ -734,18 +694,28 @@ int gostssl_connect( SSL * s, int * is_gost )
             {
                 for( size_t i = 0; i < count; i++ )
                 {
-                    CRYPTO_BUFFER * buf = bssls->CRYPTO_BUFFER_new( (const uint8_t *)bufs[i], lens[i], s->ctx->pool );
+                    X509 * buf = bssls->d2i_X509( NULL, (const unsigned char **)&bufs[i], lens[i] );
 
                     if( !buf )
                         break;
 
-                    bssls->sk_push( CHECKED_CAST( _STACK *, STACK_OF( CRYPTO_BUFFER ) *, sk ), CHECKED_CAST( void *, CRYPTO_BUFFER *, buf ) );
+                    bssls->sk_push( CHECKED_CAST( _STACK *, STACK_OF( X509 ) *, sk ), CHECKED_CAST( void *, X509 *, buf ) );
                     is_OK = true;
                 }
             }
 
             if( !is_OK )
                 return 0;
+
+            {
+                X509 * leaf = (X509 *)bssls->sk_value( CHECKED_CAST( _STACK *, const STACK_OF( X509 ) *, sk ), ( 0 ) );
+                bssls->sk_pop_free( CHECKED_CAST( _STACK *, STACK_OF( X509 ) *, s->session->cert_chain ),
+                    CHECKED_CAST( void( *)( void * ), void( *)( X509 * ), bssls->X509_free ) );
+                s->session->cert_chain = sk;
+                bssls->X509_free( s->session->peer );
+                s->session->peer = bssls->X509_up_ref( leaf );
+                s->session->verify_result = s->verify_result;
+            }
         }
 
         // callback SSL_CB_HANDSHAKE_DONE
@@ -754,7 +724,7 @@ int gostssl_connect( SSL * s, int * is_gost )
         else if( s->ctx->info_callback != NULL )
             s->ctx->info_callback( s, SSL_CB_HANDSHAKE_DONE, 1 );
 
-        s->s3->hs->state = SSL_ST_OK;
+        s->state = SSL_ST_OK;
         w->host_status = GOSTSSL_HOST_YES;
         host_status_set( w->host_string, GOSTSSL_HOST_YES );
 
