@@ -35,6 +35,7 @@ extern "C" {
 
 #ifdef _WIN32
 #include <windows.h>
+#include <VersionHelpers.h>
 #else
 #include "CSP_WinDef.h"
 #include "CSP_WinCrypt.h"
@@ -424,7 +425,7 @@ GostSSL_Worker * workers_api( SSL * s, WORKER_DB_ACTION action, const char * cac
             msspi_set_hostname( w->h, s->tlsext_hostname );
         if( cachestring )
             msspi_set_cachestring( w->h, cachestring );
-        if( s->alpn_client_proto_list && s->alpn_client_proto_list_len )
+        if( IsWindows7OrGreater() && s->alpn_client_proto_list && s->alpn_client_proto_list_len )
             msspi_set_alpn( w->h, s->alpn_client_proto_list, s->alpn_client_proto_list_len );
 
         w->host_string = s->tlsext_hostname ? s->tlsext_hostname : "*";
@@ -614,7 +615,7 @@ int gostssl_connect( SSL * s, int * is_gost )
         }
 
         {
-            const char * alpn = msspi_get_alpn( w->h );
+            const char * alpn = IsWindows7OrGreater() ? msspi_get_alpn( w->h ) : NULL;
             size_t alpn_len;
 
             if( s->s3->alpn_selected )
