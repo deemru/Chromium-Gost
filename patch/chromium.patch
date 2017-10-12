@@ -1,4 +1,4 @@
-From f52783dc45f8fca195020f2ae4bab7c1c9cea342 Mon Sep 17 00:00:00 2001
+From a7d36115963af20332a2a93c49157cc2b1bab00b Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 6 Sep 2017 00:50:26 +0300
 Subject: [PATCH] added GOSTSSL
@@ -7,7 +7,7 @@ Subject: [PATCH] added GOSTSSL
  .../common/chromium-browser/chromium-browser.info  |  10 +-
  chrome/installer/linux/common/installer.include    |   3 +
  chrome/installer/linux/rpm/chrome.spec.template    |   4 +
- .../ssl_config/ssl_config_service_manager_pref.cc  |   2 +-
+ .../ssl_config/ssl_config_service_manager_pref.cc  |   4 +-
  net/base/net_error_list.h                          |   6 +
  net/cert/cert_verify_proc.cc                       |  52 ++++++++
  net/http/http_network_transaction.cc               |   9 ++
@@ -16,7 +16,7 @@ Subject: [PATCH] added GOSTSSL
  net/ssl/client_cert_store_nss.cc                   |  59 +++++++++
  net/ssl/openssl_ssl_util.cc                        |   4 +
  net/ssl/ssl_cipher_suite_names.cc                  |  22 ++++
- 12 files changed, 323 insertions(+), 6 deletions(-)
+ 12 files changed, 324 insertions(+), 7 deletions(-)
 
 diff --git a/chrome/installer/linux/common/chromium-browser/chromium-browser.info b/chrome/installer/linux/common/chromium-browser/chromium-browser.info
 index 3593c9e..9826523 100644
@@ -87,7 +87,7 @@ index bfcc643..94f8d9c 100644
  case $CHANNEL in
    stable )
 diff --git a/components/ssl_config/ssl_config_service_manager_pref.cc b/components/ssl_config/ssl_config_service_manager_pref.cc
-index 41925a9..2283a08 100644
+index 41925a9..d24d832 100644
 --- a/components/ssl_config/ssl_config_service_manager_pref.cc
 +++ b/components/ssl_config/ssl_config_service_manager_pref.cc
 @@ -274,7 +274,7 @@ void SSLConfigServiceManagerPref::RegisterPrefs(PrefRegistrySimple* registry) {
@@ -99,6 +99,15 @@ index 41925a9..2283a08 100644
    registry->RegisterStringPref(ssl_config::prefs::kSSLVersionMin,
                                 std::string());
    registry->RegisterStringPref(ssl_config::prefs::kSSLVersionMax,
+@@ -311,7 +311,7 @@ void SSLConfigServiceManagerPref::GetSSLConfigFromPrefs(
+   if (rev_checking_enabled_.IsManaged())
+     config->rev_checking_enabled = rev_checking_enabled_.GetValue();
+   else
+-    config->rev_checking_enabled = false;
++    config->rev_checking_enabled = true;
+   config->rev_checking_required_local_anchors =
+       rev_checking_required_local_anchors_.GetValue();
+   config->sha1_local_anchors_enabled = sha1_local_anchors_enabled_.GetValue();
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
 index 7503a5b..dccd335 100644
 --- a/net/base/net_error_list.h
