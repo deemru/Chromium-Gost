@@ -1,37 +1,35 @@
-#if defined( __cplusplus )
-extern "C" {
-#endif
-
-#include <openssl/ssl.h>
+#define GOSTSSL
+#define BORINGSSL_ALLOW_CXX_RUNTIME
 #include <../ssl/internal.h>
+
+extern "C" {
+
 #ifdef _WIN32
 #define EXPORT __declspec(dllexport)
 #else
 #define EXPORT __attribute__((visibility("default")))
 #endif
 
-    // Initialize
-    EXPORT int EXPLICITSSL_CALL gostssl_init( BORINGSSL_METHOD * bssl_methods );
+// Initialize
+EXPORT int EXPLICITSSL_CALL gostssl_init( BORINGSSL_METHOD * bssl_methods );
 
-    // Functionality
-    EXPORT void EXPLICITSSL_CALL gostssl_cachestring( SSL * s, const char * cachestring );
-    EXPORT int EXPLICITSSL_CALL gostssl_connect( SSL * s, int * is_gost );
-    EXPORT int EXPLICITSSL_CALL gostssl_read( SSL * s, void * buf, int len, int * is_gost );
-    EXPORT int EXPLICITSSL_CALL gostssl_write( SSL * s, const void * buf, int len, int * is_gost );
-    EXPORT void EXPLICITSSL_CALL gostssl_free( SSL * s );
+// Functionality
+EXPORT void EXPLICITSSL_CALL gostssl_cachestring( SSL * s, const char * cachestring );
+EXPORT int EXPLICITSSL_CALL gostssl_connect( SSL * s, int * is_gost );
+EXPORT int EXPLICITSSL_CALL gostssl_read( SSL * s, void * buf, int len, int * is_gost );
+EXPORT int EXPLICITSSL_CALL gostssl_write( SSL * s, const void * buf, int len, int * is_gost );
+EXPORT void EXPLICITSSL_CALL gostssl_free( SSL * s );
 
-    // Markers
-    EXPORT int EXPLICITSSL_CALL gostssl_tls_gost_required( SSL * s );
+// Markers
+EXPORT int EXPLICITSSL_CALL gostssl_tls_gost_required( SSL * s );
 
-    // Hooks
-    EXPORT void EXPLICITSSL_CALL gostssl_certhook( void * cert, int size );
-    EXPORT void EXPLICITSSL_CALL gostssl_verifyhook( void * s, unsigned * is_gost );
-    EXPORT void EXPLICITSSL_CALL gostssl_clientcertshook( char *** certs, int ** lens, int * count, int * is_gost );
-    EXPORT void EXPLICITSSL_CALL gostssl_isgostcerthook( void * cert, int size, int * is_gost );
+// Hooks
+EXPORT void EXPLICITSSL_CALL gostssl_certhook( void * cert, int size );
+EXPORT void EXPLICITSSL_CALL gostssl_verifyhook( void * s, unsigned * is_gost );
+EXPORT void EXPLICITSSL_CALL gostssl_clientcertshook( char *** certs, int ** lens, int * count, int * is_gost );
+EXPORT void EXPLICITSSL_CALL gostssl_isgostcerthook( void * cert, int size, int * is_gost );
 
-#if defined( __cplusplus )
 }
-#endif
 
 #ifdef _WIN32
 #include <windows.h>
@@ -156,14 +154,6 @@ static int gostssl_cert_cb( GostSSL_Worker * w )
         // mimic ssl3_get_certificate_request
         if( !w->s->s3->hs->ca_names )
         {
-            STACK_OF( CRYPTO_BUFFER ) * sk;
-            sk = ( STACK_OF( CRYPTO_BUFFER ) * )bssls->sk_new_null();
-
-            if( !sk )
-                return 0;
-
-            w->s->s3->hs->ca_names = sk;
-
             std::vector<const char *> bufs;
             std::vector<int> lens;
             size_t count;
@@ -174,18 +164,21 @@ static int gostssl_cert_cb( GostSSL_Worker * w )
                 lens.resize( count );
 
                 if( msspi_get_issuerlist( w->h, &bufs[0], &lens[0], &count ) )
-                {
-                    for( size_t i = 0; i < count; i++ )
-                    {
-                        CRYPTO_BUFFER * buf = bssls->CRYPTO_BUFFER_new( (const uint8_t *)bufs[i], lens[i], w->s->ctx->pool );
-
-                        if( !buf )
-                            break;
-
-                        bssls->sk_push( CHECKED_CAST( _STACK *, STACK_OF( CRYPTO_BUFFER ) *, sk ), CHECKED_CAST( void *, CRYPTO_BUFFER *, buf ) );
-                    }
-                }
+                    bssls->set_ca_names_cb( w->s, &bufs[0], &lens[0], count );
             }
+
+            //        {
+            //            bssl::UniquePtr<CRYPTO_BUFFER> buf( bssls->CRYPTO_BUFFER_new( (const uint8_t *)bufs[i], lens[i], w->s->ctx->pool ) );
+
+            //            if( !buf )
+            //                break;
+
+            //            bssls->sk_push( reinterpret_cast<_STACK *>( sk.get() ), std::move( buf ).get() );
+            //        }
+            //    }
+            //}
+
+            //w->s->s3->hs->ca_names = std::move( sk );
         }
 
         g_is_gost = 1;
@@ -638,126 +631,51 @@ int gostssl_connect( SSL * s, int * is_gost )
     {
         s->rwstate = SSL_NOTHING;
 
-        // skip
-        if( s->s3->established_session &&
-            s->s3->established_session->cipher &&
-            s->s3->aead_write_ctx &&
-            s->s3->aead_write_ctx->cipher )
+        // ALPN
+        const char * alpn;
+        size_t alpn_len;
         {
-            s->s3->hs->state = SSL_ST_OK;
-            return 1;
-        }
-
-        {
-            const char * alpn = msspi_get_alpn( w->h );
-            size_t alpn_len;
-
-            if( s->s3->alpn_selected )
-                bssls->BORINGSSL_free( s->s3->alpn_selected );
+            alpn = msspi_get_alpn( w->h );
 
             if( !alpn )
                 alpn = "http/1.1";
 
             alpn_len = strlen( alpn );
-
-            s->s3->alpn_selected = (uint8_t *)bssls->BORINGSSL_malloc( alpn_len );
-
-            if( !s->s3->alpn_selected )
-                return 0;
-
-            memcpy( s->s3->alpn_selected, alpn, alpn_len );
-            s->s3->alpn_selected_len = alpn_len;
         }
 
-        // cipher
+        // VERSION + CIPHER
+        uint16_t version;
+        uint16_t cipher_id;
         {
             PSecPkgContext_CipherInfo cipher_info = msspi_get_cipherinfo( w->h );
 
             if( !cipher_info )
                 return 0;
 
-            const SSL_CIPHER * cipher = bssls->SSL_get_cipher_by_value( (uint16_t)cipher_info->dwCipherSuite );
-
-            if( !cipher )
-                return 0;
-
-            s->version = (uint16_t)msspi_to_ssl_version( cipher_info->dwProtocol );
-            s->s3->have_version = 1;
-
-            // mimic boringssl
-            if( bssls->ssl_get_new_session( s->s3->hs, 0 ) <= 0 )
-                return 0;
-
-            s->s3->established_session = s->s3->hs->new_session;
-            s->s3->hs->new_session = NULL;
-
-            s->s3->established_session->ssl_version = s->version;
-            s->s3->established_session->cipher = cipher;
-
-            {
-                if( s->s3->aead_write_ctx )
-                    bssls->BORINGSSL_free( s->s3->aead_write_ctx );
-
-                s->s3->aead_write_ctx = (SSL_AEAD_CTX *)bssls->BORINGSSL_malloc( sizeof( ssl_aead_ctx_st ) );
-
-                if( !s->s3->aead_write_ctx )
-                    return 0;
-
-                memset( s->s3->aead_write_ctx, 0, sizeof( ssl_aead_ctx_st ) );
-                s->s3->aead_write_ctx->cipher = cipher;
-            }
+            version = (uint16_t)msspi_to_ssl_version( cipher_info->dwProtocol );
+            cipher_id = (uint16_t)cipher_info->dwCipherSuite;
         }
 
-        // mimic ssl3_get_server_certificate
+        // SERVER CERTIFICATES
+        std::vector<const char *> servercerts_bufs;
+        std::vector<int> servercerts_lens;
+        size_t servercerts_count;
         {
-            STACK_OF( CRYPTO_BUFFER ) * sk;
-            sk = ( STACK_OF( CRYPTO_BUFFER ) * )bssls->sk_new_null();
-
-            if( !sk )
+            if( !msspi_get_peercerts( w->h, NULL, NULL, &servercerts_count ) )
                 return 0;
 
-            s->s3->established_session->certs = sk;
+            servercerts_bufs.resize( servercerts_count );
+            servercerts_lens.resize( servercerts_count );
 
-            std::vector<const char *> bufs;
-            std::vector<int> lens;
-            size_t count;
-
-            if( !msspi_get_peercerts( w->h, NULL, NULL, &count ) )
-                return 0;
-
-            bufs.resize( count );
-            lens.resize( count );
-
-            bool is_OK = false;
-
-            if( msspi_get_peercerts( w->h, &bufs[0], &lens[0], &count ) )
-            {
-                for( size_t i = 0; i < count; i++ )
-                {
-                    CRYPTO_BUFFER * buf = bssls->CRYPTO_BUFFER_new( (const uint8_t *)bufs[i], lens[i], s->ctx->pool );
-
-                    if( !buf )
-                        break;
-
-                    bssls->sk_push( CHECKED_CAST( _STACK *, STACK_OF( CRYPTO_BUFFER ) *, sk ), CHECKED_CAST( void *, CRYPTO_BUFFER *, buf ) );
-                    is_OK = true;
-                }
-            }
-
-            if( !is_OK )
+            if( !msspi_get_peercerts( w->h, &servercerts_bufs[0], &servercerts_lens[0], &servercerts_count ) )
                 return 0;
         }
 
-        // callback SSL_CB_HANDSHAKE_DONE
-        if( s->info_callback != NULL )
-            s->info_callback( s, SSL_CB_HANDSHAKE_DONE, 1 );
-        else if( s->ctx->info_callback != NULL )
-            s->ctx->info_callback( s, SSL_CB_HANDSHAKE_DONE, 1 );
+        if( !bssls->set_connected_cb( w->s, alpn, alpn_len, version, cipher_id, &servercerts_bufs[0], &servercerts_lens[0], servercerts_count ) )
+            return 0;
 
-        s->s3->hs->state = SSL_ST_OK;
         w->host_status = GOSTSSL_HOST_YES;
         host_status_set( w->host_string, GOSTSSL_HOST_YES );
-
         return 1;
     }
 
