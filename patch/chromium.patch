@@ -1,4 +1,4 @@
-From a7d36115963af20332a2a93c49157cc2b1bab00b Mon Sep 17 00:00:00 2001
+From d77765bc59ac171fc03e39f4bb4afee7fef9f8c1 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 6 Sep 2017 00:50:26 +0300
 Subject: [PATCH] added GOSTSSL
@@ -51,10 +51,10 @@ index 3593c9e..9826523 100644
  # Package maintainer information.
  # TODO(mmoss) Setup a mailbox for this address
 diff --git a/chrome/installer/linux/common/installer.include b/chrome/installer/linux/common/installer.include
-index 239ed69..ba29d8e 100644
+index 8dcd464..e713f06 100644
 --- a/chrome/installer/linux/common/installer.include
 +++ b/chrome/installer/linux/common/installer.include
-@@ -161,6 +161,9 @@ stage_install_common() {
+@@ -162,6 +162,9 @@ stage_install_common() {
      install -m 644 "${BUILDDIR}/libwidevinecdm.so" "${STAGEDIR}/${INSTALLDIR}/"
    fi
  
@@ -63,7 +63,7 @@ index 239ed69..ba29d8e 100644
 +
    # ANGLE
    if [ "${CHANNEL}" != "stable" ]; then
-     install -m 644 "${BUILDDIR}/libGLESv2.so" "${STAGEDIR}/${INSTALLDIR}/"
+     for file in libEGL.so libGLESv2.so; do
 diff --git a/chrome/installer/linux/rpm/chrome.spec.template b/chrome/installer/linux/rpm/chrome.spec.template
 index bfcc643..94f8d9c 100644
 --- a/chrome/installer/linux/rpm/chrome.spec.template
@@ -196,10 +196,10 @@ index 9d952e8..a205e3e 100644
    // in the chain. Also fills in the has_* booleans for the digest algorithms
    // present in the chain.
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index 7b81b91..0472e45 100644
+index 2290f32..0572a33 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
-@@ -1493,6 +1493,15 @@ void HttpNetworkTransaction::HandleClientAuthError(int error) {
+@@ -1523,6 +1523,15 @@ void HttpNetworkTransaction::HandleClientAuthError(int error) {
  int HttpNetworkTransaction::HandleSSLHandshakeError(int error) {
    DCHECK(request_);
    HandleClientAuthError(error);
@@ -216,10 +216,10 @@ index 7b81b91..0472e45 100644
  }
  
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 03b12a2..09fe625 100644
+index c4e05f3..cabf61c 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
-@@ -613,6 +613,26 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
+@@ -573,6 +573,26 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
    return OK;
  }
  
@@ -246,7 +246,7 @@ index 03b12a2..09fe625 100644
  int SSLClientSocketImpl::Connect(const CompletionCallback& callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
    // this has never worked for layered sockets. CHECK to detect any consumers
-@@ -631,6 +651,26 @@ int SSLClientSocketImpl::Connect(const CompletionCallback& callback) {
+@@ -591,6 +611,26 @@ int SSLClientSocketImpl::Connect(const CompletionCallback& callback) {
      return rv;
    }
  
@@ -273,7 +273,7 @@ index 03b12a2..09fe625 100644
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -1267,6 +1307,86 @@ int SSLClientSocketImpl::DoVerifyCert(int result) {
+@@ -1233,6 +1273,86 @@ int SSLClientSocketImpl::DoVerifyCert(int result) {
  
    start_cert_verification_time_ = base::TimeTicks::Now();
  
@@ -360,7 +360,7 @@ index 03b12a2..09fe625 100644
    const uint8_t* ocsp_response_raw;
    size_t ocsp_response_len;
    SSL_get0_ocsp_response(ssl_.get(), &ocsp_response_raw, &ocsp_response_len);
-@@ -1646,6 +1766,31 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1612,6 +1732,31 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
@@ -393,10 +393,10 @@ index 03b12a2..09fe625 100644
    if (ssl_config_.client_cert.get()) {
      if (!ssl_config_.client_private_key) {
 diff --git a/net/spdy/chromium/spdy_session.cc b/net/spdy/chromium/spdy_session.cc
-index 665cc54..6367d742b 100644
+index d667fcf..93f2a71 100644
 --- a/net/spdy/chromium/spdy_session.cc
 +++ b/net/spdy/chromium/spdy_session.cc
-@@ -1320,6 +1320,19 @@ bool SpdySession::HasAcceptableTransportSecurity() const {
+@@ -1325,6 +1325,19 @@ bool SpdySession::HasAcceptableTransportSecurity() const {
    SSLInfo ssl_info;
    CHECK(GetSSLInfo(&ssl_info));
  
@@ -417,10 +417,10 @@ index 665cc54..6367d742b 100644
    if (SSLConnectionStatusToVersion(ssl_info.connection_status) <
        SSL_CONNECTION_VERSION_TLS1_2) {
 diff --git a/net/ssl/client_cert_store_nss.cc b/net/ssl/client_cert_store_nss.cc
-index b3c2766..01950d8 100644
+index 35888c8..231afc2 100644
 --- a/net/ssl/client_cert_store_nss.cc
 +++ b/net/ssl/client_cert_store_nss.cc
-@@ -146,6 +146,26 @@ void ClientCertStoreNSS::FilterCertsOnWorkerThread(
+@@ -162,6 +162,26 @@ void ClientCertStoreNSS::FilterCertsOnWorkerThread(
    std::sort(identities->begin(), identities->end(), ClientCertIdentitySorter());
  }
  
@@ -447,7 +447,7 @@ index b3c2766..01950d8 100644
  ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
      scoped_refptr<crypto::CryptoModuleBlockingPasswordDelegate>
          password_delegate,
-@@ -154,6 +174,45 @@ ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
+@@ -170,6 +190,45 @@ ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
    GetPlatformCertsOnWorkerThread(std::move(password_delegate),
                                   &selected_identities);
    FilterCertsOnWorkerThread(&selected_identities, *request);
@@ -482,7 +482,7 @@ index b3c2766..01950d8 100644
 +                for( int i = 0; i < count; i++ )
 +                {
 +                    scoped_refptr<X509Certificate> cert( X509Certificate::CreateFromBytes( certs[i], lens[i] ) );
-+                    selected_identities.push_back( base::MakeUnique<ClientCertIdentityNSS>( cert, password_delegate ) );
++                    selected_identities.push_back( std::make_unique<ClientCertIdentityNSS>( cert, x509_util::CreateCERTCertificateFromBytes( (uint8_t *)certs[i], lens[i] ), password_delegate) );
 +                    std::sort(selected_identities.begin(), selected_identities.end(), ClientCertIdentitySorter());
 +                }
 +            }
@@ -494,10 +494,10 @@ index b3c2766..01950d8 100644
  }
  
 diff --git a/net/ssl/openssl_ssl_util.cc b/net/ssl/openssl_ssl_util.cc
-index a51063d..e1dcb62 100644
+index 6f84a06..74bc52e 100644
 --- a/net/ssl/openssl_ssl_util.cc
 +++ b/net/ssl/openssl_ssl_util.cc
-@@ -81,6 +81,10 @@ int MapOpenSSLErrorSSL(uint32_t error_code) {
+@@ -83,6 +83,10 @@ int MapOpenSSLErrorSSL(uint32_t error_code) {
      case SSL_R_TLSV1_ALERT_PROTOCOL_VERSION:
      case SSL_R_UNSUPPORTED_PROTOCOL:
        return ERR_SSL_VERSION_OR_CIPHER_MISMATCH;
