@@ -5,7 +5,7 @@ set DEPOT_TOOLS_WIN_TOOLCHAIN=0
 set GYP_MSVS_VERSION=2015
 
 cd %CHROMIUM_PATH%
-call gn gen out\RELEASE --args="is_debug=false is_official_build=true target_cpu=\"x86\" symbol_level=0 ffmpeg_branding=\"Chrome\" proprietary_codecs=true %CHROMIUM_PRIVATE_ARGS%"
+call gn gen out\RELEASE --args="is_debug=false is_official_build=true ffmpeg_branding=\"Chrome\" proprietary_codecs=true %CHROMIUM_PRIVATE_ARGS% target_cpu=\"x86\""
 del %CHROMIUM_PATH%\out\RELEASE\chrome.7z
 del %CHROMIUM_PATH%\out\RELEASE\*.manifest
 call ninja -C out\RELEASE mini_installer
