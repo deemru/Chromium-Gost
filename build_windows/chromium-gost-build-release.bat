@@ -8,7 +8,7 @@ cd %CHROMIUM_PATH%
 call gn gen out\RELEASE --args="is_debug=false strip_debug_info=true is_official_build=true ffmpeg_branding=\"Chrome\" proprietary_codecs=true %CHROMIUM_PRIVATE_ARGS% target_cpu=\"x86\""
 del %CHROMIUM_PATH%\out\RELEASE\chrome.7z
 del %CHROMIUM_PATH%\out\RELEASE\*.manifest
-call ninja -C out\RELEASE mini_installer
+call ninja -C out\RELEASE mini_installer -j 1
 
 set PATH=%SEVENZIP_PATH%;%PATH%
 cd %CHROMIUM_GOST_REPO%\build_windows
