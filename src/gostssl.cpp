@@ -671,6 +671,21 @@ int gostssl_connect( SSL * s, int * is_gost )
                 return 0;
         }
 
+        // force GOST for broken clients and IIS (regsvr32 -u cpcng.dll)
+        if( cipher_id != TLS_GOST_CIPHER_2001 && cipher_id != TLS_GOST_CIPHER_2012 )
+        {
+            PCCERT_CONTEXT certcheck = CertCreateCertificateContext( X509_ASN_ENCODING, (BYTE *)servercerts_bufs[0], (DWORD)servercerts_lens[0] );
+
+            if( !certcheck )
+                return 0;
+
+            if( 0 == strcmp( certcheck->pCertInfo->SubjectPublicKeyInfo.Algorithm.pszObjId, szOID_CP_GOST_R3410EL ) )
+                cipher_id = TLS_GOST_CIPHER_2001;
+            else if( 0 == strcmp( certcheck->pCertInfo->SubjectPublicKeyInfo.Algorithm.pszObjId, szOID_CP_GOST_R3410_12_256 ) ||
+                0 == strcmp( certcheck->pCertInfo->SubjectPublicKeyInfo.Algorithm.pszObjId, szOID_CP_GOST_R3410_12_512 ) )
+                cipher_id = TLS_GOST_CIPHER_2012;
+        }
+
         if( !bssls->set_connected_cb( w->s, alpn, alpn_len, version, cipher_id, &servercerts_bufs[0], &servercerts_lens[0], servercerts_count ) )
             return 0;
 

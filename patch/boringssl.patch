@@ -1,4 +1,4 @@
-From 790c7b4cc5ab9a9cbbec741f71e6df7e580edfe2 Mon Sep 17 00:00:00 2001
+From 01151bbce45db39823665bc8595dcd95de601573 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 18 Oct 2017 09:58:24 +0300
 Subject: [PATCH] added GOSTSSL
@@ -9,8 +9,8 @@ Subject: [PATCH] added GOSTSSL
  ssl/handshake_client.cc |  11 +++
  ssl/internal.h          |  63 ++++++++++++++
  ssl/ssl_cipher.cc       |  42 ++++++++++
- ssl/ssl_lib.cc          | 215 ++++++++++++++++++++++++++++++++++++++++++++++++
- 6 files changed, 344 insertions(+)
+ ssl/ssl_lib.cc          | 214 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 6 files changed, 343 insertions(+)
 
 diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
 index 4463c8d..bbfc0a5 100644
@@ -253,7 +253,7 @@ index ecdecdd..cf6f7f4 100644
        alg_bits = 256;
        strength_bits = 256;
 diff --git a/ssl/ssl_lib.cc b/ssl/ssl_lib.cc
-index 9ecd7df..c1d77b1 100644
+index 9ecd7df..6b97e0e 100644
 --- a/ssl/ssl_lib.cc
 +++ b/ssl/ssl_lib.cc
 @@ -454,6 +454,169 @@ static int ssl_session_cmp(const SSL_SESSION *a, const SSL_SESSION *b) {
@@ -500,14 +500,13 @@ index 9ecd7df..c1d77b1 100644
      ret = ssl->method->write_app_data(ssl, &needs_handshake,
                                        (const uint8_t *)buf, num);
    } while (needs_handshake);
-@@ -2057,6 +2266,12 @@ EVP_PKEY *SSL_CTX_get0_privatekey(const SSL_CTX *ctx) {
+@@ -2057,6 +2266,11 @@ EVP_PKEY *SSL_CTX_get0_privatekey(const SSL_CTX *ctx) {
  }
  
  const SSL_CIPHER *SSL_get_current_cipher(const SSL *ssl) {
 +#ifdef GOSTSSL
 +    if( ssl->s3->established_session &&
-+        ssl->s3->established_session->cipher &&
-+        ssl->s3->established_session->cipher->algorithm_enc == SSL_eGOST28147 )
++        ssl->s3->established_session->cipher )
 +        return ssl->s3->established_session->cipher;
 +#endif
    return ssl->s3->aead_write_ctx->cipher();
