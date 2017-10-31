@@ -684,6 +684,8 @@ int gostssl_connect( SSL * s, int * is_gost )
             else if( 0 == strcmp( certcheck->pCertInfo->SubjectPublicKeyInfo.Algorithm.pszObjId, szOID_CP_GOST_R3410_12_256 ) ||
                 0 == strcmp( certcheck->pCertInfo->SubjectPublicKeyInfo.Algorithm.pszObjId, szOID_CP_GOST_R3410_12_512 ) )
                 cipher_id = TLS_GOST_CIPHER_2012;
+
+            CertFreeCertificateContext( certcheck );
         }
 
         if( !bssls->set_connected_cb( w->s, alpn, alpn_len, version, cipher_id, &servercerts_bufs[0], &servercerts_lens[0], servercerts_count ) )
