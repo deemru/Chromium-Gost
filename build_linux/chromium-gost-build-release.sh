@@ -5,7 +5,7 @@ cd $(dirname $0)
 export PATH=$DEPOT_TOOLS_PATH:$PATH
 
 cd $CHROMIUM_PATH
-gn gen out/RELEASE --args="is_debug=false strip_debug_info=true is_official_build=true enable_linux_installer=true ffmpeg_branding=\"Chrome\" proprietary_codecs=true $CHROMIUM_PRIVATE_ARGS"
+gn gen out/RELEASE --args="is_debug=false symbol_level=0 strip_debug_info=true is_official_build=true enable_linux_installer=true ffmpeg_branding=\"Chrome\" proprietary_codecs=true $CHROMIUM_PRIVATE_ARGS"
 
 cd $(dirname $0)
 if [ ! -f gostssl.so ]; then ./chromium-gost-build-gostssl.sh; fi
