@@ -1,6 +1,6 @@
-From d77765bc59ac171fc03e39f4bb4afee7fef9f8c1 Mon Sep 17 00:00:00 2001
+From 82fba012eab59fc58df5df5d59c105c917d31b9e Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
-Date: Wed, 6 Sep 2017 00:50:26 +0300
+Date: Thu, 7 Dec 2017 11:44:43 +0300
 Subject: [PATCH] added GOSTSSL
 
 ---
@@ -15,8 +15,8 @@ Subject: [PATCH] added GOSTSSL
  net/spdy/chromium/spdy_session.cc                  |  13 ++
  net/ssl/client_cert_store_nss.cc                   |  59 +++++++++
  net/ssl/openssl_ssl_util.cc                        |   4 +
- net/ssl/ssl_cipher_suite_names.cc                  |  22 ++++
- 12 files changed, 324 insertions(+), 7 deletions(-)
+ net/ssl/ssl_cipher_suite_names.cc                  |  21 +++
+ 12 files changed, 323 insertions(+), 7 deletions(-)
 
 diff --git a/chrome/installer/linux/common/chromium-browser/chromium-browser.info b/chrome/installer/linux/common/chromium-browser/chromium-browser.info
 index 3593c9e..9826523 100644
@@ -51,24 +51,24 @@ index 3593c9e..9826523 100644
  # Package maintainer information.
  # TODO(mmoss) Setup a mailbox for this address
 diff --git a/chrome/installer/linux/common/installer.include b/chrome/installer/linux/common/installer.include
-index 8dcd464..e713f06 100644
+index b9ce5ba..28377de 100644
 --- a/chrome/installer/linux/common/installer.include
 +++ b/chrome/installer/linux/common/installer.include
-@@ -162,6 +162,9 @@ stage_install_common() {
-     install -m 644 "${BUILDDIR}/libwidevinecdm.so" "${STAGEDIR}/${INSTALLDIR}/"
+@@ -190,6 +190,9 @@ stage_install_common() {
+     install -m ${SHLIB_PERMS} "${BUILDDIR}/libwidevinecdm.so" "${STAGEDIR}/${INSTALLDIR}/"
    fi
  
 +  # GOSTSSL
 +  install -m 644 "${BUILDDIR}/gostssl.so" "${STAGEDIR}/${INSTALLDIR}/"
 +
    # ANGLE
-   if [ "${CHANNEL}" != "stable" ]; then
-     for file in libEGL.so libGLESv2.so; do
+   if [ -f "${BUILDDIR}/libEGL.so" ]; then
+     if [ "${CHANNEL}" != "stable" ]; then
 diff --git a/chrome/installer/linux/rpm/chrome.spec.template b/chrome/installer/linux/rpm/chrome.spec.template
-index bfcc643..94f8d9c 100644
+index 55a3567..abbc16d 100644
 --- a/chrome/installer/linux/rpm/chrome.spec.template
 +++ b/chrome/installer/linux/rpm/chrome.spec.template
-@@ -121,6 +121,8 @@ add_nss_symlinks
+@@ -122,6 +122,8 @@ add_nss_symlinks
  
  remove_udev_symlinks
  
@@ -77,7 +77,7 @@ index bfcc643..94f8d9c 100644
  DEFAULTS_FILE="/etc/default/@@PACKAGE@@"
  if [ ! -e "$DEFAULTS_FILE" ]; then
    echo 'repo_add_once="true"' > "$DEFAULTS_FILE"
-@@ -159,6 +161,8 @@ fi
+@@ -160,6 +162,8 @@ fi
  service atd start
  echo "sh /etc/cron.daily/@@PACKAGE@@" | at now + 2 minute > /dev/null 2>&1
  
@@ -87,7 +87,7 @@ index bfcc643..94f8d9c 100644
  case $CHANNEL in
    stable )
 diff --git a/components/ssl_config/ssl_config_service_manager_pref.cc b/components/ssl_config/ssl_config_service_manager_pref.cc
-index 41925a9..d24d832 100644
+index c2e8527..2330844 100644
 --- a/components/ssl_config/ssl_config_service_manager_pref.cc
 +++ b/components/ssl_config/ssl_config_service_manager_pref.cc
 @@ -274,7 +274,7 @@ void SSLConfigServiceManagerPref::RegisterPrefs(PrefRegistrySimple* registry) {
@@ -126,10 +126,10 @@ index 7503a5b..dccd335 100644
  // indicate a fatal error.  Typically this error will be generated as a
  // notification to wait for some external notification that the IO operation
 diff --git a/net/cert/cert_verify_proc.cc b/net/cert/cert_verify_proc.cc
-index 9d952e8..a205e3e 100644
+index 3c1df6f..2ca4a59 100644
 --- a/net/cert/cert_verify_proc.cc
 +++ b/net/cert/cert_verify_proc.cc
-@@ -520,6 +520,27 @@ scoped_refptr<CertVerifyProc> CertVerifyProc::CreateDefault() {
+@@ -438,6 +438,27 @@ scoped_refptr<CertVerifyProc> CertVerifyProc::CreateDefault() {
  #endif
  }
  
@@ -157,7 +157,7 @@ index 9d952e8..a205e3e 100644
  CertVerifyProc::CertVerifyProc()
      : sha1_legacy_mode_enabled(base::FeatureList::IsEnabled(kSHA1LegacyMode)) {}
  
-@@ -550,6 +571,37 @@ int CertVerifyProc::Verify(X509Certificate* cert,
+@@ -476,6 +497,37 @@ int CertVerifyProc::Verify(X509Certificate* cert,
    int rv = VerifyInternal(cert, hostname, ocsp_response, flags, crl_set,
                            additional_trust_anchors, verify_result);
  
@@ -196,10 +196,10 @@ index 9d952e8..a205e3e 100644
    // in the chain. Also fills in the has_* booleans for the digest algorithms
    // present in the chain.
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index 2290f32..0572a33 100644
+index 70bd489..071fba2 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
-@@ -1523,6 +1523,15 @@ void HttpNetworkTransaction::HandleClientAuthError(int error) {
+@@ -1519,6 +1519,15 @@ void HttpNetworkTransaction::HandleClientAuthError(int error) {
  int HttpNetworkTransaction::HandleSSLHandshakeError(int error) {
    DCHECK(request_);
    HandleClientAuthError(error);
@@ -216,10 +216,10 @@ index 2290f32..0572a33 100644
  }
  
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index c4e05f3..cabf61c 100644
+index 44570a1..d839676 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
-@@ -573,6 +573,26 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
+@@ -571,6 +571,26 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
    return OK;
  }
  
@@ -246,7 +246,7 @@ index c4e05f3..cabf61c 100644
  int SSLClientSocketImpl::Connect(const CompletionCallback& callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
    // this has never worked for layered sockets. CHECK to detect any consumers
-@@ -591,6 +611,26 @@ int SSLClientSocketImpl::Connect(const CompletionCallback& callback) {
+@@ -589,6 +609,26 @@ int SSLClientSocketImpl::Connect(const CompletionCallback& callback) {
      return rv;
    }
  
@@ -273,7 +273,7 @@ index c4e05f3..cabf61c 100644
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -1233,6 +1273,86 @@ int SSLClientSocketImpl::DoVerifyCert(int result) {
+@@ -1215,6 +1255,86 @@ int SSLClientSocketImpl::DoVerifyCert(int result) {
  
    start_cert_verification_time_ = base::TimeTicks::Now();
  
@@ -360,7 +360,7 @@ index c4e05f3..cabf61c 100644
    const uint8_t* ocsp_response_raw;
    size_t ocsp_response_len;
    SSL_get0_ocsp_response(ssl_.get(), &ocsp_response_raw, &ocsp_response_len);
-@@ -1612,6 +1732,31 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1599,6 +1719,31 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
@@ -393,10 +393,10 @@ index c4e05f3..cabf61c 100644
    if (ssl_config_.client_cert.get()) {
      if (!ssl_config_.client_private_key) {
 diff --git a/net/spdy/chromium/spdy_session.cc b/net/spdy/chromium/spdy_session.cc
-index d667fcf..93f2a71 100644
+index dc4f23b..38cca43e 100644
 --- a/net/spdy/chromium/spdy_session.cc
 +++ b/net/spdy/chromium/spdy_session.cc
-@@ -1325,6 +1325,19 @@ bool SpdySession::HasAcceptableTransportSecurity() const {
+@@ -1320,6 +1320,19 @@ bool SpdySession::HasAcceptableTransportSecurity() const {
    SSLInfo ssl_info;
    CHECK(GetSSLInfo(&ssl_info));
  
@@ -417,10 +417,10 @@ index d667fcf..93f2a71 100644
    if (SSLConnectionStatusToVersion(ssl_info.connection_status) <
        SSL_CONNECTION_VERSION_TLS1_2) {
 diff --git a/net/ssl/client_cert_store_nss.cc b/net/ssl/client_cert_store_nss.cc
-index 35888c8..231afc2 100644
+index fd9f263..2de4713 100644
 --- a/net/ssl/client_cert_store_nss.cc
 +++ b/net/ssl/client_cert_store_nss.cc
-@@ -162,6 +162,26 @@ void ClientCertStoreNSS::FilterCertsOnWorkerThread(
+@@ -152,6 +152,26 @@ void ClientCertStoreNSS::FilterCertsOnWorkerThread(
    std::sort(identities->begin(), identities->end(), ClientCertIdentitySorter());
  }
  
@@ -447,8 +447,8 @@ index 35888c8..231afc2 100644
  ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
      scoped_refptr<crypto::CryptoModuleBlockingPasswordDelegate>
          password_delegate,
-@@ -170,6 +190,45 @@ ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
-   GetPlatformCertsOnWorkerThread(std::move(password_delegate),
+@@ -165,6 +185,45 @@ ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
+   GetPlatformCertsOnWorkerThread(std::move(password_delegate), CertFilter(),
                                   &selected_identities);
    FilterCertsOnWorkerThread(&selected_identities, *request);
 +
@@ -494,7 +494,7 @@ index 35888c8..231afc2 100644
  }
  
 diff --git a/net/ssl/openssl_ssl_util.cc b/net/ssl/openssl_ssl_util.cc
-index 6f84a06..74bc52e 100644
+index 0209955..e160d64 100644
 --- a/net/ssl/openssl_ssl_util.cc
 +++ b/net/ssl/openssl_ssl_util.cc
 @@ -83,6 +83,10 @@ int MapOpenSSLErrorSSL(uint32_t error_code) {
@@ -509,24 +509,23 @@ index 6f84a06..74bc52e 100644
      case SSL_R_SSLV3_ALERT_UNSUPPORTED_CERTIFICATE:
      case SSL_R_SSLV3_ALERT_CERTIFICATE_REVOKED:
 diff --git a/net/ssl/ssl_cipher_suite_names.cc b/net/ssl/ssl_cipher_suite_names.cc
-index 320c22e..44a03e8 100644
+index 9436602..b08498c 100644
 --- a/net/ssl/ssl_cipher_suite_names.cc
 +++ b/net/ssl/ssl_cipher_suite_names.cc
-@@ -365,6 +365,28 @@ void SSLCipherSuiteToStrings(const char** key_exchange_str,
+@@ -55,6 +55,27 @@ void SSLCipherSuiteToStrings(const char** key_exchange_str,
    *is_aead = false;
    *is_tls13 = false;
  
 +#if defined(GOSTSSL)
 +  switch( cipher_suite )
 +  {
-+
-+  case 0x81:
++  case 0x0081: // GOST2001-GOST89-GOST89
 +      *key_exchange_str = "GOSTR341001";
 +      *cipher_str = "GOST28147CNT";
 +      *mac_str = "GOST28147IMIT";
 +      return;
 +
-+  case 0xFF85:
++  case 0xff85: // GOST2012-GOST8912-GOST8912
 +      *key_exchange_str = "GOSTR341012";
 +      *cipher_str = "GOST28147CNT";
 +      *mac_str = "GOST28147IMIT";
@@ -538,8 +537,8 @@ index 320c22e..44a03e8 100644
 +  }
 +#endif // GOSTSSL
 +
-   int key_exchange, cipher, mac;
-   if (!GetCipherProperties(cipher_suite, &key_exchange, &cipher, &mac))
+   const SSL_CIPHER* cipher = SSL_get_cipher_by_value(cipher_suite);
+   if (!cipher)
      return;
 -- 
 2.10.0.windows.1

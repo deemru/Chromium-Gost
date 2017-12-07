@@ -2,7 +2,7 @@ cd /d %~dp0
 call chromium-gost-env.bat
 set PATH=%DEPOT_TOOLS_PATH%;%PATH%
 set DEPOT_TOOLS_WIN_TOOLCHAIN=0
-set GYP_MSVS_VERSION=2015
+set GYP_MSVS_VERSION=2017
 set GOST_BRANCH=GOSTSSL-%CHROMIUM_TAG%
 
 cd %BORINGSSL_PATH% || goto :finish

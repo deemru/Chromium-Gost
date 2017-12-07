@@ -2,7 +2,7 @@ cd /d %~dp0
 call chromium-gost-env.bat
 set PATH=%DEPOT_TOOLS_PATH%;%PATH%
 set DEPOT_TOOLS_WIN_TOOLCHAIN=0
-set GYP_MSVS_VERSION=2015
+set GYP_MSVS_VERSION=2017
 
 cd %CHROMIUM_PATH%
 call gn gen out\RELEASE --args="is_debug=false symbol_level=0 strip_debug_info=true is_official_build=true ffmpeg_branding=\"Chrome\" proprietary_codecs=true %CHROMIUM_PRIVATE_ARGS% target_cpu=\"x86\""

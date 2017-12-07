@@ -1,6 +1,10 @@
 #define GOSTSSL
 #define BORINGSSL_ALLOW_CXX_RUNTIME
+#define WIN32_LEAN_AND_MEAN
+#pragma warning( push )
+#pragma warning( disable:4003 )
 #include <../ssl/internal.h>
+#pragma warning( pop )
 
 extern "C" {
 
@@ -621,9 +625,6 @@ int gostssl_connect( SSL * s, int * is_gost )
     }
 
     *is_gost = TRUE;
-
-    if( s->s3->hs->state == SSL_ST_INIT )
-        s->s3->hs->state = SSL_ST_CONNECT;
 
     int ret = msspi_connect( w->h );
 
