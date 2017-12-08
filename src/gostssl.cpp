@@ -1,10 +1,14 @@
 #define GOSTSSL
 #define BORINGSSL_ALLOW_CXX_RUNTIME
 #define WIN32_LEAN_AND_MEAN
+#ifdef _WIN32
 #pragma warning( push )
 #pragma warning( disable:4003 )
+#endif
 #include <../ssl/internal.h>
+#ifdef _WIN32
 #pragma warning( pop )
+#endif
 
 extern "C" {
 
