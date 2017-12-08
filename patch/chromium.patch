@@ -1,4 +1,4 @@
-From 5a2c263467ea24e29368b9e58b91381e6e5cd277 Mon Sep 17 00:00:00 2001
+From 9a14a691ed208116ad6142b020ee88adf870364c Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Thu, 7 Dec 2017 11:44:43 +0300
 Subject: [PATCH] added GOSTSSL
@@ -51,7 +51,7 @@ index 3593c9e..9826523 100644
  # Package maintainer information.
  # TODO(mmoss) Setup a mailbox for this address
 diff --git a/chrome/installer/linux/common/installer.include b/chrome/installer/linux/common/installer.include
-index b9ce5ba..3d55bb6 100644
+index b9ce5ba..81a4b84 100644
 --- a/chrome/installer/linux/common/installer.include
 +++ b/chrome/installer/linux/common/installer.include
 @@ -190,6 +190,9 @@ stage_install_common() {
@@ -59,7 +59,7 @@ index b9ce5ba..3d55bb6 100644
    fi
  
 +  # GOSTSSL
-+  install -m 755 "${BUILDDIR}/gostssl.so" "${STAGEDIR}/${INSTALLDIR}/"
++  install -m ${SHLIB_PERMS} "${BUILDDIR}/gostssl.so" "${STAGEDIR}/${INSTALLDIR}/"
 +
    # ANGLE
    if [ -f "${BUILDDIR}/libEGL.so" ]; then
