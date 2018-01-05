@@ -23,7 +23,7 @@
 
 - В случае возникновения подобного сигнала для данного сайта происходит переключение в режим работы интерфейса `msspi`. Если защищённое соединение успешно устанавливается через интерфейс `msspi`, сайт отмечается поддерживающим алгоритмы ГОСТ и все последующие с ним соединения будут использовать интерфейс `msspi`.
 
-- Как правило, для пользователя данный алгоритм работы остаётся незаметен, так как `Chromium` по умолчанию пытается несколько раз установить защищённое соединение с различными параметрами безопасности при возникновении ошибок.
+- Для пользователя данный алгоритм работы остаётся прозрачен, так как `Chromium` автоматически устанавливает повторное соединение через интерфейс `msspi`.
 
 # Обсуждение
 
@@ -34,12 +34,10 @@
 [![appveyor](https://img.shields.io/appveyor/ci/deemru/chromium-gost.svg?label=appveyor)](https://ci.appveyor.com/project/deemru/chromium-gost)
 [![visualstudio](https://img.shields.io/vso/build/deem/2f245d40-b5be-4754-a914-1876f55cf9e7/4.svg?label=visualstudio)](https://deem.visualstudio.com/builder/_build/index?definitionId=4)
 
-- Требуется Windows система с установленной Visual Studio 2015
-- [Создать](https://technet.microsoft.com/ru-ru/library/gg318052(v=ws.10).aspx) или смонтировать диск `U:` (не менее 128 Гб)
-- Установить [depot_tools](https://chromium.googlesource.com/chromium/src/+/master/docs/windows_build_instructions.md) в `U:\depot_tools`
-- Извлечь [Chromium](https://chromium.googlesource.com/chromium/src/+/master/docs/windows_build_instructions.md) в `U:\chromium\src` (запустить `fetch chromium` в `U:\chromium`)
+- Освоить сборку оригинального проекта [Chromium](https://chromium.googlesource.com/chromium/src/+/master/docs/README.md) — [Get the code: check out, build, and run Chromium]( https://chromium.googlesource.com/chromium/src/+/master/docs/get_the_code.md)
 - Извлечь [chromium-gost](https://github.com/deemru/chromium-gost)
-- При наличии `CHROMIUM_PRIVATE_ARGS` объявить их в `chromium-gost\build_windows\chromium-gost-env-private.bat` 
-- Подготовить сборку — [chromium-gost\build_windows\chromium-gost-prepare.bat](https://github.com/deemru/chromium-gost/blob/master/build_windows/chromium-gost-prepare.bat)
-- Собрать `gostssl.dll` — [chromium-gost\build_windows\chromium-gost-build-gostssl.bat](https://github.com/deemru/chromium-gost/blob/master/build_windows/chromium-gost-build-gostssl.bat)
-- Собрать всё и упаковать в `RELEASE\chromium-gost-a.b.c.d-win32.7z` — [chromium-gost\build_windows\chromium-gost-build-release.bat](https://github.com/deemru/chromium-gost/blob/master/build_windows/chromium-gost-build-release.bat)
+- Использовать скрипты из `build_linux` или `build_windows`
+- Скорректировать пути — `chromium-gost-env`
+- Подготовить сборку — `chromium-gost-prepare`
+- Собрать библиотеку `gostssl` — `chromium-gost-build-gostssl`
+- Собрать дистрибутив `chromium-gost` — `chromium-gost-build-release`
