@@ -5,11 +5,13 @@ set DEPOT_TOOLS_WIN_TOOLCHAIN=0
 set GYP_MSVS_VERSION=2017
 set GOST_BRANCH=GOSTSSL-%CHROMIUM_TAG%
 
-cd %BORINGSSL_PATH% || goto :finish
-call git checkout -f master
-call git reset --hard
+cd %CHROMIUM_PATH%\.git || goto :finish
+cd %BORINGSSL_PATH%\.git || goto :finish
 
-cd %CHROMIUM_PATH% || goto :finish
+cd %BORINGSSL_PATH%
+call git reset HEAD~ --hard
+
+cd %CHROMIUM_PATH%
 call git fetch --tags
 call git checkout -b %GOST_BRANCH% tags/%CHROMIUM_TAG%
 call git checkout -f %GOST_BRANCH%

@@ -556,24 +556,24 @@ static int msspi_to_ssl_version( DWORD dwProtocol )
 static int msspi_to_ssl_state_ret( int state, SSL * s, int ret )
 {
     if( state & MSSPI_ERROR )
-        s->rwstate = SSL_NOTHING;
+        s->s3->rwstate = SSL_NOTHING;
     else if( state & MSSPI_SENT_SHUTDOWN && state & MSSPI_RECEIVED_SHUTDOWN )
-        s->rwstate = SSL_NOTHING;
+        s->s3->rwstate = SSL_NOTHING;
     else if( state & MSSPI_X509_LOOKUP )
-        s->rwstate = SSL_X509_LOOKUP;
+        s->s3->rwstate = SSL_X509_LOOKUP;
     else if( state & MSSPI_WRITING )
     {
         if( state & MSSPI_LAST_PROC_WRITE )
-            s->rwstate = SSL_WRITING;
+            s->s3->rwstate = SSL_WRITING;
         else if( state & MSSPI_READING )
-            s->rwstate = SSL_READING;
+            s->s3->rwstate = SSL_READING;
         else
-            s->rwstate = SSL_WRITING;
+            s->s3->rwstate = SSL_WRITING;
     }
     else if( state & MSSPI_READING )
-        s->rwstate = SSL_READING;
+        s->s3->rwstate = SSL_READING;
     else
-        s->rwstate = SSL_NOTHING;
+        s->s3->rwstate = SSL_NOTHING;
 
     return ret;
 }
@@ -634,7 +634,7 @@ int gostssl_connect( SSL * s, int * is_gost )
 
     if( ret == 1 )
     {
-        s->rwstate = SSL_NOTHING;
+        s->s3->rwstate = SSL_NOTHING;
 
         // ALPN
         const char * alpn;

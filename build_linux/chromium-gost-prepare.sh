@@ -5,9 +5,11 @@ cd $(dirname $0)
 export PATH=$DEPOT_TOOLS_PATH:$PATH
 export GOST_BRANCH=GOSTSSL-$CHROMIUM_TAG
 
-cd $BORINGSSL_PATH || exit
-git checkout -f master
-git reset --hard
+cd $CHROMIUM_PATH/.git || exit
+cd $BORINGSSL_PATH/.git || exit
+
+cd $BORINGSSL_PATH
+git reset HEAD~ --hard
 
 cd $CHROMIUM_PATH || exit
 git fetch --tags
