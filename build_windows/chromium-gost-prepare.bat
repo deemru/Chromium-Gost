@@ -12,6 +12,7 @@ cd %BORINGSSL_PATH%
 call git reset HEAD~ --hard
 
 cd %CHROMIUM_PATH%
+call git reset HEAD~ --hard
 call git fetch --tags
 call git checkout -b %GOST_BRANCH% tags/%CHROMIUM_TAG%
 call git checkout -f %GOST_BRANCH%
