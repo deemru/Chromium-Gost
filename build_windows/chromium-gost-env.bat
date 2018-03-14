@@ -1,4 +1,4 @@
-set CHROMIUM_TAG=65.0.3325.146
+set CHROMIUM_TAG=65.0.3325.162
 set CHROMIUM_PATH=u:\chromium\src
 set BORINGSSL_PATH=%CHROMIUM_PATH%\third_party\boringssl\src
 set DEPOT_TOOLS_PATH=u:\depot_tools\
