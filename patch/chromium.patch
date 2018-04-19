@@ -1,13 +1,13 @@
-From 0f6099e8a697093be2a27bf3a1b9adc0e7b346f4 Mon Sep 17 00:00:00 2001
+From 8431f73e9e3e205bf2b62e7601938272ebd69128 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
-Date: Thu, 7 Dec 2017 11:44:43 +0300
+Date: Wed, 18 Apr 2018 15:09:19 +0300
 Subject: [PATCH] added GOSTSSL
 
 ---
  .../common/chromium-browser/chromium-browser.info  |  10 +-
  chrome/installer/linux/common/installer.include    |   3 +
  chrome/installer/linux/rpm/chrome.spec.template    |   4 +
- .../ssl_config/ssl_config_service_manager_pref.cc  |   4 +-
+ .../ssl_config/ssl_config_service_manager_pref.cc  |   2 +-
  net/base/net_error_list.h                          |   6 +
  net/cert/cert_verify_proc.cc                       |  56 ++++++++
  net/http/http_network_transaction.cc               |   9 ++
@@ -16,7 +16,7 @@ Subject: [PATCH] added GOSTSSL
  net/ssl/client_cert_store_nss.cc                   |  59 +++++++++
  net/ssl/openssl_ssl_util.cc                        |   4 +
  net/ssl/ssl_cipher_suite_names.cc                  |  21 +++
- 12 files changed, 327 insertions(+), 7 deletions(-)
+ 12 files changed, 326 insertions(+), 6 deletions(-)
 
 diff --git a/chrome/installer/linux/common/chromium-browser/chromium-browser.info b/chrome/installer/linux/common/chromium-browser/chromium-browser.info
 index 3593c9e..9826523 100644
@@ -51,10 +51,10 @@ index 3593c9e..9826523 100644
  # Package maintainer information.
  # TODO(mmoss) Setup a mailbox for this address
 diff --git a/chrome/installer/linux/common/installer.include b/chrome/installer/linux/common/installer.include
-index 73d801a..82cd8ac 100644
+index 96996f5..9e6e29d 100644
 --- a/chrome/installer/linux/common/installer.include
 +++ b/chrome/installer/linux/common/installer.include
-@@ -199,6 +199,9 @@ stage_install_common() {
+@@ -200,6 +200,9 @@ stage_install_common() {
      install -m ${SHLIB_PERMS} "${BUILDDIR}/libwidevinecdm.so" "${STAGEDIR}/${INSTALLDIR}/"
    fi
  
@@ -87,19 +87,10 @@ index 55a3567..abbc16d 100644
  case $CHANNEL in
    stable )
 diff --git a/components/ssl_config/ssl_config_service_manager_pref.cc b/components/ssl_config/ssl_config_service_manager_pref.cc
-index f924fe2..f7503ff 100644
+index bd0ba31..7b13925 100644
 --- a/components/ssl_config/ssl_config_service_manager_pref.cc
 +++ b/components/ssl_config/ssl_config_service_manager_pref.cc
-@@ -264,7 +264,7 @@ void SSLConfigServiceManagerPref::RegisterPrefs(PrefRegistrySimple* registry) {
-   registry->RegisterBooleanPref(ssl_config::prefs::kCertEnableSha1LocalAnchors,
-                                 false);
-   registry->RegisterBooleanPref(
--      ssl_config::prefs::kCertEnableCommonNameFallbackLocalAnchors, false);
-+      ssl_config::prefs::kCertEnableCommonNameFallbackLocalAnchors, true);
-   registry->RegisterStringPref(ssl_config::prefs::kSSLVersionMin,
-                                std::string());
-   registry->RegisterStringPref(ssl_config::prefs::kSSLVersionMax,
-@@ -301,7 +301,7 @@ void SSLConfigServiceManagerPref::GetSSLConfigFromPrefs(
+@@ -296,7 +296,7 @@ void SSLConfigServiceManagerPref::GetSSLConfigFromPrefs(
    if (rev_checking_enabled_.IsManaged())
      config->rev_checking_enabled = rev_checking_enabled_.GetValue();
    else
@@ -109,7 +100,7 @@ index f924fe2..f7503ff 100644
        rev_checking_required_local_anchors_.GetValue();
    config->sha1_local_anchors_enabled = sha1_local_anchors_enabled_.GetValue();
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
-index d1857c2..a7d4520 100644
+index e959b78..1f06b84 100644
 --- a/net/base/net_error_list.h
 +++ b/net/base/net_error_list.h
 @@ -19,6 +19,12 @@
@@ -126,10 +117,10 @@ index d1857c2..a7d4520 100644
  // indicate a fatal error.  Typically this error will be generated as a
  // notification to wait for some external notification that the IO operation
 diff --git a/net/cert/cert_verify_proc.cc b/net/cert/cert_verify_proc.cc
-index 181590b..d5f3696 100644
+index ba51d3a..81d3a37 100644
 --- a/net/cert/cert_verify_proc.cc
 +++ b/net/cert/cert_verify_proc.cc
-@@ -473,6 +473,31 @@ scoped_refptr<CertVerifyProc> CertVerifyProc::CreateDefault() {
+@@ -480,6 +480,31 @@ scoped_refptr<CertVerifyProc> CertVerifyProc::CreateDefault() {
  #endif
  }
  
@@ -161,7 +152,7 @@ index 181590b..d5f3696 100644
  CertVerifyProc::CertVerifyProc()
      : sha1_legacy_mode_enabled(base::FeatureList::IsEnabled(kSHA1LegacyMode)) {}
  
-@@ -511,6 +536,37 @@ int CertVerifyProc::Verify(X509Certificate* cert,
+@@ -518,6 +543,37 @@ int CertVerifyProc::Verify(X509Certificate* cert,
    int rv = VerifyInternal(cert, hostname, ocsp_response, flags, crl_set,
                            additional_trust_anchors, verify_result);
  
@@ -200,13 +191,13 @@ index 181590b..d5f3696 100644
    // in the chain. Also fills in the has_* booleans for the digest algorithms
    // present in the chain.
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index 44e52f4..ca8e966 100644
+index 98f52f6..2f8cb78 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
-@@ -1525,6 +1525,15 @@ void HttpNetworkTransaction::HandleClientAuthError(int error) {
- int HttpNetworkTransaction::HandleSSLHandshakeError(int error) {
-   DCHECK(request_);
-   HandleClientAuthError(error);
+@@ -1566,6 +1566,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
+       return OK;
+     }
+   }
 +
 +#if defined(GOSTSSL)
 +  if( error == ERR_TLS_GOST_REQUIRED )
@@ -220,10 +211,10 @@ index 44e52f4..ca8e966 100644
  }
  
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index c584e8e..d47d19c 100644
+index 550267a7..f89f141 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
-@@ -625,6 +625,26 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
+@@ -574,6 +574,26 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
    return OK;
  }
  
@@ -250,7 +241,7 @@ index c584e8e..d47d19c 100644
  int SSLClientSocketImpl::Connect(const CompletionCallback& callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
    // this has never worked for layered sockets. CHECK to detect any consumers
-@@ -643,6 +663,26 @@ int SSLClientSocketImpl::Connect(const CompletionCallback& callback) {
+@@ -592,6 +612,26 @@ int SSLClientSocketImpl::Connect(const CompletionCallback& callback) {
      return rv;
    }
  
@@ -277,7 +268,7 @@ index c584e8e..d47d19c 100644
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -1277,6 +1317,86 @@ int SSLClientSocketImpl::DoVerifyCert(int result) {
+@@ -1229,6 +1269,86 @@ int SSLClientSocketImpl::DoVerifyCert(int result) {
  
    start_cert_verification_time_ = base::TimeTicks::Now();
  
@@ -364,7 +355,7 @@ index c584e8e..d47d19c 100644
    const uint8_t* ocsp_response_raw;
    size_t ocsp_response_len;
    SSL_get0_ocsp_response(ssl_.get(), &ocsp_response_raw, &ocsp_response_len);
-@@ -1714,6 +1834,31 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1664,6 +1784,31 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
@@ -397,10 +388,10 @@ index c584e8e..d47d19c 100644
    if (ssl_config_.client_cert.get()) {
      if (!ssl_config_.client_private_key) {
 diff --git a/net/spdy/chromium/spdy_session.cc b/net/spdy/chromium/spdy_session.cc
-index 682dde8..29bb83c 100644
+index 588ba6f..54000b6 100644
 --- a/net/spdy/chromium/spdy_session.cc
 +++ b/net/spdy/chromium/spdy_session.cc
-@@ -1329,6 +1329,19 @@ bool SpdySession::HasAcceptableTransportSecurity() const {
+@@ -1357,6 +1357,19 @@ bool SpdySession::HasAcceptableTransportSecurity() const {
    SSLInfo ssl_info;
    CHECK(GetSSLInfo(&ssl_info));
  
@@ -498,10 +489,10 @@ index 7c773ee..2717a26 100644
  }
  
 diff --git a/net/ssl/openssl_ssl_util.cc b/net/ssl/openssl_ssl_util.cc
-index b2067f1..95df30c 100644
+index 92b9c6f..2ef0c70 100644
 --- a/net/ssl/openssl_ssl_util.cc
 +++ b/net/ssl/openssl_ssl_util.cc
-@@ -83,6 +83,10 @@ int MapOpenSSLErrorSSL(uint32_t error_code) {
+@@ -84,6 +84,10 @@ int MapOpenSSLErrorSSL(uint32_t error_code) {
      case SSL_R_TLSV1_ALERT_PROTOCOL_VERSION:
      case SSL_R_UNSUPPORTED_PROTOCOL:
        return ERR_SSL_VERSION_OR_CIPHER_MISMATCH;
