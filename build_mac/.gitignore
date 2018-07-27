@@ -1,0 +1,10 @@
+*
+!.gitignore
+!.gitattributes
+!chromium-gost-build-debug.sh
+!chromium-gost-build-gostssl.sh
+!chromium-gost-build-release.sh
+!chromium-gost-env.sh
+!chromium-gost-prepare.sh
+!chromium-gost-publish-release.sh
+

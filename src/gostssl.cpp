@@ -34,7 +34,7 @@ EXPORT int EXPLICITSSL_CALL gostssl_tls_gost_required( SSL * s );
 // Hooks
 EXPORT void EXPLICITSSL_CALL gostssl_certhook( void * cert, int size );
 EXPORT void EXPLICITSSL_CALL gostssl_verifyhook( void * s, unsigned * is_gost );
-EXPORT void EXPLICITSSL_CALL gostssl_clientcertshook( char *** certs, int ** lens, int * count, int * is_gost );
+EXPORT void EXPLICITSSL_CALL gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost );
 EXPORT void EXPLICITSSL_CALL gostssl_isgostcerthook( void * cert, int size, int * is_gost );
 
 }
@@ -737,7 +737,10 @@ static std::vector<char *> g_certs;
 static std::vector<int> g_certlens;
 static std::vector<std::string> g_certbufs;
 
-void gostssl_clientcertshook( char *** certs, int ** lens, int * count, int * is_gost )
+static std::vector<wchar_t *> g_certnames;
+static std::vector<std::wstring> g_certnamebufs;
+
+void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost )
 {
     *is_gost = g_is_gost;
 
@@ -755,11 +758,12 @@ void gostssl_clientcertshook( char *** certs, int ** lens, int * count, int * is
     g_certs.clear();
     g_certlens.clear();
     g_certbufs.clear();
+    g_certnames.clear();
+    g_certnamebufs.clear();
 
-    for(
-        PCCERT_CONTEXT pcert = CertFindCertificateInStore( hStore, ( PKCS_7_ASN_ENCODING | X509_ASN_ENCODING ), 0, CERT_FIND_ANY, 0, 0 );
-        pcert;
-        pcert = CertFindCertificateInStore( hStore, ( PKCS_7_ASN_ENCODING | X509_ASN_ENCODING ), 0, CERT_FIND_ANY, 0, pcert ) )
+    for( PCCERT_CONTEXT pcert = CertFindCertificateInStore( hStore, PKCS_7_ASN_ENCODING | X509_ASN_ENCODING, 0, CERT_FIND_ANY, 0, 0 );
+         pcert;
+         pcert = CertFindCertificateInStore( hStore, PKCS_7_ASN_ENCODING | X509_ASN_ENCODING, 0, CERT_FIND_ANY, 0, pcert ) )
     {
         BYTE bUsage;
         DWORD dw = 0;
@@ -772,6 +776,26 @@ void gostssl_clientcertshook( char *** certs, int ** lens, int * count, int * is
             g_certbufs.push_back( std::string( (char *)pcert->pbCertEncoded, pcert->cbCertEncoded ) );
             g_certlens.push_back( (int)g_certbufs[i].size() );
             g_certs.push_back( &g_certbufs[i][0] );
+
+            if( names )
+            {
+                std::wstring name;
+                wchar_t wName[1024];
+                DWORD dwName;
+
+                dwName = sizeof( wName ) / sizeof( wName[0] );
+                dwName = CertGetNameStringW( pcert, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, NULL, wName, dwName );
+
+                name = dwName > 1 ? wName : L"...";
+
+                dwName = sizeof( wName ) / sizeof( wName[0] );
+                dwName = CertGetNameStringW( pcert, CERT_NAME_SIMPLE_DISPLAY_TYPE, CERT_NAME_ISSUER_FLAG, NULL, wName, dwName );
+
+                name = name + L" (" + ( dwName > 1 ? wName : L"..." ) + L")";
+
+                g_certnamebufs.push_back( name );
+                g_certnames.push_back( &g_certnamebufs[i][0] );
+            }
             i++;
         }
     }
@@ -780,6 +804,8 @@ void gostssl_clientcertshook( char *** certs, int ** lens, int * count, int * is
     {
         *certs = &g_certs[0];
         *lens = &g_certlens[0];
+        if( names )
+            *names = &g_certnames[0];
         *count = i;
     }
 
