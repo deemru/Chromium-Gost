@@ -1,25 +1,38 @@
-From 49739e301e997d440f3371df6a5be8edfc4f5b3c Mon Sep 17 00:00:00 2001
+From efb460ba7b0587458b1ec9ec1d4db1ce6e6bd18a Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
-Date: Wed, 18 Apr 2018 15:09:19 +0300
+Date: Fri, 27 Jul 2018 19:12:23 +0300
 Subject: [PATCH] added GOSTSSL
 
 ---
+ .../ssl/ssl_config_service_manager_pref.cc    |   2 +-
  .../ssl_client_certificate_selector_cocoa.mm  |   8 +
  .../chromium-browser/chromium-browser.info    |  10 +-
  .../installer/linux/common/installer.include  |   3 +
  .../installer/linux/rpm/chrome.spec.template  |   4 +
- .../ssl_config_service_manager_pref.cc        |   2 +-
  net/base/net_error_list.h                     |   6 +
- net/cert/cert_verify_proc.cc                  |  56 +++++++
+ net/cert/cert_verify_proc.cc                  |  55 +++++++
  net/http/http_network_transaction.cc          |   9 ++
  net/socket/ssl_client_socket_impl.cc          | 145 ++++++++++++++++++
- net/spdy/chromium/spdy_session.cc             |  13 ++
+ net/spdy/spdy_session.cc                      |  13 ++
  net/ssl/client_cert_store_mac.cc              | 104 +++++++++++++
  net/ssl/client_cert_store_nss.cc              |  59 +++++++
  net/ssl/openssl_ssl_util.cc                   |   4 +
  net/ssl/ssl_cipher_suite_names.cc             |  27 ++++
- 14 files changed, 444 insertions(+), 6 deletions(-)
+ 14 files changed, 443 insertions(+), 6 deletions(-)
 
+diff --git a/chrome/browser/ssl/ssl_config_service_manager_pref.cc b/chrome/browser/ssl/ssl_config_service_manager_pref.cc
+index de9e4280f198..cd8e427c172a 100644
+--- a/chrome/browser/ssl/ssl_config_service_manager_pref.cc
++++ b/chrome/browser/ssl/ssl_config_service_manager_pref.cc
+@@ -257,7 +257,7 @@ SSLConfigServiceManagerPref::GetSSLConfigFromPrefs() const {
+   if (rev_checking_enabled_.IsManaged())
+     config->rev_checking_enabled = rev_checking_enabled_.GetValue();
+   else
+-    config->rev_checking_enabled = false;
++    config->rev_checking_enabled = true;
+   config->rev_checking_required_local_anchors =
+       rev_checking_required_local_anchors_.GetValue();
+   config->sha1_local_anchors_enabled = sha1_local_anchors_enabled_.GetValue();
 diff --git a/chrome/browser/ui/cocoa/ssl_client_certificate_selector_cocoa.mm b/chrome/browser/ui/cocoa/ssl_client_certificate_selector_cocoa.mm
 index 921a178c8176..c811b6c99f26 100644
 --- a/chrome/browser/ui/cocoa/ssl_client_certificate_selector_cocoa.mm
@@ -107,21 +120,8 @@ index 55a35677b9c4..abbc16d5f5f1 100644
  CHANNEL=@@CHANNEL@@
  case $CHANNEL in
    stable )
-diff --git a/components/ssl_config/ssl_config_service_manager_pref.cc b/components/ssl_config/ssl_config_service_manager_pref.cc
-index bd0ba311df28..7b13925f0415 100644
---- a/components/ssl_config/ssl_config_service_manager_pref.cc
-+++ b/components/ssl_config/ssl_config_service_manager_pref.cc
-@@ -296,7 +296,7 @@ void SSLConfigServiceManagerPref::GetSSLConfigFromPrefs(
-   if (rev_checking_enabled_.IsManaged())
-     config->rev_checking_enabled = rev_checking_enabled_.GetValue();
-   else
--    config->rev_checking_enabled = false;
-+    config->rev_checking_enabled = true;
-   config->rev_checking_required_local_anchors =
-       rev_checking_required_local_anchors_.GetValue();
-   config->sha1_local_anchors_enabled = sha1_local_anchors_enabled_.GetValue();
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
-index c9626316bb8f..cd26c49b0bf5 100644
+index ef20dfff2baa..d8b054567da9 100644
 --- a/net/base/net_error_list.h
 +++ b/net/base/net_error_list.h
 @@ -21,6 +21,12 @@
@@ -138,10 +138,10 @@ index c9626316bb8f..cd26c49b0bf5 100644
  // indicate a fatal error.  Typically this error will be generated as a
  // notification to wait for some external notification that the IO operation
 diff --git a/net/cert/cert_verify_proc.cc b/net/cert/cert_verify_proc.cc
-index a43741e8c2ca..ecd46c1f7653 100644
+index 6d1907898264..1f843bea9066 100644
 --- a/net/cert/cert_verify_proc.cc
 +++ b/net/cert/cert_verify_proc.cc
-@@ -494,6 +494,31 @@ scoped_refptr<CertVerifyProc> CertVerifyProc::CreateDefault() {
+@@ -497,6 +497,30 @@ scoped_refptr<CertVerifyProc> CertVerifyProc::CreateDefault() {
  #endif
  }
  
@@ -169,11 +169,10 @@ index a43741e8c2ca..ecd46c1f7653 100644
 +#endif // _WIN32
 +#endif // GOSTSSL
 +
-+
  CertVerifyProc::CertVerifyProc()
      : sha1_legacy_mode_enabled(base::FeatureList::IsEnabled(kSHA1LegacyMode)) {}
  
-@@ -525,6 +550,37 @@ int CertVerifyProc::Verify(X509Certificate* cert,
+@@ -528,6 +552,37 @@ int CertVerifyProc::Verify(X509Certificate* cert,
    int rv = VerifyInternal(cert, hostname, ocsp_response, flags, crl_set,
                            additional_trust_anchors, verify_result);
  
@@ -212,7 +211,7 @@ index a43741e8c2ca..ecd46c1f7653 100644
    // in the chain. Also fills in the has_* booleans for the digest algorithms
    // present in the chain.
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index 9d96d1a83cf5..704edfb6e4e2 100644
+index 6cb10b297887..355991b6cfd6 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
 @@ -1549,6 +1549,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
@@ -232,10 +231,10 @@ index 9d96d1a83cf5..704edfb6e4e2 100644
  }
  
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 93233a753fed..9280672d668e 100644
+index 35e364f79a56..1c9dd3f5aa4b 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
-@@ -563,6 +563,26 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
+@@ -478,6 +478,26 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
    return OK;
  }
  
@@ -259,10 +258,10 @@ index 93233a753fed..9280672d668e 100644
 +#endif // _WIN32
 +#endif // GOSTSSL
 +
- int SSLClientSocketImpl::Connect(const CompletionCallback& callback) {
+ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
    // this has never worked for layered sockets. CHECK to detect any consumers
-@@ -581,6 +601,26 @@ int SSLClientSocketImpl::Connect(const CompletionCallback& callback) {
+@@ -496,6 +516,26 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
      return rv;
    }
  
@@ -289,7 +288,7 @@ index 93233a753fed..9280672d668e 100644
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -1157,6 +1197,86 @@ int SSLClientSocketImpl::DoVerifyCert(int result) {
+@@ -1127,6 +1167,86 @@ int SSLClientSocketImpl::DoVerifyCert(int result) {
  
    start_cert_verification_time_ = base::TimeTicks::Now();
  
@@ -376,7 +375,7 @@ index 93233a753fed..9280672d668e 100644
    const uint8_t* ocsp_response_raw;
    size_t ocsp_response_len;
    SSL_get0_ocsp_response(ssl_.get(), &ocsp_response_raw, &ocsp_response_len);
-@@ -1592,6 +1712,31 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1564,6 +1684,31 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
@@ -408,11 +407,11 @@ index 93233a753fed..9280672d668e 100644
    // Second pass: a client certificate should have been selected.
    if (ssl_config_.client_cert.get()) {
      if (!ssl_config_.client_private_key) {
-diff --git a/net/spdy/chromium/spdy_session.cc b/net/spdy/chromium/spdy_session.cc
-index 7a89b554a2d3..fb71250e54ee 100644
---- a/net/spdy/chromium/spdy_session.cc
-+++ b/net/spdy/chromium/spdy_session.cc
-@@ -1357,6 +1357,19 @@ bool SpdySession::HasAcceptableTransportSecurity() const {
+diff --git a/net/spdy/spdy_session.cc b/net/spdy/spdy_session.cc
+index 0f9ad4b26570..0dcdd0eb8821 100644
+--- a/net/spdy/spdy_session.cc
++++ b/net/spdy/spdy_session.cc
+@@ -1364,6 +1364,19 @@ bool SpdySession::HasAcceptableTransportSecurity() const {
    SSLInfo ssl_info;
    CHECK(GetSSLInfo(&ssl_info));
  

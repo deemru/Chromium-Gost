@@ -4,6 +4,7 @@
 #ifdef _WIN32
 #pragma warning( push )
 #pragma warning( disable:4003 )
+#pragma warning( disable:4100 )
 #endif
 #include <../ssl/internal.h>
 #ifdef _WIN32
@@ -151,7 +152,7 @@ static PCCERT_CONTEXT gcert = NULL;
 
 static int gostssl_cert_cb( GostSSL_Worker * w )
 {
-    if( w->s->cert && w->s->cert->cert_cb )
+    if( w->s->config->cert && w->s->config->cert->cert_cb )
     {
         if( gcert )
         {
@@ -190,7 +191,7 @@ static int gostssl_cert_cb( GostSSL_Worker * w )
         }
 
         g_is_gost = 1;
-        int ret = w->s->cert->cert_cb( w->s, w->s->cert->cert_cb_arg );
+        int ret = w->s->config->cert->cert_cb( w->s, w->s->config->cert->cert_cb_arg );
 
         if( !gcert )
         {
@@ -460,8 +461,8 @@ GostSSL_Worker * workers_api( SSL * s, WORKER_DB_ACTION action, const char * cac
             msspi_set_hostname( w->h, s->tlsext_hostname );
         if( cachestring )
             msspi_set_cachestring( w->h, cachestring );
-        if( s->alpn_client_proto_list && s->alpn_client_proto_list_len )
-            msspi_set_alpn( w->h, s->alpn_client_proto_list, s->alpn_client_proto_list_len );
+        if( s->config->alpn_client_proto_list && s->config->alpn_client_proto_list_len )
+            msspi_set_alpn( w->h, s->config->alpn_client_proto_list, s->config->alpn_client_proto_list_len );
 
         w->host_string = s->tlsext_hostname ? s->tlsext_hostname : "*";
         w->host_string += ":";
