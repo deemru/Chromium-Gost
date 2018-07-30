@@ -784,12 +784,12 @@ void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, in
                 wchar_t wName[1024];
                 DWORD dwName;
 
-                dwName = sizeof( wName ) / sizeof( wName[0] );
+                dwName = (DWORD)( sizeof( wName ) / sizeof( wName[0] ) );
                 dwName = CertGetNameStringW( pcert, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, NULL, wName, dwName );
 
                 name = dwName > 1 ? wName : L"...";
 
-                dwName = sizeof( wName ) / sizeof( wName[0] );
+                dwName = (DWORD)( sizeof( wName ) / sizeof( wName[0] ) );
                 dwName = CertGetNameStringW( pcert, CERT_NAME_SIMPLE_DISPLAY_TYPE, CERT_NAME_ISSUER_FLAG, NULL, wName, dwName );
 
                 name = name + L" (" + ( dwName > 1 ? wName : L"..." ) + L")";

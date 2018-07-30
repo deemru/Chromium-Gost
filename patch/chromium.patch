@@ -1,9 +1,10 @@
-From efb460ba7b0587458b1ec9ec1d4db1ce6e6bd18a Mon Sep 17 00:00:00 2001
+From 4b5ffcbf95619541489e18a27af6e5f7e4adc215 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Fri, 27 Jul 2018 19:12:23 +0300
 Subject: [PATCH] added GOSTSSL
 
 ---
+ chrome/browser/devtools/devtools_window.cc    |  30 ++++
  .../ssl/ssl_config_service_manager_pref.cc    |   2 +-
  .../ssl_client_certificate_selector_cocoa.mm  |   8 +
  .../chromium-browser/chromium-browser.info    |  10 +-
@@ -14,12 +15,60 @@ Subject: [PATCH] added GOSTSSL
  net/http/http_network_transaction.cc          |   9 ++
  net/socket/ssl_client_socket_impl.cc          | 145 ++++++++++++++++++
  net/spdy/spdy_session.cc                      |  13 ++
- net/ssl/client_cert_store_mac.cc              | 104 +++++++++++++
- net/ssl/client_cert_store_nss.cc              |  59 +++++++
+ net/ssl/client_cert_store_mac.cc              |  93 +++++++++++
+ net/ssl/client_cert_store_nss.cc              |  48 ++++++
  net/ssl/openssl_ssl_util.cc                   |   4 +
  net/ssl/ssl_cipher_suite_names.cc             |  27 ++++
- 14 files changed, 443 insertions(+), 6 deletions(-)
+ 15 files changed, 451 insertions(+), 6 deletions(-)
 
+diff --git a/chrome/browser/devtools/devtools_window.cc b/chrome/browser/devtools/devtools_window.cc
+index 2b93acddaea6..586f937a5dd5 100644
+--- a/chrome/browser/devtools/devtools_window.cc
++++ b/chrome/browser/devtools/devtools_window.cc
+@@ -1449,6 +1449,16 @@ void DevToolsWindow::RenderProcessGone(bool crashed) {
+   }
+ }
+ 
++#define GOSTSSL
++#ifdef GOSTSSL
++#define EXPLICITSSL_CALL
++#include <dlfcn.h>
++#define GOSTSSLLIB "gostssl.so"
++#define LIBLOAD( name ) dlopen( name, RTLD_LAZY )
++#define LIBFUNC( lib, name ) dlsym( lib, name )
++typedef void * HMODULE;
++#endif // GOSTSSL
++
+ void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
+   std::unique_ptr<base::Value> value = base::JSONReader::Read(cert_chain);
+   if (!value || value->type() != base::Value::Type::LIST) {
+@@ -1474,6 +1484,26 @@ void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
+       NOTREACHED();
+       return;
+     }
++#if defined(GOSTSSL)
++    {
++        static void ( EXPLICITSSL_CALL * isgostcerthook )( void * cert, int size, int * is_gost ) = NULL;
++        static int is_tried = 0;
++        if( !is_tried )
++        {
++            HMODULE hGSSL = LIBLOAD( GOSTSSLLIB );
++            if( hGSSL )
++              *(uintptr_t *)&isgostcerthook = (uintptr_t)LIBFUNC( hGSSL, "gostssl_isgostcerthook" );
++            is_tried = 1;
++        }
++        if( isgostcerthook )
++        {
++            int is_gost = 0;
++            isgostcerthook( (void *)&temp[0], temp.size(), &is_gost );
++            if( is_gost == 1 )
++                return;
++        }
++    }
++#endif // GOSTSSL
+     decoded.push_back(temp);
+   }
+ 
 diff --git a/chrome/browser/ssl/ssl_config_service_manager_pref.cc b/chrome/browser/ssl/ssl_config_service_manager_pref.cc
 index de9e4280f198..cd8e427c172a 100644
 --- a/chrome/browser/ssl/ssl_config_service_manager_pref.cc
@@ -432,38 +481,27 @@ index 0f9ad4b26570..0dcdd0eb8821 100644
    if (SSLConnectionStatusToVersion(ssl_info.connection_status) <
        SSL_CONNECTION_VERSION_TLS1_2) {
 diff --git a/net/ssl/client_cert_store_mac.cc b/net/ssl/client_cert_store_mac.cc
-index b2fb32d680bd..b5cb67285b17 100644
+index b2fb32d680bd..0e67a7b20203 100644
 --- a/net/ssl/client_cert_store_mac.cc
 +++ b/net/ssl/client_cert_store_mac.cc
-@@ -294,6 +294,27 @@ void AddIdentity(ScopedCFTypeRef<SecIdentityRef> sec_identity,
+@@ -294,6 +294,16 @@ void AddIdentity(ScopedCFTypeRef<SecIdentityRef> sec_identity,
    }
  }
  
 +#define GOSTSSL
 +#ifdef GOSTSSL
-+#ifdef _WIN32
-+#if defined ( _M_IX86 )
-+#define EXPLICITSSL_CALL __cdecl
-+#elif defined ( _M_X64 )
-+#define EXPLICITSSL_CALL __fastcall
-+#endif
-+#define GOSTSSLLIB "gostssl.dll"
-+#define LIBLOAD( name ) LoadLibraryA( name )
-+#define LIBFUNC( lib, name ) (UINT_PTR)GetProcAddress( lib, name )
-+#else // not _WIN32
 +#define EXPLICITSSL_CALL
 +#include <dlfcn.h>
 +#define GOSTSSLLIB "gostssl.so"
 +#define LIBLOAD( name ) dlopen( name, RTLD_LAZY )
 +#define LIBFUNC( lib, name ) dlsym( lib, name )
 +typedef void * HMODULE;
-+#endif // _WIN32
 +#endif // GOSTSSL
 +
  ClientCertIdentityList GetClientCertsOnBackgroundThread(
      const SSLCertRequestInfo& request) {
    std::string server_domain = request.host_and_port.host();
-@@ -384,6 +405,89 @@ ClientCertIdentityList GetClientCertsOnBackgroundThread(
+@@ -384,6 +394,89 @@ ClientCertIdentityList GetClientCertsOnBackgroundThread(
    GetClientCertsImpl(std::move(preferred_identity),
                       std::move(regular_identities), request, true,
                       &selected_identities);
@@ -554,37 +592,26 @@ index b2fb32d680bd..b5cb67285b17 100644
  }
  
 diff --git a/net/ssl/client_cert_store_nss.cc b/net/ssl/client_cert_store_nss.cc
-index 3a248f3ba23a..933245301646 100644
+index 3a248f3ba23a..8800ddb4ef2d 100644
 --- a/net/ssl/client_cert_store_nss.cc
 +++ b/net/ssl/client_cert_store_nss.cc
-@@ -145,6 +145,26 @@ void ClientCertStoreNSS::FilterCertsOnWorkerThread(
+@@ -145,6 +145,15 @@ void ClientCertStoreNSS::FilterCertsOnWorkerThread(
    std::sort(identities->begin(), identities->end(), ClientCertIdentitySorter());
  }
  
 +#ifdef GOSTSSL
-+#ifdef _WIN32
-+#if defined ( _M_IX86 )
-+#define EXPLICITSSL_CALL __cdecl
-+#elif defined ( _M_X64 )
-+#define EXPLICITSSL_CALL __fastcall
-+#endif
-+#define GOSTSSLLIB "gostssl.dll"
-+#define LIBLOAD( name ) LoadLibraryA( name )
-+#define LIBFUNC( lib, name ) (UINT_PTR)GetProcAddress( lib, name )
-+#else // not _WIN32
 +#define EXPLICITSSL_CALL
 +#include <dlfcn.h>
 +#define GOSTSSLLIB "gostssl.so"
 +#define LIBLOAD( name ) dlopen( name, RTLD_LAZY )
 +#define LIBFUNC( lib, name ) dlsym( lib, name )
 +typedef void * HMODULE;
-+#endif // _WIN32
 +#endif // GOSTSSL
 +
  ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
      scoped_refptr<crypto::CryptoModuleBlockingPasswordDelegate>
          password_delegate,
-@@ -158,6 +178,45 @@ ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
+@@ -158,6 +167,45 @@ ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
    GetPlatformCertsOnWorkerThread(std::move(password_delegate), CertFilter(),
                                   &selected_identities);
    FilterCertsOnWorkerThread(&selected_identities, *request);
