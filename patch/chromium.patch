@@ -1,10 +1,10 @@
-From 4b5ffcbf95619541489e18a27af6e5f7e4adc215 Mon Sep 17 00:00:00 2001
+From 72235d41f2bfe8f4f213cf3ede48b40de1cc3ea9 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Fri, 27 Jul 2018 19:12:23 +0300
 Subject: [PATCH] added GOSTSSL
 
 ---
- chrome/browser/devtools/devtools_window.cc    |  30 ++++
+ chrome/browser/devtools/devtools_window.cc    |  33 ++++
  .../ssl/ssl_config_service_manager_pref.cc    |   2 +-
  .../ssl_client_certificate_selector_cocoa.mm  |   8 +
  .../chromium-browser/chromium-browser.info    |  10 +-
@@ -19,17 +19,20 @@ Subject: [PATCH] added GOSTSSL
  net/ssl/client_cert_store_nss.cc              |  48 ++++++
  net/ssl/openssl_ssl_util.cc                   |   4 +
  net/ssl/ssl_cipher_suite_names.cc             |  27 ++++
- 15 files changed, 451 insertions(+), 6 deletions(-)
+ 15 files changed, 454 insertions(+), 6 deletions(-)
 
 diff --git a/chrome/browser/devtools/devtools_window.cc b/chrome/browser/devtools/devtools_window.cc
-index 2b93acddaea6..586f937a5dd5 100644
+index 2b93acddaea6..5cb8c7ae5a3e 100644
 --- a/chrome/browser/devtools/devtools_window.cc
 +++ b/chrome/browser/devtools/devtools_window.cc
-@@ -1449,6 +1449,16 @@ void DevToolsWindow::RenderProcessGone(bool crashed) {
+@@ -1449,6 +1449,19 @@ void DevToolsWindow::RenderProcessGone(bool crashed) {
    }
  }
  
++#undef GOSTSSL
++#if defined( __APPLE__ )
 +#define GOSTSSL
++#endif // __APPLE__
 +#ifdef GOSTSSL
 +#define EXPLICITSSL_CALL
 +#include <dlfcn.h>
@@ -42,7 +45,7 @@ index 2b93acddaea6..586f937a5dd5 100644
  void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
    std::unique_ptr<base::Value> value = base::JSONReader::Read(cert_chain);
    if (!value || value->type() != base::Value::Type::LIST) {
-@@ -1474,6 +1484,26 @@ void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
+@@ -1474,6 +1487,26 @@ void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
        NOTREACHED();
        return;
      }
