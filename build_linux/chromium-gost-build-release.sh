@@ -10,7 +10,7 @@ if [ -f gostssl.so ]; then unlink gostssl.so; fi
 mv -f gostssl.so $CHROMIUM_PATH/out/RELEASE/gostssl.so
 
 cd $CHROMIUM_PATH
-gn gen out/RELEASE --args="is_debug=false is_cfi=false symbol_level=0 strip_debug_info=true is_official_build=true enable_linux_installer=true ffmpeg_branding=\"Chrome\" proprietary_codecs=true $CHROMIUM_PRIVATE_ARGS"
+gn gen out/RELEASE --args="is_debug=false symbol_level=0 strip_debug_info=true is_official_build=true enable_linux_installer=true ffmpeg_branding=\"Chrome\" proprietary_codecs=true $CHROMIUM_PRIVATE_ARGS"
 ninja -C out/RELEASE "chrome/installer/linux:stable_deb"
 ninja -C out/RELEASE "chrome/installer/linux:stable_rpm"
 

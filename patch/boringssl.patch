@@ -1,4 +1,4 @@
-From 01f40fa79492d185b0741e26c514f6a5d7a7999e Mon Sep 17 00:00:00 2001
+From 26b821a6abbb9fbab5d7e7e6cedb32e707bcb477 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Sat, 28 Jul 2018 10:44:38 +0300
 Subject: [PATCH] added GOSTSSL
@@ -7,10 +7,10 @@ Subject: [PATCH] added GOSTSSL
  include/openssl/ssl.h   |   8 ++
  include/openssl/tls1.h  |   5 +
  ssl/handshake_client.cc |  11 +++
- ssl/internal.h          |  63 ++++++++++++
+ ssl/internal.h          |  69 +++++++++++++
  ssl/ssl_cipher.cc       |  50 ++++++++++
  ssl/ssl_lib.cc          | 211 ++++++++++++++++++++++++++++++++++++++++
- 6 files changed, 348 insertions(+)
+ 6 files changed, 354 insertions(+)
 
 diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
 index 9544bbeb..1b94a220 100644
@@ -55,7 +55,7 @@ index 4b25806e..a8c80792 100644
  #define TLS1_TXT_AES_128_GCM_SHA256 "AEAD-AES128-GCM-SHA256"
  #define TLS1_TXT_AES_256_GCM_SHA384 "AEAD-AES256-GCM-SHA384"
 diff --git a/ssl/handshake_client.cc b/ssl/handshake_client.cc
-index e9b0eedf..8ea6901c 100644
+index e9b0eedf..404fe858 100644
 --- a/ssl/handshake_client.cc
 +++ b/ssl/handshake_client.cc
 @@ -692,6 +692,17 @@ static enum ssl_hs_wait_t do_read_server_hello(SSL_HANDSHAKE *hs) {
@@ -65,7 +65,7 @@ index e9b0eedf..8ea6901c 100644
 +#if defined(GOSTSSL)
 +  if( gostssl() )
 +  {
-+      if( gostssl()->tls_gost_required( ssl ) )
++      if( [&]()NOCFI{ return gostssl()->tls_gost_required( ssl ); }() )
 +      {
 +          ssl_send_alert( ssl, SSL3_AL_FATAL, SSL_AD_ILLEGAL_PARAMETER );
 +          return ssl_hs_error;
@@ -77,7 +77,7 @@ index e9b0eedf..8ea6901c 100644
    // ServerHello.
    if (!hs->transcript.InitHash(ssl_protocol_version(ssl), hs->new_cipher) ||
 diff --git a/ssl/internal.h b/ssl/internal.h
-index 28ea87b7..c7052190 100644
+index 28ea87b7..c5d65eb0 100644
 --- a/ssl/internal.h
 +++ b/ssl/internal.h
 @@ -430,6 +430,11 @@ namespace bssl {
@@ -126,7 +126,7 @@ index 28ea87b7..c7052190 100644
  // Bits for |algorithm_prf| (handshake digest).
  #define SSL_HANDSHAKE_MAC_DEFAULT 0x1
  #define SSL_HANDSHAKE_MAC_SHA256 0x2
-@@ -3084,6 +3102,51 @@ void ssl_set_read_error(SSL* ssl);
+@@ -3084,6 +3102,57 @@ void ssl_set_read_error(SSL* ssl);
  
  }  // namespace bssl
  
@@ -159,6 +159,12 @@ index 28ea87b7..c7052190 100644
 +//
 +typedef struct boringssl_method_st BORINGSSL_METHOD;
 +//
++#if defined( __has_attribute )
++#define NOCFI __attribute__((no_sanitize("cfi-icall")))
++#else
++#define NOCFI
++#endif
++//
 +struct gostssl_method_st
 +{
 +    int  ( EXPLICITSSL_CALL * init )( BORINGSSL_METHOD * bssl_methods );
@@ -166,7 +172,7 @@ index 28ea87b7..c7052190 100644
 +    int  ( EXPLICITSSL_CALL * read )( SSL * s, void * buf, int len, int * is_gost );
 +    int  ( EXPLICITSSL_CALL * write )( SSL * s, const void * buf, int len, int * is_gost );
 +    void ( EXPLICITSSL_CALL * free )( SSL * s );
-+    int ( EXPLICITSSL_CALL * tls_gost_required )( SSL * s );
++    int  ( EXPLICITSSL_CALL * tls_gost_required )( SSL * s );
 +};
 +//
 +typedef struct gostssl_method_st GOSTSSL_METHOD;
@@ -275,7 +281,7 @@ index 8536f893..9b0c23b5 100644
        alg_bits = 256;
        strength_bits = 256;
 diff --git a/ssl/ssl_lib.cc b/ssl/ssl_lib.cc
-index 606d1fc2..52370f14 100644
+index 606d1fc2..84a84128 100644
 --- a/ssl/ssl_lib.cc
 +++ b/ssl/ssl_lib.cc
 @@ -560,6 +560,163 @@ static int ssl_session_cmp(const SSL_SESSION *a, const SSL_SESSION *b) {
@@ -424,7 +430,7 @@ index 606d1fc2..52370f14 100644
 +                gssl.write &&
 +                gssl.free &&
 +                gssl.tls_gost_required &&
-+                gssl.init( &gostssl_bssl ) )
++                [&]()NOCFI{ return gssl.init( &gostssl_bssl ); }() )
 +            {
 +                is_gost = 1;
 +                return &gssl;
@@ -449,7 +455,7 @@ index 606d1fc2..52370f14 100644
 +#if defined(GOSTSSL)
 +  if( gostssl() )
 +  {
-+      gostssl()->free( ssl );
++      [&]()NOCFI{ gostssl()->free( ssl ); }();
 +  }
 +#endif
 +
@@ -467,7 +473,7 @@ index 606d1fc2..52370f14 100644
 +      int is_gost;
 +      int ret_gost;
 +
-+      ret_gost = gostssl()->connect( ssl, &is_gost );
++      ret_gost = [&]()NOCFI{ return gostssl()->connect( ssl, &is_gost ); }();
 +
 +      if( is_gost )
 +          return ret_gost;
@@ -488,7 +494,7 @@ index 606d1fc2..52370f14 100644
 +      int is_gost;
 +      int ret_gost;
 +
-+      ret_gost = gostssl()->read( ssl, buf, num, &is_gost );
++      ret_gost = [&]()NOCFI{ return gostssl()->read( ssl, buf, num, &is_gost ); }();
 +
 +      if( is_gost )
 +          return ret_gost;
@@ -509,7 +515,7 @@ index 606d1fc2..52370f14 100644
 +      int is_gost;
 +      int ret_gost;
 +
-+      ret_gost = gostssl()->write( ssl, buf, num, &is_gost );
++      ret_gost = [&]()NOCFI{ return gostssl()->write( ssl, buf, num, &is_gost ); }();
 +
 +      if( is_gost )
 +          return ret_gost;
