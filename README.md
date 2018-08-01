@@ -11,7 +11,7 @@
 [chromium-gost](https://github.com/deemru/chromium-gost) — веб-браузер с открытым исходным кодом на основе [Chromium](https://ru.wikipedia.org/wiki/Chromium) с поддержкой криптографических алгоритмов ГОСТ при установке [защищённых соединений](https://ru.wikipedia.org/wiki/TLS) через интерфейс [msspi](https://github.com/deemru/msspi)
 
 # [Скачать](https://github.com/deemru/chromium-gost/releases/latest)
-[chromium-gost](https://github.com/deemru/chromium-gost) доступен для операционных систем Windows и Linux, вы можете скачать соответствующий дистрибутив в [chromium-gost/releases/latest](https://github.com/deemru/chromium-gost/releases/latest)
+[chromium-gost](https://github.com/deemru/chromium-gost) доступен для операционных систем Windows, Linux и MacOS. Вы можете скачать соответствующий дистрибутив в [chromium-gost/releases/latest](https://github.com/deemru/chromium-gost/releases/latest)
 
 # Принцип работы
 
@@ -36,7 +36,7 @@
 
 - Освоить сборку оригинального проекта [Chromium](https://chromium.googlesource.com/chromium/src/+/master/docs/README.md) — [Get the code: check out, build, and run Chromium]( https://chromium.googlesource.com/chromium/src/+/master/docs/get_the_code.md)
 - Извлечь [chromium-gost](https://github.com/deemru/chromium-gost)
-- Использовать скрипты из `build_linux` или `build_windows`
+- Использовать скрипты из `build_linux`, `build_mac` или `build_windows`
 - Скорректировать пути — `chromium-gost-env`
 - Подготовить сборку — `chromium-gost-prepare`
 - Собрать библиотеку `gostssl` — `chromium-gost-build-gostssl`
