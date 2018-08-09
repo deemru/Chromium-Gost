@@ -1,4 +1,4 @@
-From 14ce2ad66657bfd1b985322c9f610ab00e9d076c Mon Sep 17 00:00:00 2001
+From 46490d8d64802516ef9d037f62015664405e170d Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Fri, 27 Jul 2018 19:12:23 +0300
 Subject: [PATCH] added GOSTSSL
@@ -13,13 +13,13 @@ Subject: [PATCH] added GOSTSSL
  net/base/net_error_list.h                     |   6 +
  net/cert/cert_verify_proc.cc                  |  60 +++++++
  net/http/http_network_transaction.cc          |   9 ++
- net/socket/ssl_client_socket_impl.cc          | 150 ++++++++++++++++++
+ net/socket/ssl_client_socket_impl.cc          | 152 ++++++++++++++++++
  net/spdy/spdy_session.cc                      |  13 ++
- net/ssl/client_cert_store_mac.cc              |  98 ++++++++++++
- net/ssl/client_cert_store_nss.cc              |  53 +++++++
+ net/ssl/client_cert_store_mac.cc              |  98 +++++++++++
+ net/ssl/client_cert_store_nss.cc              |  53 ++++++
  net/ssl/openssl_ssl_util.cc                   |   4 +
  net/ssl/ssl_cipher_suite_names.cc             |  27 ++++
- 15 files changed, 479 insertions(+), 6 deletions(-)
+ 15 files changed, 481 insertions(+), 6 deletions(-)
 
 diff --git a/chrome/browser/devtools/devtools_window.cc b/chrome/browser/devtools/devtools_window.cc
 index 2b93acddaea6..cd460a5a42d7 100644
@@ -293,7 +293,7 @@ index 6cb10b297887..355991b6cfd6 100644
  }
  
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 35e364f79a56..4184d0136748 100644
+index 35e364f79a56..31653e1432bc 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
 @@ -478,6 +478,31 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
@@ -355,11 +355,12 @@ index 35e364f79a56..4184d0136748 100644
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -1127,6 +1172,86 @@ int SSLClientSocketImpl::DoVerifyCert(int result) {
+@@ -1127,6 +1172,88 @@ int SSLClientSocketImpl::DoVerifyCert(int result) {
  
    start_cert_verification_time_ = base::TimeTicks::Now();
  
-+#if defined(GOSTSSL) && ( defined(OPENSSL_LINUX) || defined(OPENSSL_APPLE) )
++#if defined(GOSTSSL)
++#ifndef TRUST_E_CERT_SIGNATURE
 +#define TRUST_E_CERT_SIGNATURE          0x80096004L
 +#define CRYPT_E_REVOKED                 0x80092010L
 +#define CERT_E_UNTRUSTEDROOT            0x800B0109L
@@ -372,6 +373,7 @@ index 35e364f79a56..4184d0136748 100644
 +#define CRYPT_E_NO_REVOCATION_CHECK     0x80092012L
 +#define CRYPT_E_REVOCATION_OFFLINE      0x80092013L
 +#define CERT_E_CHAINING                 0x800B010AL
++#endif
 +
 +    {
 +        static void ( EXPLICITSSL_CALL * verifyhook )( void * ssl, unsigned * gost_status ) = NULL;
@@ -442,7 +444,7 @@ index 35e364f79a56..4184d0136748 100644
    const uint8_t* ocsp_response_raw;
    size_t ocsp_response_len;
    SSL_get0_ocsp_response(ssl_.get(), &ocsp_response_raw, &ocsp_response_len);
-@@ -1564,6 +1689,31 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1564,6 +1691,31 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
