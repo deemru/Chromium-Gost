@@ -96,8 +96,8 @@ int gostssl_init( BORINGSSL_METHOD * bssl_methods )
 
     CryptReleaseContext( hProv, 0 );
 
-    tlsgost2001 = bssls->SSL_get_cipher_by_value( TLS_GOST_CIPHER_2001 );
-    tlsgost2012 = bssls->SSL_get_cipher_by_value( TLS_GOST_CIPHER_2012 );
+    tlsgost2001 = bssls->boring_SSL_get_cipher_by_value( TLS_GOST_CIPHER_2001 );
+    tlsgost2012 = bssls->boring_SSL_get_cipher_by_value( TLS_GOST_CIPHER_2012 );
 
     if( !tlsgost2001 || !tlsgost2012 )
         return 0;
@@ -140,12 +140,12 @@ struct GostSSL_Worker
 
 static int gostssl_read_cb( GostSSL_Worker * w, void * buf, int len )
 {
-    return bssls->BIO_read( w->s->rbio, buf, len );
+    return bssls->boring_BIO_read( w->s, buf, len );
 }
 
 static int gostssl_write_cb( GostSSL_Worker * w, const void * buf, int len )
 {
-    return bssls->BIO_write( w->s->wbio, buf, len );
+    return bssls->boring_BIO_write( w->s, buf, len );
 }
 
 static PCCERT_CONTEXT gcert = NULL;
@@ -173,7 +173,7 @@ static int gostssl_cert_cb( GostSSL_Worker * w )
                 lens.resize( count );
 
                 if( msspi_get_issuerlist( w->h, &bufs[0], &lens[0], &count ) )
-                    bssls->set_ca_names_cb( w->s, &bufs[0], &lens[0], count );
+                    bssls->boring_set_ca_names_cb( w->s, &bufs[0], &lens[0], count );
             }
 
             //        {
@@ -202,7 +202,7 @@ static int gostssl_cert_cb( GostSSL_Worker * w )
         if( gcert )
         {
             if( msspi_set_mycert( w->h, (const char *)gcert->pbCertEncoded, gcert->cbCertEncoded ) )
-                bssls->ERR_clear_error();
+                bssls->boring_ERR_clear_error();
 
             CertFreeCertificateContext( gcert );
             gcert = NULL;
@@ -457,14 +457,14 @@ GostSSL_Worker * workers_api( SSL * s, WORKER_DB_ACTION action, const char * cac
         msspi_set_cert_cb( w->h, (msspi_cert_cb)gostssl_cert_cb );
         w->s = s;
 
-        if( s->tlsext_hostname )
-            msspi_set_hostname( w->h, s->tlsext_hostname );
+        if( s->hostname.get() )
+            msspi_set_hostname( w->h, s->hostname.get() );
         if( cachestring )
             msspi_set_cachestring( w->h, cachestring );
-        if( s->config->alpn_client_proto_list && s->config->alpn_client_proto_list_len )
-            msspi_set_alpn( w->h, s->config->alpn_client_proto_list, s->config->alpn_client_proto_list_len );
+        if( s->config->alpn_client_proto_list.size() )
+            msspi_set_alpn( w->h, s->config->alpn_client_proto_list.data(), s->config->alpn_client_proto_list.size() );
 
-        w->host_string = s->tlsext_hostname ? s->tlsext_hostname : "*";
+        w->host_string = s->hostname.get() ? s->hostname.get() : "*";
         w->host_string += ":";
         w->host_string += cachestring ? cachestring : "*";
 
@@ -521,8 +521,8 @@ int gostssl_tls_gost_required( SSL * s )
     if( w && 
         ( s->s3->hs->new_cipher == tlsgost2001 || s->s3->hs->new_cipher == tlsgost2012 ) )
     {
-        bssls->ERR_clear_error();
-        bssls->ERR_put_error( ERR_LIB_SSL, 0, SSL_R_TLS_GOST_REQUIRED, __FILE__, __LINE__ );
+        bssls->boring_ERR_clear_error();
+        bssls->boring_ERR_put_error( ERR_LIB_SSL, 0, SSL_R_TLS_GOST_REQUIRED, __FILE__, __LINE__ );
         host_status_set( w->host_string, GOSTSSL_HOST_PROBING );
         return 1;
     }
@@ -694,7 +694,7 @@ int gostssl_connect( SSL * s, int * is_gost )
             CertFreeCertificateContext( certcheck );
         }
 
-        if( !bssls->set_connected_cb( w->s, alpn, alpn_len, version, cipher_id, &servercerts_bufs[0], &servercerts_lens[0], servercerts_count ) )
+        if( !bssls->boring_set_connected_cb( w->s, alpn, alpn_len, version, cipher_id, &servercerts_bufs[0], &servercerts_lens[0], servercerts_count ) )
             return 0;
 
         w->host_status = GOSTSSL_HOST_YES;

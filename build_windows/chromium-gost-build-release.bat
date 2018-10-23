@@ -19,6 +19,7 @@ cd RELEASE
 copy ..\gostssl.dll Chrome-bin\%CHROMIUM_TAG%
 move Chrome-bin\chrome.exe Chrome-bin\%CHROMIUM_TAG%
 move Chrome-bin\%CHROMIUM_TAG% chromium-gost-%CHROMIUM_TAG%
-7z a -mx=9 -md=256m chromium-gost-%CHROMIUM_TAG%-windows-386.7z chromium-gost-%CHROMIUM_TAG%
+7z a -mm=Deflate -mfb=258 -mpass=15 -r chromium-gost-%CHROMIUM_TAG%-windows-386.zip chromium-gost-%CHROMIUM_TAG%
+:7z a -mx=9 -md=256m chromium-gost-%CHROMIUM_TAG%-windows-386.7z chromium-gost-%CHROMIUM_TAG%
 
-if "%1"=="" timeout 86400
+if "%1"=="" cmd

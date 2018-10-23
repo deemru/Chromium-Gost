@@ -1,7 +1,7 @@
-From 46490d8d64802516ef9d037f62015664405e170d Mon Sep 17 00:00:00 2001
+From d31f104d0f6b2f363f36818ed418de1bc9318738 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
-Date: Fri, 27 Jul 2018 19:12:23 +0300
-Subject: [PATCH] added GOSTSSL
+Date: Wed, 17 Oct 2018 10:21:57 +0300
+Subject: [PATCH] chromium GOSTSSL
 
 ---
  chrome/browser/devtools/devtools_window.cc    |  38 +++++
@@ -11,7 +11,7 @@ Subject: [PATCH] added GOSTSSL
  .../installer/linux/common/installer.include  |   3 +
  .../installer/linux/rpm/chrome.spec.template  |   4 +
  net/base/net_error_list.h                     |   6 +
- net/cert/cert_verify_proc.cc                  |  60 +++++++
+ net/cert/cert_verify_proc.cc                  |  61 +++++++
  net/http/http_network_transaction.cc          |   9 ++
  net/socket/ssl_client_socket_impl.cc          | 152 ++++++++++++++++++
  net/spdy/spdy_session.cc                      |  13 ++
@@ -19,13 +19,13 @@ Subject: [PATCH] added GOSTSSL
  net/ssl/client_cert_store_nss.cc              |  53 ++++++
  net/ssl/openssl_ssl_util.cc                   |   4 +
  net/ssl/ssl_cipher_suite_names.cc             |  27 ++++
- 15 files changed, 481 insertions(+), 6 deletions(-)
+ 15 files changed, 482 insertions(+), 6 deletions(-)
 
 diff --git a/chrome/browser/devtools/devtools_window.cc b/chrome/browser/devtools/devtools_window.cc
-index 2b93acddaea6..cd460a5a42d7 100644
+index 11f86843d3e6..3d5e0a934264 100644
 --- a/chrome/browser/devtools/devtools_window.cc
 +++ b/chrome/browser/devtools/devtools_window.cc
-@@ -1449,6 +1449,24 @@ void DevToolsWindow::RenderProcessGone(bool crashed) {
+@@ -1442,6 +1442,24 @@ void DevToolsWindow::RenderProcessGone(bool crashed) {
    }
  }
  
@@ -50,7 +50,7 @@ index 2b93acddaea6..cd460a5a42d7 100644
  void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
    std::unique_ptr<base::Value> value = base::JSONReader::Read(cert_chain);
    if (!value || value->type() != base::Value::Type::LIST) {
-@@ -1474,6 +1492,26 @@ void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
+@@ -1467,6 +1485,26 @@ void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
        NOTREACHED();
        return;
      }
@@ -78,10 +78,10 @@ index 2b93acddaea6..cd460a5a42d7 100644
    }
  
 diff --git a/chrome/browser/ssl/ssl_config_service_manager_pref.cc b/chrome/browser/ssl/ssl_config_service_manager_pref.cc
-index de9e4280f198..cd8e427c172a 100644
+index 41b8981cdd3d..afc7147d3313 100644
 --- a/chrome/browser/ssl/ssl_config_service_manager_pref.cc
 +++ b/chrome/browser/ssl/ssl_config_service_manager_pref.cc
-@@ -257,7 +257,7 @@ SSLConfigServiceManagerPref::GetSSLConfigFromPrefs() const {
+@@ -291,7 +291,7 @@ SSLConfigServiceManagerPref::GetSSLConfigFromPrefs() const {
    if (rev_checking_enabled_.IsManaged())
      config->rev_checking_enabled = rev_checking_enabled_.GetValue();
    else
@@ -178,7 +178,7 @@ index 55a35677b9c4..abbc16d5f5f1 100644
  case $CHANNEL in
    stable )
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
-index ef20dfff2baa..d8b054567da9 100644
+index ee78ee140291..90f2a82c5271 100644
 --- a/net/base/net_error_list.h
 +++ b/net/base/net_error_list.h
 @@ -21,6 +21,12 @@
@@ -195,12 +195,12 @@ index ef20dfff2baa..d8b054567da9 100644
  // indicate a fatal error.  Typically this error will be generated as a
  // notification to wait for some external notification that the IO operation
 diff --git a/net/cert/cert_verify_proc.cc b/net/cert/cert_verify_proc.cc
-index 6d1907898264..e51048a6e4a4 100644
+index bb9e67681add..f07d849b7d7d 100644
 --- a/net/cert/cert_verify_proc.cc
 +++ b/net/cert/cert_verify_proc.cc
-@@ -497,6 +497,35 @@ scoped_refptr<CertVerifyProc> CertVerifyProc::CreateDefault() {
- #endif
- }
+@@ -488,6 +488,36 @@ scoped_refptr<CertVerifyProc> CertVerifyProc::CreateDefault() {
+ 
+ CertVerifyProc::CertVerifyProc() {}
  
 +#ifdef GOSTSSL
 +#ifdef _WIN32
@@ -211,10 +211,11 @@ index 6d1907898264..e51048a6e4a4 100644
 +#endif
 +#define GOSTSSLLIB "gostssl.dll"
 +extern "C" {
-+HMODULE WINAPI LoadLibraryA( _In_ const CHAR * lpLibFileName );
++HMODULE WINAPI LoadLibraryExA( _In_ const CHAR * lpLibFileName, HANDLE hFile, DWORD  dwFlags );
 +INT_PTR WINAPI GetProcAddress( _In_ HMODULE hModule, _In_ const CHAR * lpProcName );
 +}
-+#define LIBLOAD( name ) LoadLibraryA( name )
++#define LOAD_LIBRARY_SEARCH_APPLICATION_DIR 0x00000200
++#define LIBLOAD( name ) LoadLibraryExA( name, 0, LOAD_LIBRARY_SEARCH_APPLICATION_DIR )
 +#define LIBFUNC( lib, name ) (UINT_PTR)GetProcAddress( lib, name )
 +#else // not _WIN32
 +#define EXPLICITSSL_CALL
@@ -231,10 +232,10 @@ index 6d1907898264..e51048a6e4a4 100644
 +#endif
 +#endif // GOSTSSL
 +
- CertVerifyProc::CertVerifyProc()
-     : sha1_legacy_mode_enabled(base::FeatureList::IsEnabled(kSHA1LegacyMode)) {}
+ CertVerifyProc::~CertVerifyProc() = default;
  
-@@ -528,6 +557,37 @@ int CertVerifyProc::Verify(X509Certificate* cert,
+ int CertVerifyProc::Verify(X509Certificate* cert,
+@@ -516,6 +546,37 @@ int CertVerifyProc::Verify(X509Certificate* cert,
    int rv = VerifyInternal(cert, hostname, ocsp_response, flags, crl_set,
                            additional_trust_anchors, verify_result);
  
@@ -273,10 +274,10 @@ index 6d1907898264..e51048a6e4a4 100644
    // in the chain. Also fills in the has_* booleans for the digest algorithms
    // present in the chain.
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index 6cb10b297887..355991b6cfd6 100644
+index 2d0718ae3b61..e75aaa0ac769 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
-@@ -1549,6 +1549,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
+@@ -1558,6 +1558,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
        return OK;
      }
    }
@@ -293,10 +294,10 @@ index 6cb10b297887..355991b6cfd6 100644
  }
  
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 35e364f79a56..31653e1432bc 100644
+index 7a3f325dd384..fcffdff3ce91 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
-@@ -478,6 +478,31 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
+@@ -516,6 +516,31 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
    return OK;
  }
  
@@ -308,7 +309,7 @@ index 35e364f79a56..31653e1432bc 100644
 +#define EXPLICITSSL_CALL __fastcall
 +#endif
 +#define GOSTSSLLIB "gostssl.dll"
-+#define LIBLOAD( name ) LoadLibraryA( name )
++#define LIBLOAD( name ) LoadLibraryExA( name, 0, LOAD_LIBRARY_SEARCH_APPLICATION_DIR )
 +#define LIBFUNC( lib, name ) (UINT_PTR)GetProcAddress( lib, name )
 +#else // not _WIN32
 +#define EXPLICITSSL_CALL
@@ -328,7 +329,7 @@ index 35e364f79a56..31653e1432bc 100644
  int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
    // this has never worked for layered sockets. CHECK to detect any consumers
-@@ -496,6 +521,26 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
+@@ -534,6 +559,26 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
      return rv;
    }
  
@@ -355,7 +356,7 @@ index 35e364f79a56..31653e1432bc 100644
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -1127,6 +1172,88 @@ int SSLClientSocketImpl::DoVerifyCert(int result) {
+@@ -1196,6 +1241,88 @@ int SSLClientSocketImpl::DoVerifyCert(int result) {
  
    start_cert_verification_time_ = base::TimeTicks::Now();
  
@@ -444,7 +445,7 @@ index 35e364f79a56..31653e1432bc 100644
    const uint8_t* ocsp_response_raw;
    size_t ocsp_response_len;
    SSL_get0_ocsp_response(ssl_.get(), &ocsp_response_raw, &ocsp_response_len);
-@@ -1564,6 +1691,31 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1621,6 +1748,31 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
@@ -477,10 +478,10 @@ index 35e364f79a56..31653e1432bc 100644
    if (ssl_config_.client_cert.get()) {
      if (!ssl_config_.client_private_key) {
 diff --git a/net/spdy/spdy_session.cc b/net/spdy/spdy_session.cc
-index 0f9ad4b26570..0dcdd0eb8821 100644
+index 858476703d87..75f43d68fc93 100644
 --- a/net/spdy/spdy_session.cc
 +++ b/net/spdy/spdy_session.cc
-@@ -1364,6 +1364,19 @@ bool SpdySession::HasAcceptableTransportSecurity() const {
+@@ -1398,6 +1398,19 @@ bool SpdySession::HasAcceptableTransportSecurity() const {
    SSLInfo ssl_info;
    CHECK(GetSSLInfo(&ssl_info));
  
@@ -501,10 +502,10 @@ index 0f9ad4b26570..0dcdd0eb8821 100644
    if (SSLConnectionStatusToVersion(ssl_info.connection_status) <
        SSL_CONNECTION_VERSION_TLS1_2) {
 diff --git a/net/ssl/client_cert_store_mac.cc b/net/ssl/client_cert_store_mac.cc
-index b2fb32d680bd..9be41d3a91b7 100644
+index 20cd53256f1b..e3cbb5e3ed7c 100644
 --- a/net/ssl/client_cert_store_mac.cc
 +++ b/net/ssl/client_cert_store_mac.cc
-@@ -294,6 +294,21 @@ void AddIdentity(ScopedCFTypeRef<SecIdentityRef> sec_identity,
+@@ -293,6 +293,21 @@ void AddIdentity(ScopedCFTypeRef<SecIdentityRef> sec_identity,
    }
  }
  
@@ -526,7 +527,7 @@ index b2fb32d680bd..9be41d3a91b7 100644
  ClientCertIdentityList GetClientCertsOnBackgroundThread(
      const SSLCertRequestInfo& request) {
    std::string server_domain = request.host_and_port.host();
-@@ -384,6 +399,89 @@ ClientCertIdentityList GetClientCertsOnBackgroundThread(
+@@ -383,6 +398,89 @@ ClientCertIdentityList GetClientCertsOnBackgroundThread(
    GetClientCertsImpl(std::move(preferred_identity),
                       std::move(regular_identities), request, true,
                       &selected_identities);
@@ -617,7 +618,7 @@ index b2fb32d680bd..9be41d3a91b7 100644
  }
  
 diff --git a/net/ssl/client_cert_store_nss.cc b/net/ssl/client_cert_store_nss.cc
-index 3a248f3ba23a..5aab66129082 100644
+index a96669eb76b5..3b96be2a848f 100644
 --- a/net/ssl/client_cert_store_nss.cc
 +++ b/net/ssl/client_cert_store_nss.cc
 @@ -145,6 +145,20 @@ void ClientCertStoreNSS::FilterCertsOnWorkerThread(
@@ -688,7 +689,7 @@ index 3a248f3ba23a..5aab66129082 100644
  }
  
 diff --git a/net/ssl/openssl_ssl_util.cc b/net/ssl/openssl_ssl_util.cc
-index 92b9c6ff4670..2ef0c7097a9e 100644
+index e45db9e7da0b..faa8e9acdbb3 100644
 --- a/net/ssl/openssl_ssl_util.cc
 +++ b/net/ssl/openssl_ssl_util.cc
 @@ -84,6 +84,10 @@ int MapOpenSSLErrorSSL(uint32_t error_code) {
