@@ -5,8 +5,9 @@
 # chromium-gost 
 
 [![version](https://img.shields.io/github/release/deemru/chromium-gost.svg)](https://github.com/deemru/chromium-gost/releases/latest)
-[![appveyor](https://img.shields.io/appveyor/ci/deemru/chromium-gost.svg?label=appveyor)](https://ci.appveyor.com/project/deemru/chromium-gost)
-[![visualstudio](https://img.shields.io/vso/build/deem/2f245d40-b5be-4754-a914-1876f55cf9e7/4.svg?label=visualstudio)](https://deem.visualstudio.com/builder/_build/index?definitionId=4)
+[![windows](https://img.shields.io/badge/windows-supported-brightgreen.svg)](https://github.com/deemru/chromium-gost/releases/latest)
+[![linux](https://img.shields.io/badge/linux-supported-brightgreen.svg)](https://github.com/deemru/chromium-gost/releases/latest)
+[![macos](https://img.shields.io/badge/macos-supported-brightgreen.svg)](https://github.com/deemru/chromium-gost/releases/latest)
 
 [chromium-gost](https://github.com/deemru/chromium-gost) — веб-браузер с открытым исходным кодом на основе [Chromium](https://ru.wikipedia.org/wiki/Chromium) с поддержкой криптографических алгоритмов ГОСТ при установке [защищённых соединений](https://ru.wikipedia.org/wiki/TLS) через интерфейс [msspi](https://github.com/deemru/msspi)
 
@@ -32,7 +33,6 @@
 # Сборка
 
 [![appveyor](https://img.shields.io/appveyor/ci/deemru/chromium-gost.svg?label=appveyor)](https://ci.appveyor.com/project/deemru/chromium-gost)
-[![visualstudio](https://img.shields.io/vso/build/deem/2f245d40-b5be-4754-a914-1876f55cf9e7/4.svg?label=visualstudio)](https://deem.visualstudio.com/builder/_build/index?definitionId=4)
 
 - Освоить сборку оригинального проекта [Chromium](https://chromium.googlesource.com/chromium/src/+/master/docs/README.md) — [Get the code: check out, build, and run Chromium]( https://chromium.googlesource.com/chromium/src/+/master/docs/get_the_code.md)
 - Извлечь [chromium-gost](https://github.com/deemru/chromium-gost)
