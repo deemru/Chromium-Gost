@@ -1,12 +1,11 @@
-From d31f104d0f6b2f363f36818ed418de1bc9318738 Mon Sep 17 00:00:00 2001
+From 443b6478037f32e4bdabc6992cef905388075fa7 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
-Date: Wed, 17 Oct 2018 10:21:57 +0300
+Date: Wed, 30 Jan 2019 14:40:22 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
  chrome/browser/devtools/devtools_window.cc    |  38 +++++
- .../ssl/ssl_config_service_manager_pref.cc    |   2 +-
- .../ssl_client_certificate_selector_cocoa.mm  |   8 +
+ .../ssl_client_certificate_selector_mac.mm    |   9 ++
  .../chromium-browser/chromium-browser.info    |  10 +-
  .../installer/linux/common/installer.include  |   3 +
  .../installer/linux/rpm/chrome.spec.template  |   4 +
@@ -18,14 +17,14 @@ Subject: [PATCH] chromium GOSTSSL
  net/ssl/client_cert_store_mac.cc              |  98 +++++++++++
  net/ssl/client_cert_store_nss.cc              |  53 ++++++
  net/ssl/openssl_ssl_util.cc                   |   4 +
- net/ssl/ssl_cipher_suite_names.cc             |  27 ++++
- 15 files changed, 482 insertions(+), 6 deletions(-)
+ net/ssl/ssl_cipher_suite_names.cc             |  26 +++
+ 14 files changed, 481 insertions(+), 5 deletions(-)
 
 diff --git a/chrome/browser/devtools/devtools_window.cc b/chrome/browser/devtools/devtools_window.cc
-index 11f86843d3e6..3d5e0a934264 100644
+index 79675fe5037b..9a43c08be3cb 100644
 --- a/chrome/browser/devtools/devtools_window.cc
 +++ b/chrome/browser/devtools/devtools_window.cc
-@@ -1442,6 +1442,24 @@ void DevToolsWindow::RenderProcessGone(bool crashed) {
+@@ -1443,6 +1443,24 @@ void DevToolsWindow::RenderProcessGone(bool crashed) {
    }
  }
  
@@ -50,7 +49,7 @@ index 11f86843d3e6..3d5e0a934264 100644
  void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
    std::unique_ptr<base::Value> value = base::JSONReader::Read(cert_chain);
    if (!value || value->type() != base::Value::Type::LIST) {
-@@ -1467,6 +1485,26 @@ void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
+@@ -1468,6 +1486,26 @@ void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
        NOTREACHED();
        return;
      }
@@ -77,38 +76,26 @@ index 11f86843d3e6..3d5e0a934264 100644
      decoded.push_back(temp);
    }
  
-diff --git a/chrome/browser/ssl/ssl_config_service_manager_pref.cc b/chrome/browser/ssl/ssl_config_service_manager_pref.cc
-index 41b8981cdd3d..afc7147d3313 100644
---- a/chrome/browser/ssl/ssl_config_service_manager_pref.cc
-+++ b/chrome/browser/ssl/ssl_config_service_manager_pref.cc
-@@ -291,7 +291,7 @@ SSLConfigServiceManagerPref::GetSSLConfigFromPrefs() const {
-   if (rev_checking_enabled_.IsManaged())
-     config->rev_checking_enabled = rev_checking_enabled_.GetValue();
-   else
--    config->rev_checking_enabled = false;
-+    config->rev_checking_enabled = true;
-   config->rev_checking_required_local_anchors =
-       rev_checking_required_local_anchors_.GetValue();
-   config->sha1_local_anchors_enabled = sha1_local_anchors_enabled_.GetValue();
-diff --git a/chrome/browser/ui/cocoa/ssl_client_certificate_selector_cocoa.mm b/chrome/browser/ui/cocoa/ssl_client_certificate_selector_cocoa.mm
-index 921a178c8176..c811b6c99f26 100644
---- a/chrome/browser/ui/cocoa/ssl_client_certificate_selector_cocoa.mm
-+++ b/chrome/browser/ui/cocoa/ssl_client_certificate_selector_cocoa.mm
-@@ -225,6 +225,14 @@ void ClearTableViewDataSourcesIfNeeded(NSWindow* leaked_window) {
+diff --git a/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm b/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm
+index a95fa6d20105..7ddc8619c18e 100644
+--- a/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm
++++ b/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm
+@@ -238,6 +238,15 @@ initWithBrowserContext:(const content::BrowserContext*)browserContext
+                  clientCerts:(net::ClientCertIdentityList)inputClientCerts {
    cert_identities_ = std::move(inputClientCerts);
-   // Create an array of CFIdentityRefs for the certificates:
-   size_t numCerts = cert_identities_.size();
+ 
 +#define GOSTSSL
 +#ifdef GOSTSSL
-+    if( numCerts == 1 && cert_identities_[0]->sec_identity_ref() == nullptr )
++    if( cert_identities_.size() == 1 && cert_identities_[0]->sec_identity_ref() == nullptr )
 +    {
 +        observer_->CertificateSelected( cert_identities_[0]->certificate(), nullptr );
 +        return;
 +    }
 +#endif
-   sec_identities_.reset(CFArrayCreateMutable(kCFAllocatorDefault, numCerts,
-                                              &kCFTypeArrayCallBacks));
-   for (size_t i = 0; i < numCerts; ++i) {
++
+   sec_identities_.reset([[NSMutableArray alloc] init]);
+   for (const auto& cert : cert_identities_) {
+     DCHECK(cert->sec_identity_ref());
 diff --git a/chrome/installer/linux/common/chromium-browser/chromium-browser.info b/chrome/installer/linux/common/chromium-browser/chromium-browser.info
 index 3593c9e797ef..9826523e0f36 100644
 --- a/chrome/installer/linux/common/chromium-browser/chromium-browser.info
@@ -195,7 +182,7 @@ index ee78ee140291..90f2a82c5271 100644
  // indicate a fatal error.  Typically this error will be generated as a
  // notification to wait for some external notification that the IO operation
 diff --git a/net/cert/cert_verify_proc.cc b/net/cert/cert_verify_proc.cc
-index bb9e67681add..f07d849b7d7d 100644
+index 7d6be709a1dd..11d75951a7b6 100644
 --- a/net/cert/cert_verify_proc.cc
 +++ b/net/cert/cert_verify_proc.cc
 @@ -488,6 +488,36 @@ scoped_refptr<CertVerifyProc> CertVerifyProc::CreateDefault() {
@@ -274,10 +261,10 @@ index bb9e67681add..f07d849b7d7d 100644
    // in the chain. Also fills in the has_* booleans for the digest algorithms
    // present in the chain.
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index 2d0718ae3b61..e75aaa0ac769 100644
+index aa2e040aadc3..126b97843d93 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
-@@ -1558,6 +1558,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
+@@ -1535,6 +1535,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
        return OK;
      }
    }
@@ -294,10 +281,10 @@ index 2d0718ae3b61..e75aaa0ac769 100644
  }
  
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 7a3f325dd384..fcffdff3ce91 100644
+index aae9b254b68f..94ff8aec1822 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
-@@ -516,6 +516,31 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
+@@ -479,6 +479,31 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
    return OK;
  }
  
@@ -329,7 +316,7 @@ index 7a3f325dd384..fcffdff3ce91 100644
  int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
    // this has never worked for layered sockets. CHECK to detect any consumers
-@@ -534,6 +559,26 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
+@@ -497,6 +522,26 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
      return rv;
    }
  
@@ -356,7 +343,7 @@ index 7a3f325dd384..fcffdff3ce91 100644
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -1196,6 +1241,88 @@ int SSLClientSocketImpl::DoVerifyCert(int result) {
+@@ -1056,6 +1101,88 @@ int SSLClientSocketImpl::DoVerifyCert(int result) {
  
    start_cert_verification_time_ = base::TimeTicks::Now();
  
@@ -440,12 +427,12 @@ index 7a3f325dd384..fcffdff3ce91 100644
 +            }
 +        }
 +    }
-+#endif // GOSTSSL && OPENSSL_LINUX
++#endif // GOSTSSL
 +
    const uint8_t* ocsp_response_raw;
    size_t ocsp_response_len;
    SSL_get0_ocsp_response(ssl_.get(), &ocsp_response_raw, &ocsp_response_len);
-@@ -1621,6 +1748,31 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1538,6 +1665,31 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
@@ -478,10 +465,10 @@ index 7a3f325dd384..fcffdff3ce91 100644
    if (ssl_config_.client_cert.get()) {
      if (!ssl_config_.client_private_key) {
 diff --git a/net/spdy/spdy_session.cc b/net/spdy/spdy_session.cc
-index 858476703d87..75f43d68fc93 100644
+index 14e433bf7f73..63a0e00ca877 100644
 --- a/net/spdy/spdy_session.cc
 +++ b/net/spdy/spdy_session.cc
-@@ -1398,6 +1398,19 @@ bool SpdySession::HasAcceptableTransportSecurity() const {
+@@ -1447,6 +1447,19 @@ bool SpdySession::HasAcceptableTransportSecurity() const {
    SSLInfo ssl_info;
    CHECK(GetSSLInfo(&ssl_info));
  
@@ -618,7 +605,7 @@ index 20cd53256f1b..e3cbb5e3ed7c 100644
  }
  
 diff --git a/net/ssl/client_cert_store_nss.cc b/net/ssl/client_cert_store_nss.cc
-index a96669eb76b5..3b96be2a848f 100644
+index 75a5e295263b..a993837bcfc4 100644
 --- a/net/ssl/client_cert_store_nss.cc
 +++ b/net/ssl/client_cert_store_nss.cc
 @@ -145,6 +145,20 @@ void ClientCertStoreNSS::FilterCertsOnWorkerThread(
@@ -704,10 +691,10 @@ index e45db9e7da0b..faa8e9acdbb3 100644
      case SSL_R_SSLV3_ALERT_UNSUPPORTED_CERTIFICATE:
      case SSL_R_SSLV3_ALERT_CERTIFICATE_REVOKED:
 diff --git a/net/ssl/ssl_cipher_suite_names.cc b/net/ssl/ssl_cipher_suite_names.cc
-index 9436602a59b7..edbd30fd4edc 100644
+index 1156ff1774b5..190437347278 100644
 --- a/net/ssl/ssl_cipher_suite_names.cc
 +++ b/net/ssl/ssl_cipher_suite_names.cc
-@@ -55,6 +55,27 @@ void SSLCipherSuiteToStrings(const char** key_exchange_str,
+@@ -66,6 +66,27 @@ void SSLCipherSuiteToStrings(const char** key_exchange_str,
    *is_aead = false;
    *is_tls13 = false;
  
@@ -735,19 +722,18 @@ index 9436602a59b7..edbd30fd4edc 100644
    const SSL_CIPHER* cipher = SSL_get_cipher_by_value(cipher_suite);
    if (!cipher)
      return;
-@@ -170,6 +191,12 @@ int ObsoleteSSLStatus(int connection_status) {
-   uint16_t cipher_suite = SSLConnectionStatusToCipherSuite(connection_status);
-   obsolete_ssl |= ObsoleteSSLStatusForCipherSuite(cipher_suite);
+@@ -179,6 +200,11 @@ int ObsoleteSSLStatus(int connection_status, uint16_t signature_algorithm) {
+   obsolete_ssl |= ObsoleteSSLStatusForProtocol(ssl_version);
  
+   uint16_t cipher_suite = SSLConnectionStatusToCipherSuite(connection_status);
 +#ifdef GOSTSSL
 +  if( cipher_suite == 0x0081 /* GOST2001-GOST89-GOST89 */ || 
 +      cipher_suite == 0xff85 /* GOST2012-GOST8912-GOST8912 */ )
-+    obsolete_ssl = OBSOLETE_SSL_NONE;
++    return OBSOLETE_SSL_NONE;
 +#endif
-+
-   return obsolete_ssl;
- }
+   obsolete_ssl |= ObsoleteSSLStatusForCipherSuite(cipher_suite);
  
+   obsolete_ssl |= ObsoleteSSLStatusForSignature(signature_algorithm);
 -- 
 2.17.0.windows.1
 
