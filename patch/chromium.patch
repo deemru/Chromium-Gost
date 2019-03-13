@@ -1,4 +1,4 @@
-From 443b6478037f32e4bdabc6992cef905388075fa7 Mon Sep 17 00:00:00 2001
+From 518a9ba0c048006033d49073bc78729b546da34b Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 30 Jan 2019 14:40:22 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -21,10 +21,10 @@ Subject: [PATCH] chromium GOSTSSL
  14 files changed, 481 insertions(+), 5 deletions(-)
 
 diff --git a/chrome/browser/devtools/devtools_window.cc b/chrome/browser/devtools/devtools_window.cc
-index 79675fe5037b..9a43c08be3cb 100644
+index bc2a5f726a35..0d193b69678c 100644
 --- a/chrome/browser/devtools/devtools_window.cc
 +++ b/chrome/browser/devtools/devtools_window.cc
-@@ -1443,6 +1443,24 @@ void DevToolsWindow::RenderProcessGone(bool crashed) {
+@@ -1446,6 +1446,24 @@ void DevToolsWindow::RenderProcessGone(bool crashed) {
    }
  }
  
@@ -49,7 +49,7 @@ index 79675fe5037b..9a43c08be3cb 100644
  void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
    std::unique_ptr<base::Value> value = base::JSONReader::Read(cert_chain);
    if (!value || value->type() != base::Value::Type::LIST) {
-@@ -1468,6 +1486,26 @@ void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
+@@ -1471,6 +1489,26 @@ void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
        NOTREACHED();
        return;
      }
@@ -77,7 +77,7 @@ index 79675fe5037b..9a43c08be3cb 100644
    }
  
 diff --git a/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm b/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm
-index a95fa6d20105..7ddc8619c18e 100644
+index 88179a7a2716..aa84ce4cac31 100644
 --- a/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm
 +++ b/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm
 @@ -238,6 +238,15 @@ initWithBrowserContext:(const content::BrowserContext*)browserContext
@@ -165,7 +165,7 @@ index 55a35677b9c4..abbc16d5f5f1 100644
  case $CHANNEL in
    stable )
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
-index ee78ee140291..90f2a82c5271 100644
+index b7b7063fc0ea..2e23ff632a6d 100644
 --- a/net/base/net_error_list.h
 +++ b/net/base/net_error_list.h
 @@ -21,6 +21,12 @@
@@ -261,10 +261,10 @@ index 7d6be709a1dd..11d75951a7b6 100644
    // in the chain. Also fills in the has_* booleans for the digest algorithms
    // present in the chain.
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index aa2e040aadc3..126b97843d93 100644
+index ce86e621144f..96478e60c250 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
-@@ -1535,6 +1535,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
+@@ -1611,6 +1611,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
        return OK;
      }
    }
@@ -281,10 +281,10 @@ index aa2e040aadc3..126b97843d93 100644
  }
  
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index aae9b254b68f..94ff8aec1822 100644
+index a46adaf47c60..6f724edfe0df 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
-@@ -479,6 +479,31 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
+@@ -476,6 +476,31 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
    return OK;
  }
  
@@ -316,7 +316,7 @@ index aae9b254b68f..94ff8aec1822 100644
  int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
    // this has never worked for layered sockets. CHECK to detect any consumers
-@@ -497,6 +522,26 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
+@@ -494,6 +519,26 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
      return rv;
    }
  
@@ -343,7 +343,7 @@ index aae9b254b68f..94ff8aec1822 100644
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -1056,6 +1101,88 @@ int SSLClientSocketImpl::DoVerifyCert(int result) {
+@@ -1157,6 +1202,88 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
  
    start_cert_verification_time_ = base::TimeTicks::Now();
  
@@ -423,7 +423,7 @@ index aae9b254b68f..94ff8aec1822 100644
 +                if( gost_rv != OK )
 +                    server_cert_verify_result_.cert_status = MapNetErrorToCertStatus( gost_rv );
 +                server_cert_verify_result_.verified_cert = server_cert_;
-+                return gost_rv;
++                return gost_rv == OK ? ssl_verify_ok : ssl_verify_invalid;
 +            }
 +        }
 +    }
@@ -432,7 +432,7 @@ index aae9b254b68f..94ff8aec1822 100644
    const uint8_t* ocsp_response_raw;
    size_t ocsp_response_len;
    SSL_get0_ocsp_response(ssl_.get(), &ocsp_response_raw, &ocsp_response_len);
-@@ -1538,6 +1665,31 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1581,6 +1708,31 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
@@ -465,7 +465,7 @@ index aae9b254b68f..94ff8aec1822 100644
    if (ssl_config_.client_cert.get()) {
      if (!ssl_config_.client_private_key) {
 diff --git a/net/spdy/spdy_session.cc b/net/spdy/spdy_session.cc
-index 14e433bf7f73..63a0e00ca877 100644
+index 9c3605b30ad6..32c0b65cb308 100644
 --- a/net/spdy/spdy_session.cc
 +++ b/net/spdy/spdy_session.cc
 @@ -1447,6 +1447,19 @@ bool SpdySession::HasAcceptableTransportSecurity() const {
@@ -489,10 +489,10 @@ index 14e433bf7f73..63a0e00ca877 100644
    if (SSLConnectionStatusToVersion(ssl_info.connection_status) <
        SSL_CONNECTION_VERSION_TLS1_2) {
 diff --git a/net/ssl/client_cert_store_mac.cc b/net/ssl/client_cert_store_mac.cc
-index 20cd53256f1b..e3cbb5e3ed7c 100644
+index c7ab20a9885d..c376b1ffeb20 100644
 --- a/net/ssl/client_cert_store_mac.cc
 +++ b/net/ssl/client_cert_store_mac.cc
-@@ -293,6 +293,21 @@ void AddIdentity(ScopedCFTypeRef<SecIdentityRef> sec_identity,
+@@ -294,6 +294,21 @@ void AddIdentity(ScopedCFTypeRef<SecIdentityRef> sec_identity,
    }
  }
  
@@ -514,7 +514,7 @@ index 20cd53256f1b..e3cbb5e3ed7c 100644
  ClientCertIdentityList GetClientCertsOnBackgroundThread(
      const SSLCertRequestInfo& request) {
    std::string server_domain = request.host_and_port.host();
-@@ -383,6 +398,89 @@ ClientCertIdentityList GetClientCertsOnBackgroundThread(
+@@ -384,6 +399,89 @@ ClientCertIdentityList GetClientCertsOnBackgroundThread(
    GetClientCertsImpl(std::move(preferred_identity),
                       std::move(regular_identities), request, true,
                       &selected_identities);
@@ -676,7 +676,7 @@ index 75a5e295263b..a993837bcfc4 100644
  }
  
 diff --git a/net/ssl/openssl_ssl_util.cc b/net/ssl/openssl_ssl_util.cc
-index e45db9e7da0b..faa8e9acdbb3 100644
+index 0e4e0ac8c2fc..57e0930a90b9 100644
 --- a/net/ssl/openssl_ssl_util.cc
 +++ b/net/ssl/openssl_ssl_util.cc
 @@ -84,6 +84,10 @@ int MapOpenSSLErrorSSL(uint32_t error_code) {
