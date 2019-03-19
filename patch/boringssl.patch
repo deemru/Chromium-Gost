@@ -1,19 +1,19 @@
-From cbffbd03bc3a11b4a0306efee01cad8773351a5a Mon Sep 17 00:00:00 2001
+From dd61808aadf6b24f685c05d84c234e6f70fd19f0 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 30 Jan 2019 15:04:56 +0300
 Subject: [PATCH] boringssl GOSTSSL
 
 ---
- include/openssl/ssl.h   |   6 ++
+ include/openssl/ssl.h   |   6 +
  include/openssl/tls1.h  |   5 +
  ssl/handshake_client.cc |  11 ++
- ssl/internal.h          |  74 ++++++++++++++
- ssl/ssl_cipher.cc       |  50 +++++++++
- ssl/ssl_lib.cc          | 217 ++++++++++++++++++++++++++++++++++++++++
- 6 files changed, 363 insertions(+)
+ ssl/internal.h          |  83 +++++++++++++
+ ssl/ssl_cipher.cc       |  50 ++++++++
+ ssl/ssl_lib.cc          | 250 ++++++++++++++++++++++++++++++++++++++++
+ 6 files changed, 405 insertions(+)
 
 diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
-index 17c559259..50b582b35 100644
+index d5883950d..809374a87 100644
 --- a/include/openssl/ssl.h
 +++ b/include/openssl/ssl.h
 @@ -167,6 +167,8 @@
@@ -25,7 +25,7 @@ index 17c559259..50b582b35 100644
  #if defined(__cplusplus)
  extern "C" {
  #endif
-@@ -4723,6 +4725,10 @@ BSSL_NAMESPACE_END
+@@ -4752,6 +4754,10 @@ BSSL_NAMESPACE_END
  
  #endif
  
@@ -53,10 +53,10 @@ index 937be6b39..e802ebe80 100644
  #define TLS1_TXT_AES_128_GCM_SHA256 "AEAD-AES128-GCM-SHA256"
  #define TLS1_TXT_AES_256_GCM_SHA384 "AEAD-AES256-GCM-SHA384"
 diff --git a/ssl/handshake_client.cc b/ssl/handshake_client.cc
-index c1d54bd8f..4d98a216e 100644
+index 0274dc2ab..92e8a0bb9 100644
 --- a/ssl/handshake_client.cc
 +++ b/ssl/handshake_client.cc
-@@ -703,6 +703,17 @@ static enum ssl_hs_wait_t do_read_server_hello(SSL_HANDSHAKE *hs) {
+@@ -704,6 +704,17 @@ static enum ssl_hs_wait_t do_read_server_hello(SSL_HANDSHAKE *hs) {
    }
    hs->new_cipher = cipher;
  
@@ -75,7 +75,7 @@ index c1d54bd8f..4d98a216e 100644
    // ServerHello.
    if (!hs->transcript.InitHash(ssl_protocol_version(ssl), hs->new_cipher) ||
 diff --git a/ssl/internal.h b/ssl/internal.h
-index f8a2ea70a..0f9bcfb08 100644
+index bc45b504c..7babdd9f0 100644
 --- a/ssl/internal.h
 +++ b/ssl/internal.h
 @@ -441,6 +441,11 @@ BSSL_NAMESPACE_BEGIN
@@ -124,7 +124,7 @@ index f8a2ea70a..0f9bcfb08 100644
  // Bits for |algorithm_prf| (handshake digest).
  #define SSL_HANDSHAKE_MAC_DEFAULT 0x1
  #define SSL_HANDSHAKE_MAC_SHA256 0x2
-@@ -2788,6 +2806,62 @@ void ssl_set_read_error(SSL *ssl);
+@@ -2790,6 +2808,71 @@ void ssl_set_read_error(SSL *ssl);
  
  BSSL_NAMESPACE_END
  
@@ -141,23 +141,32 @@ index f8a2ea70a..0f9bcfb08 100644
 +#endif
 +#endif // _WIN32
 +//
-+int boring_BIO_read( SSL * s, void * data, int len );
-+int boring_BIO_write( SSL * s, const void * data, int len );
-+void boring_ERR_clear_error( void );
-+void boring_ERR_put_error( int, int, int, const char * file, unsigned line );
-+const SSL_CIPHER * boring_SSL_get_cipher_by_value( uint16_t value );
-+char boring_set_ca_names_cb( SSL * s, const void ** bufs, int * lens, size_t count );
-+char boring_set_connected_cb( SSL * s, const char * alpn, size_t alpn_len, uint16_t version, uint16_t cipher_id, const char ** cert_bufs, int * cert_lens, size_t cert_count );
++int boring_BIO_read(SSL *s, void *data, int len);
++int boring_BIO_write(SSL *s, const void *data, int len);
++void boring_ERR_clear_error(void);
++void boring_ERR_put_error(int, int, int, const char *file, unsigned line);
++const SSL_CIPHER *boring_SSL_get_cipher_by_value(uint16_t value);
++char boring_set_ca_names_cb(SSL *s, const void **bufs, int *lens, size_t count);
++char boring_set_connected_cb(SSL *s, const char *alpn, size_t alpn_len,
++                             uint16_t version, uint16_t cipher_id,
++                             const char **cert_bufs, int *cert_lens,
++                             size_t cert_count);
 +//
 +struct boringssl_method_st
 +{
-+    int ( EXPLICITSSL_CALL * boring_BIO_read )( SSL * s, void * data, int len );
-+    int ( EXPLICITSSL_CALL * boring_BIO_write )( SSL * s, const void * data, int len );
-+    void ( EXPLICITSSL_CALL * boring_ERR_clear_error )( void );
-+    void ( EXPLICITSSL_CALL * boring_ERR_put_error )( int, int, int, const char * file, unsigned line );
-+    const SSL_CIPHER * ( EXPLICITSSL_CALL * boring_SSL_get_cipher_by_value )( uint16_t value );
-+    char ( EXPLICITSSL_CALL * boring_set_ca_names_cb )( SSL * s, const char ** bufs, int * lens, size_t count );
-+    char ( EXPLICITSSL_CALL * boring_set_connected_cb )( SSL * s, const char * alpn, size_t alpn_len, uint16_t version, uint16_t cipher_id, const char ** cert_bufs, int * cert_lens, size_t cert_count );
++  int(EXPLICITSSL_CALL *boring_BIO_read)(SSL *s, void *data, int len);
++  int(EXPLICITSSL_CALL *boring_BIO_write)(SSL *s, const void *data, int len);
++  void(EXPLICITSSL_CALL *boring_ERR_clear_error)(void);
++  void(EXPLICITSSL_CALL *boring_ERR_put_error)(int, int, int, const char *file,
++                                               unsigned line);
++  const SSL_CIPHER *(EXPLICITSSL_CALL *boring_SSL_get_cipher_by_value)(
++      uint16_t value);
++  char(EXPLICITSSL_CALL *boring_set_ca_names_cb)(SSL *s, const char **bufs,
++                                                 int *lens, size_t count);
++  char(EXPLICITSSL_CALL *boring_set_connected_cb)(
++      SSL *s, const char *alpn, size_t alpn_len, uint16_t version,
++      uint16_t cipher_id, const char **cert_bufs, int *cert_lens,
++      size_t cert_count);
 +};
 +//
 +typedef struct boringssl_method_st BORINGSSL_METHOD;
@@ -284,10 +293,10 @@ index a420f4dd9..acd23752b 100644
        alg_bits = 256;
        strength_bits = 256;
 diff --git a/ssl/ssl_lib.cc b/ssl/ssl_lib.cc
-index b9c823d95..2cbc80944 100644
+index a3c25f3b7..b01eb9f89 100644
 --- a/ssl/ssl_lib.cc
 +++ b/ssl/ssl_lib.cc
-@@ -533,6 +533,178 @@ static int ssl_session_cmp(const SSL_SESSION *a, const SSL_SESSION *b) {
+@@ -554,6 +554,211 @@ static int ssl_session_cmp(const SSL_SESSION *a, const SSL_SESSION *b) {
    return OPENSSL_memcmp(a->session_id, b->session_id, a->session_id_length);
  }
  
@@ -358,52 +367,84 @@ index b9c823d95..2cbc80944 100644
 +char boring_set_connected_cb(SSL *ssl, const char *alpn, size_t alpn_len,
 +                             uint16_t version, uint16_t cipher_id,
 +                             const char **bufs, int *lens, size_t count) {
-+  // ALPN (ssl_negotiate_alpn)
-+  {
-+    if (!ssl->s3->alpn_selected.CopyFrom(
-+            Span<uint8_t>((uint8_t *)alpn, alpn_len)))
-+      return 0;
-+  }
++  SSL_HANDSHAKE *hs = ssl->s3->hs.get();
 +
-+  // VERSION + CIPHER
-+  {
-+    const SSL_CIPHER *cipher;
-+
-+    cipher = SSL_get_cipher_by_value(cipher_id);
-+
-+    if (!cipher)
-+      return 0;
-+
-+    ssl->version = version;
-+    ssl->s3->have_version = 1;
-+
-+    if (ssl_get_new_session(ssl->s3->hs.get(), 0) <= 0)
-+      return 0;
-+
-+    ssl->s3->established_session = std::move(ssl->s3->hs->new_session);
-+    ssl->s3->hs->new_session.reset();
-+
-+    ssl->s3->established_session->ssl_version = ssl->version;
-+    ssl->s3->established_session->cipher = cipher;
-+  }
-+
-+  // SERVER CERTIFICATES (ssl_parse_cert_chain)
-+  {
-+    UniquePtr<STACK_OF(CRYPTO_BUFFER)> ret(sk_CRYPTO_BUFFER_new_null());
-+
-+    if (!ret)
-+      return 0;
-+
-+    for (size_t i = 0; i < count; i++) {
-+      UniquePtr<CRYPTO_BUFFER> buffer(
-+          CRYPTO_BUFFER_new((const uint8_t *)bufs[i], lens[i], ssl->ctx->pool));
-+
-+      if (!buffer || !PushToStack(ret.get(), std::move(buffer)))
++  if (!hs->new_session) {
++    // ALPN (ssl_negotiate_alpn)
++    {
++      if (!ssl->s3->alpn_selected.CopyFrom(
++              Span<uint8_t>((uint8_t *)alpn, alpn_len)))
 +        return 0;
 +    }
 +
-+    ssl->s3->established_session->certs = std::move(ret);
++    // VERSION + CIPHER
++    {
++      const SSL_CIPHER *cipher = SSL_get_cipher_by_value(cipher_id);
++
++      if (!cipher)
++        return 0;
++
++      ssl->version = version;
++      ssl->s3->have_version = 1;
++
++      if (ssl_get_new_session(ssl->s3->hs.get(), 0) <= 0)
++        return 0;
++
++      // SERVER CERTIFICATES (ssl_parse_cert_chain)
++      {
++        UniquePtr<STACK_OF(CRYPTO_BUFFER)> ret(sk_CRYPTO_BUFFER_new_null());
++
++        if (!ret)
++          return 0;
++
++        for (size_t i = 0; i < count; i++) {
++          UniquePtr<CRYPTO_BUFFER> buffer(CRYPTO_BUFFER_new(
++              (const uint8_t *)bufs[i], lens[i], ssl->ctx->pool));
++
++          if (!buffer || !PushToStack(ret.get(), std::move(buffer)))
++            return 0;
++        }
++
++        ssl->s3->hs->new_session->certs = std::move(ret);
++        ssl->s3->hs->new_session->cipher = cipher;
++      }
++    }
++
++    // callback in chromiuim >= 73
++    {
++      uint8_t alert = SSL_AD_CERTIFICATE_UNKNOWN;
++      enum ssl_verify_result_t ret = ssl_verify_invalid;
++      if (hs->config->custom_verify_callback != nullptr) {
++        ret = hs->config->custom_verify_callback(ssl, &alert);
++        switch (ret) {
++          case ssl_verify_ok:
++            hs->new_session->verify_result = X509_V_OK;
++            break;
++          case ssl_verify_invalid:
++            // If |SSL_VERIFY_NONE|, the error is non-fatal, but we keep the
++            // result.
++            if (hs->config->verify_mode == SSL_VERIFY_NONE) {
++              ERR_clear_error();
++              ret = ssl_verify_ok;
++            }
++            hs->new_session->verify_result =
++                X509_V_ERR_APPLICATION_VERIFICATION;
++            break;
++          case ssl_verify_retry:
++            break;
++        }
++      }
++
++      if (ret == ssl_verify_invalid) {
++        OPENSSL_PUT_ERROR(SSL, SSL_R_CERTIFICATE_VERIFY_FAILED);
++        return 0;
++      }
++    }
 +  }
++
++  ssl->s3->established_session = std::move(ssl->s3->hs->new_session);
++  ssl->s3->hs->new_session.reset();
++  ssl->s3->established_session->ssl_version = ssl->version;
 +
 +  // SSL_CB_HANDSHAKE_DONE
 +  if (ssl->info_callback != NULL)
@@ -413,6 +454,7 @@ index b9c823d95..2cbc80944 100644
 +
 +  ssl->s3->hs->handshake_finalized = true;
 +  ssl->s3->initial_handshake_complete = true;
++
 +  return 1;
 +}
 +
@@ -466,7 +508,7 @@ index b9c823d95..2cbc80944 100644
  ssl_ctx_st::ssl_ctx_st(const SSL_METHOD *ssl_method)
      : method(ssl_method->method),
        x509_method(ssl_method->x509_method),
-@@ -723,6 +895,11 @@ SSL_CONFIG::~SSL_CONFIG() {
+@@ -744,6 +949,11 @@ SSL_CONFIG::~SSL_CONFIG() {
  }
  
  void SSL_free(SSL *ssl) {
@@ -478,7 +520,7 @@ index b9c823d95..2cbc80944 100644
    Delete(ssl);
  }
  
-@@ -851,6 +1028,17 @@ int SSL_provide_quic_data(SSL *ssl, enum ssl_encryption_level_t level,
+@@ -872,6 +1082,17 @@ int SSL_provide_quic_data(SSL *ssl, enum ssl_encryption_level_t level,
  }
  
  int SSL_do_handshake(SSL *ssl) {
@@ -496,7 +538,7 @@ index b9c823d95..2cbc80944 100644
    ssl_reset_error_state(ssl);
  
    if (ssl->do_handshake == NULL) {
-@@ -1042,6 +1230,18 @@ static int ssl_read_impl(SSL *ssl) {
+@@ -1063,6 +1284,18 @@ static int ssl_read_impl(SSL *ssl) {
  }
  
  int SSL_read(SSL *ssl, void *buf, int num) {
@@ -515,7 +557,7 @@ index b9c823d95..2cbc80944 100644
    int ret = SSL_peek(ssl, buf, num);
    if (ret <= 0) {
      return ret;
-@@ -1076,6 +1276,19 @@ int SSL_peek(SSL *ssl, void *buf, int num) {
+@@ -1097,6 +1330,19 @@ int SSL_peek(SSL *ssl, void *buf, int num) {
  }
  
  int SSL_write(SSL *ssl, const void *buf, int num) {
@@ -535,7 +577,7 @@ index b9c823d95..2cbc80944 100644
    ssl_reset_error_state(ssl);
  
    if (ssl->ctx->quic_method != nullptr) {
-@@ -2298,6 +2511,10 @@ EVP_PKEY *SSL_CTX_get0_privatekey(const SSL_CTX *ctx) {
+@@ -2350,6 +2596,10 @@ EVP_PKEY *SSL_CTX_get0_privatekey(const SSL_CTX *ctx) {
  }
  
  const SSL_CIPHER *SSL_get_current_cipher(const SSL *ssl) {

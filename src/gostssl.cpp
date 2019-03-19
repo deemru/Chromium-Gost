@@ -175,20 +175,9 @@ static int gostssl_cert_cb( GostSSL_Worker * w )
                 if( msspi_get_issuerlist( w->h, &bufs[0], &lens[0], &count ) )
                     bssls->boring_set_ca_names_cb( w->s, &bufs[0], &lens[0], count );
             }
-
-            //        {
-            //            bssl::UniquePtr<CRYPTO_BUFFER> buf( bssls->CRYPTO_BUFFER_new( (const uint8_t *)bufs[i], lens[i], w->s->ctx->pool ) );
-
-            //            if( !buf )
-            //                break;
-
-            //            bssls->sk_push( reinterpret_cast<_STACK *>( sk.get() ), std::move( buf ).get() );
-            //        }
-            //    }
-            //}
-
-            //w->s->s3->hs->ca_names = std::move( sk );
         }
+
+
 
         g_is_gost = 1;
         int ret = w->s->config->cert->cert_cb( w->s, w->s->config->cert->cert_cb_arg );
@@ -276,145 +265,11 @@ static void host_status_set( std::string & site, GOSTSSL_HOST_STATUS status )
     }
 }
 
-#if defined( _WIN32 ) && defined( W_SITES )
-
-#define REGISTRY_TREE01 "Software"
-#define REGISTRY_TREE02 "Crypto Pro"
-#define REGISTRY_TREE03 "gostssl"
-#define REGISTRY_CHROME_SITES "_sites"
-
-static HKEY hKeyChromeRegistryDir = 0;
-
-VOID CloseChromeRegistryDir()
-{
-    if( hKeyChromeRegistryDir )
-    {
-        RegCloseKey( hKeyChromeRegistryDir );
-        hKeyChromeRegistryDir = 0;
-    }
-}
-
-BOOL OpenChromeRegistryDir( CHAR * szDir, BOOL is_write )
-{
-    HKEY hKey = 0;
-    HKEY hKeyChild = 0;
-    REGSAM RW = KEY_READ | ( is_write ? KEY_WRITE : 0 );
-    CHAR szChromeRegistryDir[MAX_PATH] = { 0 };
-    int i;
-
-    CloseChromeRegistryDir();
-
-    if( -1 == sprintf_s( szChromeRegistryDir, _countof( szChromeRegistryDir ), REGISTRY_TREE01 "\\" REGISTRY_TREE02 "\\" REGISTRY_TREE03 "\\%s", szDir ) )
-        return FALSE;
-
-    for( i = 0; i < 5; i++ )
-    {
-        if( hKey )
-        {
-            RegCloseKey( hKey );
-            hKey = 0;
-        }
-
-        if( hKeyChild )
-        {
-            RegCloseKey( hKeyChild );
-            hKeyChild = 0;
-        }
-
-        if( hKeyChromeRegistryDir )
-            return TRUE;
-
-        if( RegOpenKeyExA( HKEY_CURRENT_USER, szChromeRegistryDir, 0, RW, &hKey ) )
-        {
-            if( !is_write )
-                break;
-
-            if( RegOpenKeyExA( HKEY_CURRENT_USER, REGISTRY_TREE01 "\\" REGISTRY_TREE02 "\\" REGISTRY_TREE03, 0, RW, &hKey ) )
-            {
-                if( RegOpenKeyExA( HKEY_CURRENT_USER, REGISTRY_TREE01 "\\" REGISTRY_TREE02, 0, RW, &hKey ) )
-                {
-                    if( RegOpenKeyExA( HKEY_CURRENT_USER, REGISTRY_TREE01, 0, RW, &hKey ) )
-                        break;
-
-                    if( RegCreateKeyA( hKey, REGISTRY_TREE02, &hKeyChild ) )
-                        break;
-
-                    continue;
-                }
-
-                if( RegCreateKeyA( hKey, REGISTRY_TREE03, &hKeyChild ) )
-                    break;
-
-                continue;
-            }
-
-            if( RegCreateKeyA( hKey, szDir, &hKeyChild ) )
-                break;
-
-            continue;
-        }
-
-        hKeyChromeRegistryDir = hKey;
-        hKey = 0;
-    }
-
-    return FALSE;
-}
-
-static BOOL isChromeSitesOpened = FALSE;
-
-BOOL GetChromeDWORDEx( LPCSTR szKey, DWORD * dwValue )
-{
-    if( !hKeyChromeRegistryDir )
-        return 0;
-
-    DWORD dwLen = sizeof( *dwValue );
-
-    if( ERROR_SUCCESS != RegQueryValueExA( hKeyChromeRegistryDir, szKey, NULL, 0, (BYTE *)dwValue, &dwLen ) )
-        return FALSE;
-
-    return TRUE;
-}
-
-GOSTSSL_HOST_STATUS host_status_first( const char * site )
-{
-    if( !isChromeSitesOpened )
-    {
-        if( !OpenChromeRegistryDir( REGISTRY_CHROME_SITES, FALSE ) )
-            return GOSTSSL_HOST_AUTO;
-
-        isChromeSitesOpened = TRUE;
-    }
-
-    {
-        DWORD dwStatus;
-
-        if( !GetChromeDWORDEx( site, &dwStatus ) )
-            return GOSTSSL_HOST_AUTO;
-
-        switch( dwStatus )
-        {
-            case GOSTSSL_HOST_YES:
-            case GOSTSSL_HOST_NO:
-            case GOSTSSL_HOST_AUTO:
-                host_status_set( site, (GOSTSSL_HOST_STATUS)dwStatus );
-                return (GOSTSSL_HOST_STATUS)dwStatus;
-
-            default:
-                return GOSTSSL_HOST_AUTO;
-        }
-    }
-}
-
-#else
-
 GOSTSSL_HOST_STATUS host_status_first( std::string & site )
 {
     (void)site;
     return GOSTSSL_HOST_AUTO;
 }
-
-#endif
 
 GOSTSSL_HOST_STATUS host_status_get( std::string & site )
 {
@@ -694,11 +549,13 @@ int gostssl_connect( SSL * s, int * is_gost )
             CertFreeCertificateContext( certcheck );
         }
 
-        if( !bssls->boring_set_connected_cb( w->s, alpn, alpn_len, version, cipher_id, &servercerts_bufs[0], &servercerts_lens[0], servercerts_count ) )
-            return 0;
-
         w->host_status = GOSTSSL_HOST_YES;
         host_status_set( w->host_string, GOSTSSL_HOST_YES );
+
+        char ssl_ret = bssls->boring_set_connected_cb( w->s, alpn, alpn_len, version, cipher_id, &servercerts_bufs[0], &servercerts_lens[0], servercerts_count );
+        if( !ssl_ret )
+            return -1;
+
         return 1;
     }
 

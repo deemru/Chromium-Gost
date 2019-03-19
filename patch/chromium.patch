@@ -1,24 +1,24 @@
-From 518a9ba0c048006033d49073bc78729b546da34b Mon Sep 17 00:00:00 2001
+From 13c2b104d8396ec22d302e50b306871682fd7413 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 30 Jan 2019 14:40:22 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
- chrome/browser/devtools/devtools_window.cc    |  38 +++++
- .../ssl_client_certificate_selector_mac.mm    |   9 ++
+ chrome/browser/devtools/devtools_window.cc    |  38 ++++
+ .../ssl_client_certificate_selector_mac.mm    |   9 +
  .../chromium-browser/chromium-browser.info    |  10 +-
  .../installer/linux/common/installer.include  |   3 +
  .../installer/linux/rpm/chrome.spec.template  |   4 +
  net/base/net_error_list.h                     |   6 +
  net/cert/cert_verify_proc.cc                  |  61 +++++++
- net/http/http_network_transaction.cc          |   9 ++
- net/socket/ssl_client_socket_impl.cc          | 152 ++++++++++++++++++
+ net/http/http_network_transaction.cc          |   9 +
+ net/socket/ssl_client_socket_impl.cc          | 163 ++++++++++++++++++
  net/spdy/spdy_session.cc                      |  13 ++
  net/ssl/client_cert_store_mac.cc              |  98 +++++++++++
  net/ssl/client_cert_store_nss.cc              |  53 ++++++
  net/ssl/openssl_ssl_util.cc                   |   4 +
  net/ssl/ssl_cipher_suite_names.cc             |  26 +++
- 14 files changed, 481 insertions(+), 5 deletions(-)
+ 14 files changed, 492 insertions(+), 5 deletions(-)
 
 diff --git a/chrome/browser/devtools/devtools_window.cc b/chrome/browser/devtools/devtools_window.cc
 index bc2a5f726a35..0d193b69678c 100644
@@ -281,69 +281,71 @@ index ce86e621144f..96478e60c250 100644
  }
  
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index a46adaf47c60..6f724edfe0df 100644
+index a46adaf47c60..a8be7c005e72 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
-@@ -476,6 +476,31 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
+@@ -476,6 +476,32 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
    return OK;
  }
  
 +#ifdef GOSTSSL
 +#ifdef _WIN32
-+#if defined ( _M_IX86 )
++#if defined(_M_IX86)
 +#define EXPLICITSSL_CALL __cdecl
-+#elif defined ( _M_X64 )
++#elif defined(_M_X64)
 +#define EXPLICITSSL_CALL __fastcall
 +#endif
 +#define GOSTSSLLIB "gostssl.dll"
-+#define LIBLOAD( name ) LoadLibraryExA( name, 0, LOAD_LIBRARY_SEARCH_APPLICATION_DIR )
-+#define LIBFUNC( lib, name ) (UINT_PTR)GetProcAddress( lib, name )
-+#else // not _WIN32
++#define LIBLOAD(name) \
++  LoadLibraryExA(name, 0, LOAD_LIBRARY_SEARCH_APPLICATION_DIR)
++#define LIBFUNC(lib, name) (UINT_PTR) GetProcAddress(lib, name)
++#else  // not _WIN32
 +#define EXPLICITSSL_CALL
 +#include <dlfcn.h>
 +#define GOSTSSLLIB "gostssl.so"
-+#define LIBLOAD( name ) dlopen( name, RTLD_LAZY )
-+#define LIBFUNC( lib, name ) dlsym( lib, name )
-+typedef void * HMODULE;
-+#endif // _WIN32
-+#if defined( __has_attribute )
++#define LIBLOAD(name) dlopen(name, RTLD_LAZY)
++#define LIBFUNC(lib, name) dlsym(lib, name)
++typedef void* HMODULE;
++#endif  // _WIN32
++#if defined(__has_attribute)
 +#define NOCFI __attribute__((no_sanitize("cfi-icall")))
 +#else
 +#define NOCFI
 +#endif
-+#endif // GOSTSSL
++#endif  // GOSTSSL
 +
  int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
    // this has never worked for layered sockets. CHECK to detect any consumers
-@@ -494,6 +519,26 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
+@@ -494,6 +520,27 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
      return rv;
    }
  
 +#ifdef GOSTSSL
 +  {
-+      static void ( EXPLICITSSL_CALL * cachestring )( void * ssl, const char * uniq ) = NULL;
-+      static int is_tried = 0;
++    static void(EXPLICITSSL_CALL * cachestring)(void* ssl, const char* uniq) =
++        NULL;
++    static int is_tried = 0;
 +
-+      if( !is_tried )
-+      {
-+          HMODULE hGSSL = LIBLOAD( GOSTSSLLIB );
++    if (!is_tried) {
++      HMODULE hGSSL = LIBLOAD(GOSTSSLLIB);
 +
-+          if( hGSSL )
-+              *(uintptr_t *)&cachestring = (uintptr_t)LIBFUNC( hGSSL, "gostssl_cachestring" );
++      if (hGSSL)
++        *(uintptr_t*)&cachestring =
++            (uintptr_t)LIBFUNC(hGSSL, "gostssl_cachestring");
 +
-+          is_tried = 1;
-+      }
++      is_tried = 1;
++    }
 +
-+      if( cachestring )
-+          [&]()NOCFI{ cachestring( ssl_.get(), GetSessionCacheKey().data() ); }();
++    if (cachestring)
++      [&]() NOCFI { cachestring(ssl_.get(), GetSessionCacheKey().data()); }();
 +  }
 +#endif
 +
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -1157,6 +1202,88 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
+@@ -1157,6 +1204,98 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
  
    start_cert_verification_time_ = base::TimeTicks::Now();
  
@@ -363,103 +365,112 @@ index a46adaf47c60..6f724edfe0df 100644
 +#define CERT_E_CHAINING                 0x800B010AL
 +#endif
 +
-+    {
-+        static void ( EXPLICITSSL_CALL * verifyhook )( void * ssl, unsigned * gost_status ) = NULL;
-+        static int is_tried = 0;
++  {
++    static void(EXPLICITSSL_CALL * verifyhook)(void* ssl,
++                                               unsigned* gost_status) = NULL;
++    static int is_tried = 0;
 +
-+        if( !is_tried )
-+        {
-+            HMODULE hGSSL = LIBLOAD( GOSTSSLLIB );
++    if (!is_tried) {
++      HMODULE hGSSL = LIBLOAD(GOSTSSLLIB);
 +
-+            if( hGSSL )
-+                *(uintptr_t *)&verifyhook = (uintptr_t)LIBFUNC( hGSSL, "gostssl_verifyhook" );
++      if (hGSSL)
++        *(uintptr_t*)&verifyhook =
++            (uintptr_t)LIBFUNC(hGSSL, "gostssl_verifyhook");
 +
-+            is_tried = 1;
-+        }
-+
-+        if( verifyhook )
-+        {
-+            unsigned gost_status;
-+
-+            [&]()NOCFI{ verifyhook( (void *)ssl_.get(), &gost_status ); }();
-+
-+            if( gost_status )
-+            {
-+                int gost_rv = OK;
-+
-+                switch( gost_status )
-+                {
-+                    case 1:
-+                        break;
-+                    case CERT_E_CN_NO_MATCH:
-+                    case CERT_E_INVALID_NAME:
-+                        gost_rv = ERR_CERT_COMMON_NAME_INVALID;
-+                        break;
-+                    case CERT_E_UNTRUSTEDROOT:
-+                    case TRUST_E_CERT_SIGNATURE:
-+                    case CERT_E_UNTRUSTEDTESTROOT:
-+                    case CERT_E_CHAINING:
-+                        gost_rv = ERR_CERT_AUTHORITY_INVALID;
-+                        break;
-+                    case CERT_E_EXPIRED:
-+                    case CERT_E_VALIDITYPERIODNESTING:
-+                        gost_rv = ERR_CERT_DATE_INVALID;
-+                        break;
-+                    case CRYPT_E_NO_REVOCATION_CHECK:
-+                    case CERT_E_REVOCATION_FAILURE:
-+                        gost_rv = ERR_CERT_NO_REVOCATION_MECHANISM;
-+                        break;
-+                    case CRYPT_E_REVOCATION_OFFLINE:
-+                        gost_rv = ERR_CERT_UNABLE_TO_CHECK_REVOCATION;
-+                        break;
-+                    case CRYPT_E_REVOKED:
-+                        gost_rv = ERR_CERT_REVOKED;
-+                        break;
-+                    default:
-+                        gost_rv = ERR_CERT_INVALID;
-+                        break;
-+                }
-+
-+                if( gost_rv != OK )
-+                    server_cert_verify_result_.cert_status = MapNetErrorToCertStatus( gost_rv );
-+                server_cert_verify_result_.verified_cert = server_cert_;
-+                return gost_rv == OK ? ssl_verify_ok : ssl_verify_invalid;
-+            }
-+        }
++      is_tried = 1;
 +    }
++
++    if (verifyhook) {
++      unsigned gost_status;
++
++      [&]() NOCFI { verifyhook((void*)ssl_.get(), &gost_status); }();
++
++      if (gost_status) {
++        int gost_rv = OK;
++
++        switch (gost_status) {
++          case 1:
++            break;
++          case CERT_E_CN_NO_MATCH:
++          case CERT_E_INVALID_NAME:
++            gost_rv = ERR_CERT_COMMON_NAME_INVALID;
++            break;
++          case CERT_E_UNTRUSTEDROOT:
++          case TRUST_E_CERT_SIGNATURE:
++          case CERT_E_UNTRUSTEDTESTROOT:
++          case CERT_E_CHAINING:
++            gost_rv = ERR_CERT_AUTHORITY_INVALID;
++            break;
++          case CERT_E_EXPIRED:
++          case CERT_E_VALIDITYPERIODNESTING:
++            gost_rv = ERR_CERT_DATE_INVALID;
++            break;
++          case CRYPT_E_NO_REVOCATION_CHECK:
++          case CERT_E_REVOCATION_FAILURE:
++            gost_rv = ERR_CERT_NO_REVOCATION_MECHANISM;
++            break;
++          case CRYPT_E_REVOCATION_OFFLINE:
++            gost_rv = ERR_CERT_UNABLE_TO_CHECK_REVOCATION;
++            break;
++          case CRYPT_E_REVOKED:
++            gost_rv = ERR_CERT_REVOKED;
++            break;
++          default:
++            gost_rv = ERR_CERT_INVALID;
++            break;
++        }
++
++        server_cert_verify_result_.Reset();
++        server_cert_verify_result_.verified_cert = server_cert_;
++
++        if( gost_rv == OK )
++        {
++          cert_verification_result_ = OK;
++        }
++        else
++        {
++          server_cert_verify_result_.cert_status =
++              MapNetErrorToCertStatus(gost_rv);
++          cert_verification_result_ = gost_rv;
++          OpenSSLPutNetError(FROM_HERE, gost_rv);
++        }
++
++        return gost_rv == OK ? ssl_verify_ok : ssl_verify_invalid;
++      }
++    }
++  }
 +#endif // GOSTSSL
 +
    const uint8_t* ocsp_response_raw;
    size_t ocsp_response_len;
    SSL_get0_ocsp_response(ssl_.get(), &ocsp_response_raw, &ocsp_response_len);
-@@ -1581,6 +1708,31 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1581,6 +1720,30 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
 +#if defined(GOSTSSL)
-+    if( ssl_config_.client_cert.get() )
-+    {
-+        static void ( EXPLICITSSL_CALL * certhook )( void * cert, int size ) = NULL;
-+        static int is_tried = 0;
++  if (ssl_config_.client_cert.get()) {
++    static void(EXPLICITSSL_CALL * certhook)(void* cert, int size) = NULL;
++    static int is_tried = 0;
 +
-+        if( !is_tried )
-+        {
-+            HMODULE hGSSL = LIBLOAD( GOSTSSLLIB );
++    if (!is_tried) {
++      HMODULE hGSSL = LIBLOAD(GOSTSSLLIB);
 +
-+            if( hGSSL )
-+                *(uintptr_t *)&certhook = (uintptr_t)LIBFUNC( hGSSL, "gostssl_certhook" );
++      if (hGSSL)
++        *(uintptr_t*)&certhook = (uintptr_t)LIBFUNC(hGSSL, "gostssl_certhook");
 +
-+            is_tried = 1;
-+        }
-+
-+        if( certhook )
-+        {
-+            const uint8_t * cert = CRYPTO_BUFFER_data( ssl_config_.client_cert.get()->cert_buffer() );
-+            size_t len =  CRYPTO_BUFFER_len( ssl_config_.client_cert.get()->cert_buffer() );
-+            [&]()NOCFI{ certhook( (void *)cert, len ); }();
-+        }
++      is_tried = 1;
 +    }
-+#endif // GOSTSSL
++
++    if (certhook) {
++      const uint8_t* cert =
++          CRYPTO_BUFFER_data(ssl_config_.client_cert.get()->cert_buffer());
++      size_t len =
++          CRYPTO_BUFFER_len(ssl_config_.client_cert.get()->cert_buffer());
++      [&]() NOCFI { certhook((void*)cert, len); }();
++    }
++  }
++#endif  // GOSTSSL
 +
    // Second pass: a client certificate should have been selected.
    if (ssl_config_.client_cert.get()) {
