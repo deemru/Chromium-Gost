@@ -1,4 +1,4 @@
-From dd61808aadf6b24f685c05d84c234e6f70fd19f0 Mon Sep 17 00:00:00 2001
+From 6f22fd23b4d8243c7d714b2d1eecafd7121b487a Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 30 Jan 2019 15:04:56 +0300
 Subject: [PATCH] boringssl GOSTSSL
@@ -13,7 +13,7 @@ Subject: [PATCH] boringssl GOSTSSL
  6 files changed, 405 insertions(+)
 
 diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
-index d5883950d..809374a87 100644
+index b28dcf68a..c38b38d5a 100644
 --- a/include/openssl/ssl.h
 +++ b/include/openssl/ssl.h
 @@ -167,6 +167,8 @@
@@ -25,7 +25,7 @@ index d5883950d..809374a87 100644
  #if defined(__cplusplus)
  extern "C" {
  #endif
-@@ -4752,6 +4754,10 @@ BSSL_NAMESPACE_END
+@@ -4780,6 +4782,10 @@ BSSL_NAMESPACE_END
  
  #endif
  
@@ -37,10 +37,10 @@ index d5883950d..809374a87 100644
  #define SSL_R_ATTEMPT_TO_REUSE_SESSION_IN_DIFFERENT_CONTEXT 101
  #define SSL_R_BAD_ALERT 102
 diff --git a/include/openssl/tls1.h b/include/openssl/tls1.h
-index 937be6b39..e802ebe80 100644
+index 384d102ba..7d39d46b1 100644
 --- a/include/openssl/tls1.h
 +++ b/include/openssl/tls1.h
-@@ -603,6 +603,11 @@ extern "C" {
+@@ -607,6 +607,11 @@ extern "C" {
  #define TLS1_TXT_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256 \
    "ECDHE-PSK-CHACHA20-POLY1305"
  
@@ -53,10 +53,10 @@ index 937be6b39..e802ebe80 100644
  #define TLS1_TXT_AES_128_GCM_SHA256 "AEAD-AES128-GCM-SHA256"
  #define TLS1_TXT_AES_256_GCM_SHA384 "AEAD-AES256-GCM-SHA384"
 diff --git a/ssl/handshake_client.cc b/ssl/handshake_client.cc
-index 0274dc2ab..92e8a0bb9 100644
+index b0de67086..4c3a63b6b 100644
 --- a/ssl/handshake_client.cc
 +++ b/ssl/handshake_client.cc
-@@ -704,6 +704,17 @@ static enum ssl_hs_wait_t do_read_server_hello(SSL_HANDSHAKE *hs) {
+@@ -703,6 +703,17 @@ static enum ssl_hs_wait_t do_read_server_hello(SSL_HANDSHAKE *hs) {
    }
    hs->new_cipher = cipher;
  
@@ -75,10 +75,10 @@ index 0274dc2ab..92e8a0bb9 100644
    // ServerHello.
    if (!hs->transcript.InitHash(ssl_protocol_version(ssl), hs->new_cipher) ||
 diff --git a/ssl/internal.h b/ssl/internal.h
-index bc45b504c..7babdd9f0 100644
+index 0df9a5fba..d3560aff4 100644
 --- a/ssl/internal.h
 +++ b/ssl/internal.h
-@@ -441,6 +441,11 @@ BSSL_NAMESPACE_BEGIN
+@@ -435,6 +435,11 @@ BSSL_NAMESPACE_BEGIN
  #define SSL_kPSK 0x00000004u
  #define SSL_kGENERIC 0x00000008u
  
@@ -90,7 +90,7 @@ index bc45b504c..7babdd9f0 100644
  // Bits for |algorithm_auth| (server authentication).
  #define SSL_aRSA 0x00000001u
  #define SSL_aECDSA 0x00000002u
-@@ -448,6 +453,11 @@ BSSL_NAMESPACE_BEGIN
+@@ -442,6 +447,11 @@ BSSL_NAMESPACE_BEGIN
  #define SSL_aPSK 0x00000004u
  #define SSL_aGENERIC 0x00000008u
  
@@ -102,7 +102,7 @@ index bc45b504c..7babdd9f0 100644
  #define SSL_aCERT (SSL_aRSA | SSL_aECDSA)
  
  // Bits for |algorithm_enc| (symmetric encryption).
-@@ -459,6 +469,10 @@ BSSL_NAMESPACE_BEGIN
+@@ -453,6 +463,10 @@ BSSL_NAMESPACE_BEGIN
  #define SSL_eNULL 0x00000020u
  #define SSL_CHACHA20POLY1305 0x00000040u
  
@@ -113,7 +113,7 @@ index bc45b504c..7babdd9f0 100644
  #define SSL_AES (SSL_AES128 | SSL_AES256 | SSL_AES128GCM | SSL_AES256GCM)
  
  // Bits for |algorithm_mac| (symmetric authentication).
-@@ -466,6 +480,10 @@ BSSL_NAMESPACE_BEGIN
+@@ -460,6 +474,10 @@ BSSL_NAMESPACE_BEGIN
  // SSL_AEAD is set for all AEADs.
  #define SSL_AEAD 0x00000002u
  
@@ -124,7 +124,7 @@ index bc45b504c..7babdd9f0 100644
  // Bits for |algorithm_prf| (handshake digest).
  #define SSL_HANDSHAKE_MAC_DEFAULT 0x1
  #define SSL_HANDSHAKE_MAC_SHA256 0x2
-@@ -2790,6 +2808,71 @@ void ssl_set_read_error(SSL *ssl);
+@@ -2856,6 +2874,71 @@ void ssl_set_read_error(SSL *ssl);
  
  BSSL_NAMESPACE_END
  
@@ -293,7 +293,7 @@ index a420f4dd9..acd23752b 100644
        alg_bits = 256;
        strength_bits = 256;
 diff --git a/ssl/ssl_lib.cc b/ssl/ssl_lib.cc
-index a3c25f3b7..b01eb9f89 100644
+index a4f204448..5770f47b5 100644
 --- a/ssl/ssl_lib.cc
 +++ b/ssl/ssl_lib.cc
 @@ -554,6 +554,211 @@ static int ssl_session_cmp(const SSL_SESSION *a, const SSL_SESSION *b) {
@@ -508,7 +508,7 @@ index a3c25f3b7..b01eb9f89 100644
  ssl_ctx_st::ssl_ctx_st(const SSL_METHOD *ssl_method)
      : method(ssl_method->method),
        x509_method(ssl_method->x509_method),
-@@ -744,6 +949,11 @@ SSL_CONFIG::~SSL_CONFIG() {
+@@ -745,6 +950,11 @@ SSL_CONFIG::~SSL_CONFIG() {
  }
  
  void SSL_free(SSL *ssl) {
@@ -520,7 +520,7 @@ index a3c25f3b7..b01eb9f89 100644
    Delete(ssl);
  }
  
-@@ -872,6 +1082,17 @@ int SSL_provide_quic_data(SSL *ssl, enum ssl_encryption_level_t level,
+@@ -873,6 +1083,17 @@ int SSL_provide_quic_data(SSL *ssl, enum ssl_encryption_level_t level,
  }
  
  int SSL_do_handshake(SSL *ssl) {
@@ -538,7 +538,7 @@ index a3c25f3b7..b01eb9f89 100644
    ssl_reset_error_state(ssl);
  
    if (ssl->do_handshake == NULL) {
-@@ -1063,6 +1284,18 @@ static int ssl_read_impl(SSL *ssl) {
+@@ -1064,6 +1285,18 @@ static int ssl_read_impl(SSL *ssl) {
  }
  
  int SSL_read(SSL *ssl, void *buf, int num) {
@@ -557,7 +557,7 @@ index a3c25f3b7..b01eb9f89 100644
    int ret = SSL_peek(ssl, buf, num);
    if (ret <= 0) {
      return ret;
-@@ -1097,6 +1330,19 @@ int SSL_peek(SSL *ssl, void *buf, int num) {
+@@ -1098,6 +1331,19 @@ int SSL_peek(SSL *ssl, void *buf, int num) {
  }
  
  int SSL_write(SSL *ssl, const void *buf, int num) {
@@ -576,8 +576,8 @@ index a3c25f3b7..b01eb9f89 100644
 +#endif
    ssl_reset_error_state(ssl);
  
-   if (ssl->ctx->quic_method != nullptr) {
-@@ -2350,6 +2596,10 @@ EVP_PKEY *SSL_CTX_get0_privatekey(const SSL_CTX *ctx) {
+   if (ssl->quic_method != nullptr) {
+@@ -2343,6 +2589,10 @@ EVP_PKEY *SSL_CTX_get0_privatekey(const SSL_CTX *ctx) {
  }
  
  const SSL_CIPHER *SSL_get_current_cipher(const SSL *ssl) {

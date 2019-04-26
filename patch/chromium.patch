@@ -1,4 +1,4 @@
-From 13c2b104d8396ec22d302e50b306871682fd7413 Mon Sep 17 00:00:00 2001
+From d1557ae4526c086334581fcdb05d52eeac655e37 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 30 Jan 2019 14:40:22 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -21,10 +21,10 @@ Subject: [PATCH] chromium GOSTSSL
  14 files changed, 492 insertions(+), 5 deletions(-)
 
 diff --git a/chrome/browser/devtools/devtools_window.cc b/chrome/browser/devtools/devtools_window.cc
-index bc2a5f726a35..0d193b69678c 100644
+index 4578696df6c3..a39b23a73581 100644
 --- a/chrome/browser/devtools/devtools_window.cc
 +++ b/chrome/browser/devtools/devtools_window.cc
-@@ -1446,6 +1446,24 @@ void DevToolsWindow::RenderProcessGone(bool crashed) {
+@@ -1450,6 +1450,24 @@ void DevToolsWindow::RenderProcessGone(bool crashed) {
    }
  }
  
@@ -47,9 +47,9 @@ index bc2a5f726a35..0d193b69678c 100644
 +#endif // GOSTSSL
 +
  void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
-   std::unique_ptr<base::Value> value = base::JSONReader::Read(cert_chain);
-   if (!value || value->type() != base::Value::Type::LIST) {
-@@ -1471,6 +1489,26 @@ void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
+   std::unique_ptr<base::Value> value =
+       base::JSONReader::ReadDeprecated(cert_chain);
+@@ -1476,6 +1494,26 @@ void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
        NOTREACHED();
        return;
      }
@@ -165,7 +165,7 @@ index 55a35677b9c4..abbc16d5f5f1 100644
  case $CHANNEL in
    stable )
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
-index b7b7063fc0ea..2e23ff632a6d 100644
+index e39b8c47a848..720abe89c42f 100644
 --- a/net/base/net_error_list.h
 +++ b/net/base/net_error_list.h
 @@ -21,6 +21,12 @@
@@ -182,10 +182,10 @@ index b7b7063fc0ea..2e23ff632a6d 100644
  // indicate a fatal error.  Typically this error will be generated as a
  // notification to wait for some external notification that the IO operation
 diff --git a/net/cert/cert_verify_proc.cc b/net/cert/cert_verify_proc.cc
-index 7d6be709a1dd..11d75951a7b6 100644
+index 3cd0f3d66c7b..cd7473aa8a05 100644
 --- a/net/cert/cert_verify_proc.cc
 +++ b/net/cert/cert_verify_proc.cc
-@@ -488,6 +488,36 @@ scoped_refptr<CertVerifyProc> CertVerifyProc::CreateDefault() {
+@@ -468,6 +468,36 @@ scoped_refptr<CertVerifyProc> CertVerifyProc::CreateDefault() {
  
  CertVerifyProc::CertVerifyProc() {}
  
@@ -222,7 +222,7 @@ index 7d6be709a1dd..11d75951a7b6 100644
  CertVerifyProc::~CertVerifyProc() = default;
  
  int CertVerifyProc::Verify(X509Certificate* cert,
-@@ -516,6 +546,37 @@ int CertVerifyProc::Verify(X509Certificate* cert,
+@@ -498,6 +528,37 @@ int CertVerifyProc::Verify(X509Certificate* cert,
    int rv = VerifyInternal(cert, hostname, ocsp_response, flags, crl_set,
                            additional_trust_anchors, verify_result);
  
@@ -261,10 +261,10 @@ index 7d6be709a1dd..11d75951a7b6 100644
    // in the chain. Also fills in the has_* booleans for the digest algorithms
    // present in the chain.
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index ce86e621144f..96478e60c250 100644
+index 359d488a0645..4d067456a6dc 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
-@@ -1611,6 +1611,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
+@@ -1619,6 +1619,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
        return OK;
      }
    }
@@ -281,10 +281,10 @@ index ce86e621144f..96478e60c250 100644
  }
  
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index a46adaf47c60..a8be7c005e72 100644
+index c49a65e4732e..64d9537953f0 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
-@@ -476,6 +476,32 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
+@@ -466,6 +466,32 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
    return OK;
  }
  
@@ -317,7 +317,7 @@ index a46adaf47c60..a8be7c005e72 100644
  int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
    // this has never worked for layered sockets. CHECK to detect any consumers
-@@ -494,6 +520,27 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
+@@ -484,6 +510,27 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
      return rv;
    }
  
@@ -345,7 +345,7 @@ index a46adaf47c60..a8be7c005e72 100644
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -1157,6 +1204,98 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
+@@ -1140,6 +1187,98 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
  
    start_cert_verification_time_ = base::TimeTicks::Now();
  
@@ -444,7 +444,7 @@ index a46adaf47c60..a8be7c005e72 100644
    const uint8_t* ocsp_response_raw;
    size_t ocsp_response_len;
    SSL_get0_ocsp_response(ssl_.get(), &ocsp_response_raw, &ocsp_response_len);
-@@ -1581,6 +1720,30 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1564,6 +1703,30 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
@@ -476,10 +476,10 @@ index a46adaf47c60..a8be7c005e72 100644
    if (ssl_config_.client_cert.get()) {
      if (!ssl_config_.client_private_key) {
 diff --git a/net/spdy/spdy_session.cc b/net/spdy/spdy_session.cc
-index 9c3605b30ad6..32c0b65cb308 100644
+index f63c1271b5ee..ef7a7fdfbaa1 100644
 --- a/net/spdy/spdy_session.cc
 +++ b/net/spdy/spdy_session.cc
-@@ -1447,6 +1447,19 @@ bool SpdySession::HasAcceptableTransportSecurity() const {
+@@ -1463,6 +1463,19 @@ bool SpdySession::HasAcceptableTransportSecurity() const {
    SSLInfo ssl_info;
    CHECK(GetSSLInfo(&ssl_info));
  
@@ -500,10 +500,10 @@ index 9c3605b30ad6..32c0b65cb308 100644
    if (SSLConnectionStatusToVersion(ssl_info.connection_status) <
        SSL_CONNECTION_VERSION_TLS1_2) {
 diff --git a/net/ssl/client_cert_store_mac.cc b/net/ssl/client_cert_store_mac.cc
-index c7ab20a9885d..c376b1ffeb20 100644
+index a64f448be995..52b8b5872da1 100644
 --- a/net/ssl/client_cert_store_mac.cc
 +++ b/net/ssl/client_cert_store_mac.cc
-@@ -294,6 +294,21 @@ void AddIdentity(ScopedCFTypeRef<SecIdentityRef> sec_identity,
+@@ -295,6 +295,21 @@ void AddIdentity(ScopedCFTypeRef<SecIdentityRef> sec_identity,
    }
  }
  
@@ -525,7 +525,7 @@ index c7ab20a9885d..c376b1ffeb20 100644
  ClientCertIdentityList GetClientCertsOnBackgroundThread(
      const SSLCertRequestInfo& request) {
    std::string server_domain = request.host_and_port.host();
-@@ -384,6 +399,89 @@ ClientCertIdentityList GetClientCertsOnBackgroundThread(
+@@ -385,6 +400,89 @@ ClientCertIdentityList GetClientCertsOnBackgroundThread(
    GetClientCertsImpl(std::move(preferred_identity),
                       std::move(regular_identities), request, true,
                       &selected_identities);
@@ -616,7 +616,7 @@ index c7ab20a9885d..c376b1ffeb20 100644
  }
  
 diff --git a/net/ssl/client_cert_store_nss.cc b/net/ssl/client_cert_store_nss.cc
-index 75a5e295263b..a993837bcfc4 100644
+index 0265a20a1d92..c87e0293e3d0 100644
 --- a/net/ssl/client_cert_store_nss.cc
 +++ b/net/ssl/client_cert_store_nss.cc
 @@ -145,6 +145,20 @@ void ClientCertStoreNSS::FilterCertsOnWorkerThread(
@@ -640,7 +640,7 @@ index 75a5e295263b..a993837bcfc4 100644
  ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
      scoped_refptr<crypto::CryptoModuleBlockingPasswordDelegate>
          password_delegate,
-@@ -158,6 +172,45 @@ ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
+@@ -159,6 +173,45 @@ ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
    GetPlatformCertsOnWorkerThread(std::move(password_delegate), CertFilter(),
                                   &selected_identities);
    FilterCertsOnWorkerThread(&selected_identities, *request);
