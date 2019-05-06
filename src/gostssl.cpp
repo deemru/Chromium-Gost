@@ -98,12 +98,13 @@ int gostssl_init( BORINGSSL_METHOD * bssl_methods )
 
     tlsgost2001 = bssls->boring_SSL_get_cipher_by_value( TLS_GOST_CIPHER_2001 );
     tlsgost2012 = bssls->boring_SSL_get_cipher_by_value( TLS_GOST_CIPHER_2012 );
-
+    
     if( !tlsgost2001 || !tlsgost2012 )
         return 0;
 
     (void)gssl;
 
+    g_is_gost = 1;
     return 1;
 }
 
@@ -177,9 +178,6 @@ static int gostssl_cert_cb( GostSSL_Worker * w )
             }
         }
 
-
-
-        g_is_gost = 1;
         int ret = w->s->config->cert->cert_cb( w->s, w->s->config->cert->cert_cb_arg );
 
         if( !gcert )
