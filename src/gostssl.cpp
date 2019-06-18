@@ -77,7 +77,6 @@ static BORINGSSL_METHOD * bssls = NULL;
 
 static const SSL_CIPHER * tlsgost2001 = NULL;
 static const SSL_CIPHER * tlsgost2012 = NULL;
-static char g_is_gost = 0;
 
 int gostssl_init( BORINGSSL_METHOD * bssl_methods )
 {
@@ -104,7 +103,6 @@ int gostssl_init( BORINGSSL_METHOD * bssl_methods )
 
     (void)gssl;
 
-    g_is_gost = 1;
     return 1;
 }
 
@@ -598,11 +596,7 @@ static std::vector<std::wstring> g_certnamebufs;
 
 void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost )
 {
-    *is_gost = g_is_gost;
-
-    if( !g_is_gost )
-        return;
-
+    *is_gost = 1;
     *count = 0;
 
     HCERTSTORE hStore = CertOpenStore( CERT_STORE_PROV_SYSTEM_A, 0, 0, CERT_STORE_OPEN_EXISTING_FLAG | CERT_STORE_READONLY_FLAG, "MY" );
