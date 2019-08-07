@@ -16,7 +16,7 @@ git reset HEAD~ --hard
 git fetch --tags
 git checkout -b $GOST_BRANCH tags/$CHROMIUM_TAG
 git checkout -f $GOST_BRANCH
-gclient sync --with_branch_heads
+gclient sync --with_branch_heads -D
 git am --3way --ignore-space-change < $CHROMIUM_GOST_REPO/patch/chromium.patch || exit
 cp -f $CHROMIUM_GOST_REPO/extra/exit_0.sh chrome/installer/linux/common/repo.cron
 cp -f $CHROMIUM_GOST_REPO/extra/exit_0.sh chrome/installer/linux/common/rpmrepo.cron

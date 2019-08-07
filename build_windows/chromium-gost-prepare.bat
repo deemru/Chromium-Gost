@@ -16,7 +16,7 @@ call git reset HEAD~ --hard
 call git fetch --tags
 call git checkout -b %GOST_BRANCH% tags/%CHROMIUM_TAG%
 call git checkout -f %GOST_BRANCH%
-call gclient sync --with_branch_heads
+call gclient sync --with_branch_heads -D
 call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\chromium.patch || goto :finish
 copy /y %CHROMIUM_GOST_REPO%\extra\chromium-gost.ico chrome\app\theme\chromium\win\chromium.ico
 
@@ -33,4 +33,4 @@ call git checkout -f %GOST_BRANCH%
 call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\boringssl.patch || goto :finish
 
 :finish
-if "%1"=="" timeout 86400
+if "%1"=="" cmd
