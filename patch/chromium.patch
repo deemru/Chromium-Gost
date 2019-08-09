@@ -1,7 +1,7 @@
-From 2aaa09b01b48074d2863fa430b043414215f9fb1 Mon Sep 17 00:00:00 2001
+From 3262a822cab701b3ca01d30ae930acaaa3cc5055 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Mon, 5 Aug 2019 15:55:13 +0300
-Subject: [PATCH] added GOSTSSL
+Subject: [PATCH] chromium GOSTSSL
 
 ---
  chrome/browser/devtools/devtools_window.cc    |  38 ++++
@@ -9,6 +9,7 @@ Subject: [PATCH] added GOSTSSL
  .../chromium-browser/chromium-browser.info    |  10 +-
  .../installer/linux/common/installer.include  |   3 +
  .../installer/linux/rpm/chrome.spec.template  |   4 +
+ content/browser/network_service_client.cc     |   9 +
  net/base/net_error_list.h                     |   6 +
  net/cert/cert_verify_proc.cc                  |  61 +++++++
  net/http/http_network_transaction.cc          |   9 +
@@ -18,7 +19,9 @@ Subject: [PATCH] added GOSTSSL
  net/ssl/client_cert_store_nss.cc              |  53 ++++++
  net/ssl/openssl_ssl_util.cc                   |   4 +
  net/ssl/ssl_cipher_suite_names.cc             |  26 +++
- 14 files changed, 492 insertions(+), 5 deletions(-)
+ net/ssl/ssl_platform_key_util.cc              |  21 +++
+ net/ssl/ssl_platform_key_util.h               |   7 +
+ 17 files changed, 529 insertions(+), 5 deletions(-)
 
 diff --git a/chrome/browser/devtools/devtools_window.cc b/chrome/browser/devtools/devtools_window.cc
 index be0c8603874a..6e5d957855f7 100644
@@ -164,6 +167,33 @@ index 55a35677b9c4..abbc16d5f5f1 100644
  CHANNEL=@@CHANNEL@@
  case $CHANNEL in
    stable )
+diff --git a/content/browser/network_service_client.cc b/content/browser/network_service_client.cc
+index 90ffdf4a0ab0..ea4642e9f19c 100644
+--- a/content/browser/network_service_client.cc
++++ b/content/browser/network_service_client.cc
+@@ -45,6 +45,10 @@
+ #include "net/android/http_auth_negotiate_android.h"
+ #endif
+ 
++#ifdef GOSTSSL
++#include "net/ssl/ssl_platform_key_util.h"
++#endif // GOSTSSL
++
+ namespace content {
+ namespace {
+ 
+@@ -113,6 +117,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
+       scoped_refptr<net::X509Certificate> cert,
+       scoped_refptr<net::SSLPrivateKey> private_key) override {
+     DCHECK_CURRENTLY_ON(BrowserThread::IO);
++#if defined(GOSTSSL)
++    if (cert && !private_key) {
++        private_key = net::GetEmptyPrivateKey();
++    }
++#endif // GOSTSSL
+     DCHECK((cert && private_key) || (!cert && !private_key));
+ 
+     if (cert && private_key) {
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
 index 9614b3d857d1..55601225fc52 100644
 --- a/net/base/net_error_list.h
@@ -312,7 +342,7 @@ index 857dc8a00a89..83f5ae90e3a8 100644
 +#else
 +#define NOCFI
 +#endif
-+#endif  // GOSTSSL
++#endif // GOSTSSL
 +
  int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
@@ -470,7 +500,7 @@ index 857dc8a00a89..83f5ae90e3a8 100644
 +      [&]() NOCFI { certhook((void*)cert, len); }();
 +    }
 +  }
-+#endif  // GOSTSSL
++#endif // GOSTSSL
 +
    // Second pass: a client certificate should have been selected.
    if (ssl_config_.client_cert.get()) {
@@ -745,6 +775,63 @@ index 1156ff1774b5..190437347278 100644
    obsolete_ssl |= ObsoleteSSLStatusForCipherSuite(cipher_suite);
  
    obsolete_ssl |= ObsoleteSSLStatusForSignature(signature_algorithm);
+diff --git a/net/ssl/ssl_platform_key_util.cc b/net/ssl/ssl_platform_key_util.cc
+index 9baac3b2db27..fe884fc267d0 100644
+--- a/net/ssl/ssl_platform_key_util.cc
++++ b/net/ssl/ssl_platform_key_util.cc
+@@ -51,6 +51,27 @@ scoped_refptr<base::SingleThreadTaskRunner> GetSSLPlatformKeyTaskRunner() {
+   return g_platform_key_task_runner.Get().task_runner();
+ }
+ 
++#ifdef GOSTSSL
++class SSLEmptyPrivateKey : public ThreadedSSLPrivateKey::Delegate {
++ public:
++  SSLEmptyPrivateKey() {}
++  ~SSLEmptyPrivateKey() override {}
++  std::string GetProviderName() override { return "EmptyPrivateKey"; }
++  std::vector<uint16_t> GetAlgorithmPreferences() override { return {}; }
++  Error Sign(uint16_t algorithm,
++             base::span<const uint8_t> input,
++             std::vector<uint8_t>* signature) override {
++    return ERR_SSL_CLIENT_AUTH_SIGNATURE_FAILED;
++  }
++ private:
++  DISALLOW_COPY_AND_ASSIGN(SSLEmptyPrivateKey);
++};
++scoped_refptr<SSLPrivateKey> GetEmptyPrivateKey() {
++  return base::MakeRefCounted<ThreadedSSLPrivateKey>(
++      std::make_unique<SSLEmptyPrivateKey>(), GetSSLPlatformKeyTaskRunner());
++}
++#endif // GOSTSSL
++
+ bssl::UniquePtr<EVP_PKEY> GetClientCertPublicKey(
+     const X509Certificate* certificate) {
+   crypto::OpenSSLErrStackTracer tracker(FROM_HERE);
+diff --git a/net/ssl/ssl_platform_key_util.h b/net/ssl/ssl_platform_key_util.h
+index eaf9ccc3501f..27cc15e95762 100644
+--- a/net/ssl/ssl_platform_key_util.h
++++ b/net/ssl/ssl_platform_key_util.h
+@@ -15,6 +15,9 @@
+ #include "base/optional.h"
+ #include "base/single_thread_task_runner.h"
+ #include "net/base/net_export.h"
++#if defined(GOSTSSL)
++#include "net/ssl/threaded_ssl_private_key.h"
++#endif // GOSTSSL
+ #include "third_party/boringssl/src/include/openssl/base.h"
+ 
+ namespace net {
+@@ -27,6 +30,10 @@ class X509Certificate;
+ // TaskShutdownBehavior::CONTINUE_ON_SHUTDOWN semantics.
+ scoped_refptr<base::SingleThreadTaskRunner> GetSSLPlatformKeyTaskRunner();
+ 
++#if defined(GOSTSSL)
++NET_EXPORT_PRIVATE scoped_refptr<SSLPrivateKey> GetEmptyPrivateKey();
++#endif // GOSTSSL
++
+ // Returns the public key of |certificate| as an |EVP_PKEY| or nullptr on error.
+ bssl::UniquePtr<EVP_PKEY> GetClientCertPublicKey(
+     const X509Certificate* certificate);
 -- 
 2.17.0.windows.1
 
