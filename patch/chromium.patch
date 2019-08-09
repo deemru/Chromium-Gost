@@ -1,4 +1,4 @@
-From 3262a822cab701b3ca01d30ae930acaaa3cc5055 Mon Sep 17 00:00:00 2001
+From d24fce688d42d73cea13ddc49685f60f4c52da25 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Mon, 5 Aug 2019 15:55:13 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -20,8 +20,8 @@ Subject: [PATCH] chromium GOSTSSL
  net/ssl/openssl_ssl_util.cc                   |   4 +
  net/ssl/ssl_cipher_suite_names.cc             |  26 +++
  net/ssl/ssl_platform_key_util.cc              |  21 +++
- net/ssl/ssl_platform_key_util.h               |   7 +
- 17 files changed, 529 insertions(+), 5 deletions(-)
+ net/ssl/ssl_platform_key_util.h               |   8 +
+ 17 files changed, 530 insertions(+), 5 deletions(-)
 
 diff --git a/chrome/browser/devtools/devtools_window.cc b/chrome/browser/devtools/devtools_window.cc
 index be0c8603874a..6e5d957855f7 100644
@@ -311,7 +311,7 @@ index 010c62a496b5..9c83a582f18d 100644
  }
  
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 857dc8a00a89..83f5ae90e3a8 100644
+index 857dc8a00a89..8ce52d2cef12 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
 @@ -463,6 +463,32 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
@@ -808,20 +808,21 @@ index 9baac3b2db27..fe884fc267d0 100644
      const X509Certificate* certificate) {
    crypto::OpenSSLErrStackTracer tracker(FROM_HERE);
 diff --git a/net/ssl/ssl_platform_key_util.h b/net/ssl/ssl_platform_key_util.h
-index eaf9ccc3501f..27cc15e95762 100644
+index eaf9ccc3501f..39170452e158 100644
 --- a/net/ssl/ssl_platform_key_util.h
 +++ b/net/ssl/ssl_platform_key_util.h
-@@ -15,6 +15,9 @@
+@@ -15,6 +15,10 @@
  #include "base/optional.h"
  #include "base/single_thread_task_runner.h"
  #include "net/base/net_export.h"
++#define GOSTSSL
 +#if defined(GOSTSSL)
 +#include "net/ssl/threaded_ssl_private_key.h"
 +#endif // GOSTSSL
  #include "third_party/boringssl/src/include/openssl/base.h"
  
  namespace net {
-@@ -27,6 +30,10 @@ class X509Certificate;
+@@ -27,6 +31,10 @@ class X509Certificate;
  // TaskShutdownBehavior::CONTINUE_ON_SHUTDOWN semantics.
  scoped_refptr<base::SingleThreadTaskRunner> GetSSLPlatformKeyTaskRunner();
  
