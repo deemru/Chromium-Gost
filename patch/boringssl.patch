@@ -1,4 +1,4 @@
-From 6f22fd23b4d8243c7d714b2d1eecafd7121b487a Mon Sep 17 00:00:00 2001
+From 00b6a60f175826c4c3114ce489b0cbfdcaff8517 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 30 Jan 2019 15:04:56 +0300
 Subject: [PATCH] boringssl GOSTSSL
@@ -13,7 +13,7 @@ Subject: [PATCH] boringssl GOSTSSL
  6 files changed, 405 insertions(+)
 
 diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
-index b28dcf68a..c38b38d5a 100644
+index 9285b3f18..eb08b698e 100644
 --- a/include/openssl/ssl.h
 +++ b/include/openssl/ssl.h
 @@ -167,6 +167,8 @@
@@ -25,7 +25,7 @@ index b28dcf68a..c38b38d5a 100644
  #if defined(__cplusplus)
  extern "C" {
  #endif
-@@ -4780,6 +4782,10 @@ BSSL_NAMESPACE_END
+@@ -4838,6 +4840,10 @@ BSSL_NAMESPACE_END
  
  #endif
  
@@ -37,10 +37,10 @@ index b28dcf68a..c38b38d5a 100644
  #define SSL_R_ATTEMPT_TO_REUSE_SESSION_IN_DIFFERENT_CONTEXT 101
  #define SSL_R_BAD_ALERT 102
 diff --git a/include/openssl/tls1.h b/include/openssl/tls1.h
-index 384d102ba..7d39d46b1 100644
+index e3209b6fc..97cce11b0 100644
 --- a/include/openssl/tls1.h
 +++ b/include/openssl/tls1.h
-@@ -607,6 +607,11 @@ extern "C" {
+@@ -610,6 +610,11 @@ extern "C" {
  #define TLS1_TXT_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256 \
    "ECDHE-PSK-CHACHA20-POLY1305"
  
@@ -50,10 +50,10 @@ index 384d102ba..7d39d46b1 100644
 +  "GOST2012-GOST8912-GOST8912"
 +
  // TLS 1.3 ciphersuites from RFC 8446.
- #define TLS1_TXT_AES_128_GCM_SHA256 "AEAD-AES128-GCM-SHA256"
- #define TLS1_TXT_AES_256_GCM_SHA384 "AEAD-AES256-GCM-SHA384"
+ #define TLS1_TXT_AES_128_GCM_SHA256 "TLS_AES_128_GCM_SHA256"
+ #define TLS1_TXT_AES_256_GCM_SHA384 "TLS_AES_256_GCM_SHA384"
 diff --git a/ssl/handshake_client.cc b/ssl/handshake_client.cc
-index b0de67086..4c3a63b6b 100644
+index a53e43030..8425c4db3 100644
 --- a/ssl/handshake_client.cc
 +++ b/ssl/handshake_client.cc
 @@ -703,6 +703,17 @@ static enum ssl_hs_wait_t do_read_server_hello(SSL_HANDSHAKE *hs) {
@@ -75,7 +75,7 @@ index b0de67086..4c3a63b6b 100644
    // ServerHello.
    if (!hs->transcript.InitHash(ssl_protocol_version(ssl), hs->new_cipher) ||
 diff --git a/ssl/internal.h b/ssl/internal.h
-index 0df9a5fba..d3560aff4 100644
+index 85b811275..bce238554 100644
 --- a/ssl/internal.h
 +++ b/ssl/internal.h
 @@ -435,6 +435,11 @@ BSSL_NAMESPACE_BEGIN
@@ -124,7 +124,7 @@ index 0df9a5fba..d3560aff4 100644
  // Bits for |algorithm_prf| (handshake digest).
  #define SSL_HANDSHAKE_MAC_DEFAULT 0x1
  #define SSL_HANDSHAKE_MAC_SHA256 0x2
-@@ -2856,6 +2874,71 @@ void ssl_set_read_error(SSL *ssl);
+@@ -2874,6 +2892,71 @@ void ssl_set_read_error(SSL *ssl);
  
  BSSL_NAMESPACE_END
  
@@ -293,7 +293,7 @@ index a420f4dd9..acd23752b 100644
        alg_bits = 256;
        strength_bits = 256;
 diff --git a/ssl/ssl_lib.cc b/ssl/ssl_lib.cc
-index a4f204448..5770f47b5 100644
+index 00ee7da23..aa9a4fdd3 100644
 --- a/ssl/ssl_lib.cc
 +++ b/ssl/ssl_lib.cc
 @@ -554,6 +554,211 @@ static int ssl_session_cmp(const SSL_SESSION *a, const SSL_SESSION *b) {
@@ -508,7 +508,7 @@ index a4f204448..5770f47b5 100644
  ssl_ctx_st::ssl_ctx_st(const SSL_METHOD *ssl_method)
      : method(ssl_method->method),
        x509_method(ssl_method->x509_method),
-@@ -745,6 +950,11 @@ SSL_CONFIG::~SSL_CONFIG() {
+@@ -746,6 +951,11 @@ SSL_CONFIG::~SSL_CONFIG() {
  }
  
  void SSL_free(SSL *ssl) {
@@ -520,7 +520,7 @@ index a4f204448..5770f47b5 100644
    Delete(ssl);
  }
  
-@@ -873,6 +1083,17 @@ int SSL_provide_quic_data(SSL *ssl, enum ssl_encryption_level_t level,
+@@ -874,6 +1084,17 @@ int SSL_provide_quic_data(SSL *ssl, enum ssl_encryption_level_t level,
  }
  
  int SSL_do_handshake(SSL *ssl) {
@@ -538,7 +538,7 @@ index a4f204448..5770f47b5 100644
    ssl_reset_error_state(ssl);
  
    if (ssl->do_handshake == NULL) {
-@@ -1064,6 +1285,18 @@ static int ssl_read_impl(SSL *ssl) {
+@@ -1065,6 +1286,18 @@ static int ssl_read_impl(SSL *ssl) {
  }
  
  int SSL_read(SSL *ssl, void *buf, int num) {
@@ -557,7 +557,7 @@ index a4f204448..5770f47b5 100644
    int ret = SSL_peek(ssl, buf, num);
    if (ret <= 0) {
      return ret;
-@@ -1098,6 +1331,19 @@ int SSL_peek(SSL *ssl, void *buf, int num) {
+@@ -1099,6 +1332,19 @@ int SSL_peek(SSL *ssl, void *buf, int num) {
  }
  
  int SSL_write(SSL *ssl, const void *buf, int num) {
@@ -577,7 +577,7 @@ index a4f204448..5770f47b5 100644
    ssl_reset_error_state(ssl);
  
    if (ssl->quic_method != nullptr) {
-@@ -2343,6 +2589,10 @@ EVP_PKEY *SSL_CTX_get0_privatekey(const SSL_CTX *ctx) {
+@@ -2356,6 +2602,10 @@ EVP_PKEY *SSL_CTX_get0_privatekey(const SSL_CTX *ctx) {
  }
  
  const SSL_CIPHER *SSL_get_current_cipher(const SSL *ssl) {

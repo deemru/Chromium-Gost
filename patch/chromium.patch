@@ -1,4 +1,4 @@
-From d24fce688d42d73cea13ddc49685f60f4c52da25 Mon Sep 17 00:00:00 2001
+From e16046b3ff4ce43c3f789b742a5fa389a770904a Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Mon, 5 Aug 2019 15:55:13 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -24,10 +24,10 @@ Subject: [PATCH] chromium GOSTSSL
  17 files changed, 530 insertions(+), 5 deletions(-)
 
 diff --git a/chrome/browser/devtools/devtools_window.cc b/chrome/browser/devtools/devtools_window.cc
-index be0c8603874a..6e5d957855f7 100644
+index 3dbd95ca379a..99c9ff384fd6 100644
 --- a/chrome/browser/devtools/devtools_window.cc
 +++ b/chrome/browser/devtools/devtools_window.cc
-@@ -1451,6 +1451,24 @@ void DevToolsWindow::RenderProcessGone(bool crashed) {
+@@ -1446,6 +1446,24 @@ void DevToolsWindow::RenderProcessGone(bool crashed) {
    }
  }
  
@@ -52,7 +52,7 @@ index be0c8603874a..6e5d957855f7 100644
  void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
    base::Optional<base::Value> value = base::JSONReader::Read(cert_chain);
    CHECK(value && value->is_list());
-@@ -1459,6 +1477,26 @@ void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
+@@ -1454,6 +1472,26 @@ void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
      CHECK(item.is_string());
      std::string temp;
      CHECK(base::Base64Decode(item.GetString(), &temp));
@@ -80,10 +80,10 @@ index be0c8603874a..6e5d957855f7 100644
    }
  
 diff --git a/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm b/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm
-index 88179a7a2716..aa84ce4cac31 100644
+index 81080ad3f498..3e65e667d74c 100644
 --- a/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm
 +++ b/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm
-@@ -238,6 +238,15 @@ initWithBrowserContext:(const content::BrowserContext*)browserContext
+@@ -239,6 +239,15 @@ initWithBrowserContext:(const content::BrowserContext*)browserContext
                   clientCerts:(net::ClientCertIdentityList)inputClientCerts {
    cert_identities_ = std::move(inputClientCerts);
  
@@ -168,10 +168,10 @@ index 55a35677b9c4..abbc16d5f5f1 100644
  case $CHANNEL in
    stable )
 diff --git a/content/browser/network_service_client.cc b/content/browser/network_service_client.cc
-index 90ffdf4a0ab0..ea4642e9f19c 100644
+index b89e764feb03..fddc14da1231 100644
 --- a/content/browser/network_service_client.cc
 +++ b/content/browser/network_service_client.cc
-@@ -45,6 +45,10 @@
+@@ -46,6 +46,10 @@
  #include "net/android/http_auth_negotiate_android.h"
  #endif
  
@@ -182,7 +182,7 @@ index 90ffdf4a0ab0..ea4642e9f19c 100644
  namespace content {
  namespace {
  
-@@ -113,6 +117,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
+@@ -114,6 +118,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
        scoped_refptr<net::X509Certificate> cert,
        scoped_refptr<net::SSLPrivateKey> private_key) override {
      DCHECK_CURRENTLY_ON(BrowserThread::IO);
@@ -195,7 +195,7 @@ index 90ffdf4a0ab0..ea4642e9f19c 100644
  
      if (cert && private_key) {
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
-index 9614b3d857d1..55601225fc52 100644
+index 6fc8c5ea1d27..712cedc9fb6d 100644
 --- a/net/base/net_error_list.h
 +++ b/net/base/net_error_list.h
 @@ -22,6 +22,12 @@
@@ -212,10 +212,10 @@ index 9614b3d857d1..55601225fc52 100644
  // indicate a fatal error.  Typically this error will be generated as a
  // notification to wait for some external notification that the IO operation
 diff --git a/net/cert/cert_verify_proc.cc b/net/cert/cert_verify_proc.cc
-index 1fb2c2c5db95..dae35aac6404 100644
+index 906b843e3a97..2272ff5daa11 100644
 --- a/net/cert/cert_verify_proc.cc
 +++ b/net/cert/cert_verify_proc.cc
-@@ -472,6 +472,36 @@ scoped_refptr<CertVerifyProc> CertVerifyProc::CreateDefault(
+@@ -486,6 +486,36 @@ scoped_refptr<CertVerifyProc> CertVerifyProc::CreateDefault(
  
  CertVerifyProc::CertVerifyProc() {}
  
@@ -252,7 +252,7 @@ index 1fb2c2c5db95..dae35aac6404 100644
  CertVerifyProc::~CertVerifyProc() = default;
  
  int CertVerifyProc::Verify(X509Certificate* cert,
-@@ -498,6 +528,37 @@ int CertVerifyProc::Verify(X509Certificate* cert,
+@@ -512,6 +542,37 @@ int CertVerifyProc::Verify(X509Certificate* cert,
    int rv = VerifyInternal(cert, hostname, ocsp_response, sct_list, flags,
                            crl_set, additional_trust_anchors, verify_result);
  
@@ -291,10 +291,10 @@ index 1fb2c2c5db95..dae35aac6404 100644
    // in the chain. Also fills in the has_* booleans for the digest algorithms
    // present in the chain.
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index 010c62a496b5..9c83a582f18d 100644
+index 9aea7f000c9f..55cea9dee2fc 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
-@@ -1581,6 +1581,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
+@@ -1572,6 +1572,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
        return OK;
      }
    }
@@ -311,10 +311,10 @@ index 010c62a496b5..9c83a582f18d 100644
  }
  
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 857dc8a00a89..8ce52d2cef12 100644
+index 1af7e165fb9b..e19dd055e2dc 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
-@@ -463,6 +463,32 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
+@@ -452,6 +452,32 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
    return OK;
  }
  
@@ -347,7 +347,7 @@ index 857dc8a00a89..8ce52d2cef12 100644
  int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
    // this has never worked for layered sockets. CHECK to detect any consumers
-@@ -481,6 +507,27 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
+@@ -470,6 +496,27 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
      return rv;
    }
  
@@ -375,7 +375,7 @@ index 857dc8a00a89..8ce52d2cef12 100644
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -1132,6 +1179,98 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
+@@ -1145,6 +1192,98 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
  
    start_cert_verification_time_ = base::TimeTicks::Now();
  
@@ -474,7 +474,7 @@ index 857dc8a00a89..8ce52d2cef12 100644
    const uint8_t* ocsp_response_raw;
    size_t ocsp_response_len;
    SSL_get0_ocsp_response(ssl_.get(), &ocsp_response_raw, &ocsp_response_len);
-@@ -1569,6 +1708,30 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1580,6 +1719,30 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
@@ -506,10 +506,10 @@ index 857dc8a00a89..8ce52d2cef12 100644
    if (ssl_config_.client_cert.get()) {
      if (!ssl_config_.client_private_key) {
 diff --git a/net/spdy/spdy_session.cc b/net/spdy/spdy_session.cc
-index 6e71a07e045e..960d4b769027 100644
+index ba7797357e76..00101fc38f02 100644
 --- a/net/spdy/spdy_session.cc
 +++ b/net/spdy/spdy_session.cc
-@@ -1538,6 +1538,19 @@ bool SpdySession::HasAcceptableTransportSecurity() const {
+@@ -1513,6 +1513,19 @@ bool SpdySession::HasAcceptableTransportSecurity() const {
    SSLInfo ssl_info;
    CHECK(GetSSLInfo(&ssl_info));
  
@@ -717,7 +717,7 @@ index 6bb552aff508..e5343d93d81b 100644
  }
  
 diff --git a/net/ssl/openssl_ssl_util.cc b/net/ssl/openssl_ssl_util.cc
-index fea33f4f03d9..992634b80f03 100644
+index f5185218e4ee..8a77015f8748 100644
 --- a/net/ssl/openssl_ssl_util.cc
 +++ b/net/ssl/openssl_ssl_util.cc
 @@ -84,6 +84,10 @@ int MapOpenSSLErrorSSL(uint32_t error_code) {
@@ -808,7 +808,7 @@ index 9baac3b2db27..fe884fc267d0 100644
      const X509Certificate* certificate) {
    crypto::OpenSSLErrStackTracer tracker(FROM_HERE);
 diff --git a/net/ssl/ssl_platform_key_util.h b/net/ssl/ssl_platform_key_util.h
-index eaf9ccc3501f..39170452e158 100644
+index 02729fecba76..c9cd8a71260e 100644
 --- a/net/ssl/ssl_platform_key_util.h
 +++ b/net/ssl/ssl_platform_key_util.h
 @@ -15,6 +15,10 @@
@@ -822,9 +822,9 @@ index eaf9ccc3501f..39170452e158 100644
  #include "third_party/boringssl/src/include/openssl/base.h"
  
  namespace net {
-@@ -27,6 +31,10 @@ class X509Certificate;
- // TaskShutdownBehavior::CONTINUE_ON_SHUTDOWN semantics.
- scoped_refptr<base::SingleThreadTaskRunner> GetSSLPlatformKeyTaskRunner();
+@@ -28,6 +32,10 @@ class X509Certificate;
+ NET_EXPORT_PRIVATE scoped_refptr<base::SingleThreadTaskRunner>
+ GetSSLPlatformKeyTaskRunner();
  
 +#if defined(GOSTSSL)
 +NET_EXPORT_PRIVATE scoped_refptr<SSLPrivateKey> GetEmptyPrivateKey();
