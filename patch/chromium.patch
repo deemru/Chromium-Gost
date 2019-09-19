@@ -1,4 +1,4 @@
-From e16046b3ff4ce43c3f789b742a5fa389a770904a Mon Sep 17 00:00:00 2001
+From b2c855392e5fece1d4492f6d97ad843cf35a3f14 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Mon, 5 Aug 2019 15:55:13 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -311,7 +311,7 @@ index 9aea7f000c9f..55cea9dee2fc 100644
  }
  
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 1af7e165fb9b..e19dd055e2dc 100644
+index 1af7e165fb9b..cb2a9240d485 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
 @@ -452,6 +452,32 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
@@ -368,7 +368,7 @@ index 1af7e165fb9b..e19dd055e2dc 100644
 +    }
 +
 +    if (cachestring)
-+      [&]() NOCFI { cachestring(ssl_.get(), GetSessionCacheKey().data()); }();
++      [&]() NOCFI { cachestring(ssl_.get(), GetSessionCacheKey(base::nullopt).data()); }();
 +  }
 +#endif
 +
