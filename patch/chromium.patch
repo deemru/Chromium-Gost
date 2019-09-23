@@ -1,76 +1,55 @@
-From b2c855392e5fece1d4492f6d97ad843cf35a3f14 Mon Sep 17 00:00:00 2001
+From c5e3e5b1243e92e764786a8c9b863323487fe258 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Mon, 5 Aug 2019 15:55:13 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
- chrome/browser/devtools/devtools_window.cc    |  38 ++++
- .../ssl_client_certificate_selector_mac.mm    |   9 +
+ chrome/browser/devtools/devtools_window.cc    |  16 +++
+ .../ssl_client_certificate_selector_mac.mm    |   8 ++
  .../chromium-browser/chromium-browser.info    |  10 +-
  .../installer/linux/common/installer.include  |   3 +
  .../installer/linux/rpm/chrome.spec.template  |   4 +
- content/browser/network_service_client.cc     |   9 +
- net/base/net_error_list.h                     |   6 +
- net/cert/cert_verify_proc.cc                  |  61 +++++++
- net/http/http_network_transaction.cc          |   9 +
- net/socket/ssl_client_socket_impl.cc          | 163 ++++++++++++++++++
- net/spdy/spdy_session.cc                      |  13 ++
- net/ssl/client_cert_store_mac.cc              |  98 +++++++++++
- net/ssl/client_cert_store_nss.cc              |  53 ++++++
+ content/browser/network_service_client.cc     |   9 ++
+ net/BUILD.gn                                  |   2 +
+ net/base/net_error_list.h                     |   5 +
+ net/cert/cert_verify_proc.cc                  |  23 ++++
+ net/http/http_network_transaction.cc          |   9 ++
+ net/socket/ssl_client_socket_impl.cc          | 100 ++++++++++++++++++
+ net/spdy/spdy_session.cc                      |  12 +++
+ net/ssl/client_cert_store_mac.cc              |  75 +++++++++++++
+ net/ssl/client_cert_store_nss.cc              |  31 ++++++
  net/ssl/openssl_ssl_util.cc                   |   4 +
- net/ssl/ssl_cipher_suite_names.cc             |  26 +++
- net/ssl/ssl_platform_key_util.cc              |  21 +++
- net/ssl/ssl_platform_key_util.h               |   8 +
- 17 files changed, 530 insertions(+), 5 deletions(-)
+ net/ssl/ssl_cipher_suite_names.cc             |  26 +++++
+ net/ssl/ssl_platform_key_util.cc              |  21 ++++
+ net/ssl/ssl_platform_key_util.h               |   7 ++
+ 18 files changed, 360 insertions(+), 5 deletions(-)
 
 diff --git a/chrome/browser/devtools/devtools_window.cc b/chrome/browser/devtools/devtools_window.cc
-index 3dbd95ca379a..99c9ff384fd6 100644
+index 3dbd95ca379a..3da36beb9cd7 100644
 --- a/chrome/browser/devtools/devtools_window.cc
 +++ b/chrome/browser/devtools/devtools_window.cc
-@@ -1446,6 +1446,24 @@ void DevToolsWindow::RenderProcessGone(bool crashed) {
+@@ -1446,6 +1446,12 @@ void DevToolsWindow::RenderProcessGone(bool crashed) {
    }
  }
  
-+#undef GOSTSSL
-+#if defined( __APPLE__ )
-+#define GOSTSSL
-+#endif // __APPLE__
-+#ifdef GOSTSSL
-+#define EXPLICITSSL_CALL
-+#include <dlfcn.h>
-+#define GOSTSSLLIB "gostssl.so"
-+#define LIBLOAD( name ) dlopen( name, RTLD_LAZY )
-+#define LIBFUNC( lib, name ) dlsym( lib, name )
-+typedef void * HMODULE;
-+#if defined( __has_attribute )
-+#define NOCFI __attribute__((no_sanitize("cfi-icall")))
-+#else
-+#define NOCFI
-+#endif
++#ifndef NO_GOSTSSL
++extern "C" {
++void gostssl_isgostcerthook( void * cert, int size, int * is_gost );
++}
 +#endif // GOSTSSL
 +
  void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
    base::Optional<base::Value> value = base::JSONReader::Read(cert_chain);
    CHECK(value && value->is_list());
-@@ -1454,6 +1472,26 @@ void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
+@@ -1454,6 +1460,16 @@ void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
      CHECK(item.is_string());
      std::string temp;
      CHECK(base::Base64Decode(item.GetString(), &temp));
-+#if defined(GOSTSSL)
++#ifndef NO_GOSTSSL
 +    {
-+        static void ( EXPLICITSSL_CALL * isgostcerthook )( void * cert, int size, int * is_gost ) = NULL;
-+        static int is_tried = 0;
-+        if( !is_tried )
-+        {
-+            HMODULE hGSSL = LIBLOAD( GOSTSSLLIB );
-+            if( hGSSL )
-+              *(uintptr_t *)&isgostcerthook = (uintptr_t)LIBFUNC( hGSSL, "gostssl_isgostcerthook" );
-+            is_tried = 1;
-+        }
-+        if( isgostcerthook )
 +        {
 +            int is_gost = 0;
-+            [&]()NOCFI{ isgostcerthook( (void *)&temp[0], temp.size(), &is_gost ); }();
++            gostssl_isgostcerthook( (void *)&temp[0], temp.size(), &is_gost );
 +            if( is_gost == 1 )
 +                return;
 +        }
@@ -80,21 +59,20 @@ index 3dbd95ca379a..99c9ff384fd6 100644
    }
  
 diff --git a/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm b/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm
-index 81080ad3f498..3e65e667d74c 100644
+index 81080ad3f498..d38678111095 100644
 --- a/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm
 +++ b/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm
-@@ -239,6 +239,15 @@ initWithBrowserContext:(const content::BrowserContext*)browserContext
+@@ -239,6 +239,14 @@ initWithBrowserContext:(const content::BrowserContext*)browserContext
                   clientCerts:(net::ClientCertIdentityList)inputClientCerts {
    cert_identities_ = std::move(inputClientCerts);
  
-+#define GOSTSSL
-+#ifdef GOSTSSL
++#ifndef NO_GOSTSSL
 +    if( cert_identities_.size() == 1 && cert_identities_[0]->sec_identity_ref() == nullptr )
 +    {
 +        observer_->CertificateSelected( cert_identities_[0]->certificate(), nullptr );
 +        return;
 +    }
-+#endif
++#endif // GOSTSSL
 +
    sec_identities_.reset([[NSMutableArray alloc] init]);
    for (const auto& cert : cert_identities_) {
@@ -168,14 +146,14 @@ index 55a35677b9c4..abbc16d5f5f1 100644
  case $CHANNEL in
    stable )
 diff --git a/content/browser/network_service_client.cc b/content/browser/network_service_client.cc
-index b89e764feb03..fddc14da1231 100644
+index b89e764feb03..a609d4fe4285 100644
 --- a/content/browser/network_service_client.cc
 +++ b/content/browser/network_service_client.cc
 @@ -46,6 +46,10 @@
  #include "net/android/http_auth_negotiate_android.h"
  #endif
  
-+#ifdef GOSTSSL
++#ifndef NO_GOSTSSL
 +#include "net/ssl/ssl_platform_key_util.h"
 +#endif // GOSTSSL
 +
@@ -186,7 +164,7 @@ index b89e764feb03..fddc14da1231 100644
        scoped_refptr<net::X509Certificate> cert,
        scoped_refptr<net::SSLPrivateKey> private_key) override {
      DCHECK_CURRENTLY_ON(BrowserThread::IO);
-+#if defined(GOSTSSL)
++#ifndef NO_GOSTSSL
 +    if (cert && !private_key) {
 +        private_key = net::GetEmptyPrivateKey();
 +    }
@@ -194,16 +172,28 @@ index b89e764feb03..fddc14da1231 100644
      DCHECK((cert && private_key) || (!cert && !private_key));
  
      if (cert && private_key) {
+diff --git a/net/BUILD.gn b/net/BUILD.gn
+index be5b930f97e5..39b169c194b5 100644
+--- a/net/BUILD.gn
++++ b/net/BUILD.gn
+@@ -374,6 +374,8 @@ component("net") {
+     "third_party/quiche/src/quic/core/quic_error_codes.h",
+     "third_party/uri_template/uri_template.cc",
+     "third_party/uri_template/uri_template.h",
++    "msspi.cpp",
++    "gostssl.cpp",
+   ]
+   net_unfiltered_sources = []
+ 
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
-index 6fc8c5ea1d27..712cedc9fb6d 100644
+index 6fc8c5ea1d27..b9ae388c9097 100644
 --- a/net/base/net_error_list.h
 +++ b/net/base/net_error_list.h
-@@ -22,6 +22,12 @@
+@@ -22,6 +22,11 @@
  //   700-799 Certificate manager errors
  //   800-899 DNS resolver errors
  
-+#define GOSTSSL
-+#if defined(GOSTSSL)
++#ifndef NO_GOSTSSL
 +//   3000-3099 GOSTSSL
 +NET_ERROR(TLS_GOST_REQUIRED, -3072)
 +#endif // GOSTSSL
@@ -212,71 +202,33 @@ index 6fc8c5ea1d27..712cedc9fb6d 100644
  // indicate a fatal error.  Typically this error will be generated as a
  // notification to wait for some external notification that the IO operation
 diff --git a/net/cert/cert_verify_proc.cc b/net/cert/cert_verify_proc.cc
-index 906b843e3a97..2272ff5daa11 100644
+index 906b843e3a97..e61334319328 100644
 --- a/net/cert/cert_verify_proc.cc
 +++ b/net/cert/cert_verify_proc.cc
-@@ -486,6 +486,36 @@ scoped_refptr<CertVerifyProc> CertVerifyProc::CreateDefault(
+@@ -486,6 +486,12 @@ scoped_refptr<CertVerifyProc> CertVerifyProc::CreateDefault(
  
  CertVerifyProc::CertVerifyProc() {}
  
-+#ifdef GOSTSSL
-+#ifdef _WIN32
-+#if defined ( _M_IX86 )
-+#define EXPLICITSSL_CALL __cdecl
-+#elif defined ( _M_X64 )
-+#define EXPLICITSSL_CALL __fastcall
-+#endif
-+#define GOSTSSLLIB "gostssl.dll"
++#ifndef NO_GOSTSSL
 +extern "C" {
-+HMODULE WINAPI LoadLibraryExA( _In_ const CHAR * lpLibFileName, HANDLE hFile, DWORD  dwFlags );
-+INT_PTR WINAPI GetProcAddress( _In_ HMODULE hModule, _In_ const CHAR * lpProcName );
++void gostssl_isgostcerthook( void * cert, int size, int * is_gost );
 +}
-+#define LOAD_LIBRARY_SEARCH_APPLICATION_DIR 0x00000200
-+#define LIBLOAD( name ) LoadLibraryExA( name, 0, LOAD_LIBRARY_SEARCH_APPLICATION_DIR )
-+#define LIBFUNC( lib, name ) (UINT_PTR)GetProcAddress( lib, name )
-+#else // not _WIN32
-+#define EXPLICITSSL_CALL
-+#include <dlfcn.h>
-+#define GOSTSSLLIB "gostssl.so"
-+#define LIBLOAD( name ) dlopen( name, RTLD_LAZY )
-+#define LIBFUNC( lib, name ) dlsym( lib, name )
-+typedef void * HMODULE;
-+#endif // _WIN32
-+#if defined( __has_attribute )
-+#define NOCFI __attribute__((no_sanitize("cfi-icall")))
-+#else
-+#define NOCFI
-+#endif
 +#endif // GOSTSSL
 +
  CertVerifyProc::~CertVerifyProc() = default;
  
  int CertVerifyProc::Verify(X509Certificate* cert,
-@@ -512,6 +542,37 @@ int CertVerifyProc::Verify(X509Certificate* cert,
+@@ -512,6 +518,23 @@ int CertVerifyProc::Verify(X509Certificate* cert,
    int rv = VerifyInternal(cert, hostname, ocsp_response, sct_list, flags,
                            crl_set, additional_trust_anchors, verify_result);
  
-+#if defined(GOSTSSL)
++#ifndef NO_GOSTSSL
 +  int is_gost = 0;
 +  {
-+      static void ( EXPLICITSSL_CALL * isgostcerthook )( void * cert, int size, int * is_gost ) = NULL;
-+      static int is_tried = 0;
-+
-+      if( !is_tried )
-+      {
-+          HMODULE hGSSL = LIBLOAD( GOSTSSLLIB );
-+
-+          if( hGSSL )
-+              *(uintptr_t *)&isgostcerthook = (uintptr_t)LIBFUNC( hGSSL, "gostssl_isgostcerthook" );
-+
-+          is_tried = 1;
-+      }
-+
-+      if( isgostcerthook )
 +      {
 +          const uint8_t * gostcert = CRYPTO_BUFFER_data( cert->cert_buffer() );
 +          size_t gostcertlen =  CRYPTO_BUFFER_len( cert->cert_buffer() );
-+          [&]()NOCFI{ isgostcerthook( (void *)gostcert, gostcertlen, &is_gost ); }();
++          gostssl_isgostcerthook( (void *)gostcert, gostcertlen, &is_gost );
 +      }
 +  }
 +
@@ -291,7 +243,7 @@ index 906b843e3a97..2272ff5daa11 100644
    // in the chain. Also fills in the has_* booleans for the digest algorithms
    // present in the chain.
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index 9aea7f000c9f..55cea9dee2fc 100644
+index 9aea7f000c9f..f8d86198fcde 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
 @@ -1572,6 +1572,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
@@ -299,7 +251,7 @@ index 9aea7f000c9f..55cea9dee2fc 100644
      }
    }
 +
-+#if defined(GOSTSSL)
++#ifndef NO_GOSTSSL
 +  if( error == ERR_TLS_GOST_REQUIRED )
 +  {
 +    ResetConnectionAndRequestForResend();
@@ -311,75 +263,40 @@ index 9aea7f000c9f..55cea9dee2fc 100644
  }
  
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 1af7e165fb9b..cb2a9240d485 100644
+index 1af7e165fb9b..bc5aae69ed06 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
-@@ -452,6 +452,32 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
+@@ -452,6 +452,14 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
    return OK;
  }
  
-+#ifdef GOSTSSL
-+#ifdef _WIN32
-+#if defined(_M_IX86)
-+#define EXPLICITSSL_CALL __cdecl
-+#elif defined(_M_X64)
-+#define EXPLICITSSL_CALL __fastcall
-+#endif
-+#define GOSTSSLLIB "gostssl.dll"
-+#define LIBLOAD(name) \
-+  LoadLibraryExA(name, 0, LOAD_LIBRARY_SEARCH_APPLICATION_DIR)
-+#define LIBFUNC(lib, name) (UINT_PTR) GetProcAddress(lib, name)
-+#else  // not _WIN32
-+#define EXPLICITSSL_CALL
-+#include <dlfcn.h>
-+#define GOSTSSLLIB "gostssl.so"
-+#define LIBLOAD(name) dlopen(name, RTLD_LAZY)
-+#define LIBFUNC(lib, name) dlsym(lib, name)
-+typedef void* HMODULE;
-+#endif  // _WIN32
-+#if defined(__has_attribute)
-+#define NOCFI __attribute__((no_sanitize("cfi-icall")))
-+#else
-+#define NOCFI
-+#endif
++#ifndef NO_GOSTSSL
++extern "C" {
++void gostssl_cachestring( SSL * s, const char * cachestring );
++void gostssl_certhook( void * cert, int size );
++void gostssl_verifyhook( void * s, unsigned * is_gost );
++}
 +#endif // GOSTSSL
 +
  int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
    // this has never worked for layered sockets. CHECK to detect any consumers
-@@ -470,6 +496,27 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
+@@ -470,6 +478,10 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
      return rv;
    }
  
-+#ifdef GOSTSSL
-+  {
-+    static void(EXPLICITSSL_CALL * cachestring)(void* ssl, const char* uniq) =
-+        NULL;
-+    static int is_tried = 0;
-+
-+    if (!is_tried) {
-+      HMODULE hGSSL = LIBLOAD(GOSTSSLLIB);
-+
-+      if (hGSSL)
-+        *(uintptr_t*)&cachestring =
-+            (uintptr_t)LIBFUNC(hGSSL, "gostssl_cachestring");
-+
-+      is_tried = 1;
-+    }
-+
-+    if (cachestring)
-+      [&]() NOCFI { cachestring(ssl_.get(), GetSessionCacheKey(base::nullopt).data()); }();
-+  }
-+#endif
++#ifndef NO_GOSTSSL
++  gostssl_cachestring( ssl_.get(), GetSessionCacheKey(base::nullopt).data() );
++#endif // GOSTSSL
 +
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -1145,6 +1192,98 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
+@@ -1145,6 +1157,82 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
  
    start_cert_verification_time_ = base::TimeTicks::Now();
  
-+#if defined(GOSTSSL)
++#ifndef NO_GOSTSSL
 +#ifndef TRUST_E_CERT_SIGNATURE
 +#define TRUST_E_CERT_SIGNATURE          0x80096004L
 +#define CRYPT_E_REVOKED                 0x80092010L
@@ -396,25 +313,9 @@ index 1af7e165fb9b..cb2a9240d485 100644
 +#endif
 +
 +  {
-+    static void(EXPLICITSSL_CALL * verifyhook)(void* ssl,
-+                                               unsigned* gost_status) = NULL;
-+    static int is_tried = 0;
-+
-+    if (!is_tried) {
-+      HMODULE hGSSL = LIBLOAD(GOSTSSLLIB);
-+
-+      if (hGSSL)
-+        *(uintptr_t*)&verifyhook =
-+            (uintptr_t)LIBFUNC(hGSSL, "gostssl_verifyhook");
-+
-+      is_tried = 1;
-+    }
-+
-+    if (verifyhook) {
++    {
 +      unsigned gost_status;
-+
-+      [&]() NOCFI { verifyhook((void*)ssl_.get(), &gost_status); }();
-+
++      gostssl_verifyhook( (void*)ssl_.get(), &gost_status );
 +      if (gost_status) {
 +        int gost_rv = OK;
 +
@@ -474,30 +375,18 @@ index 1af7e165fb9b..cb2a9240d485 100644
    const uint8_t* ocsp_response_raw;
    size_t ocsp_response_len;
    SSL_get0_ocsp_response(ssl_.get(), &ocsp_response_raw, &ocsp_response_len);
-@@ -1580,6 +1719,30 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1580,6 +1668,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
-+#if defined(GOSTSSL)
++#ifndef NO_GOSTSSL
 +  if (ssl_config_.client_cert.get()) {
-+    static void(EXPLICITSSL_CALL * certhook)(void* cert, int size) = NULL;
-+    static int is_tried = 0;
-+
-+    if (!is_tried) {
-+      HMODULE hGSSL = LIBLOAD(GOSTSSLLIB);
-+
-+      if (hGSSL)
-+        *(uintptr_t*)&certhook = (uintptr_t)LIBFUNC(hGSSL, "gostssl_certhook");
-+
-+      is_tried = 1;
-+    }
-+
-+    if (certhook) {
++    {
 +      const uint8_t* cert =
 +          CRYPTO_BUFFER_data(ssl_config_.client_cert.get()->cert_buffer());
 +      size_t len =
 +          CRYPTO_BUFFER_len(ssl_config_.client_cert.get()->cert_buffer());
-+      [&]() NOCFI { certhook((void*)cert, len); }();
++      gostssl_certhook( (void*)cert, len );
 +    }
 +  }
 +#endif // GOSTSSL
@@ -506,15 +395,14 @@ index 1af7e165fb9b..cb2a9240d485 100644
    if (ssl_config_.client_cert.get()) {
      if (!ssl_config_.client_private_key) {
 diff --git a/net/spdy/spdy_session.cc b/net/spdy/spdy_session.cc
-index ba7797357e76..00101fc38f02 100644
+index ba7797357e76..83ed002e7503 100644
 --- a/net/spdy/spdy_session.cc
 +++ b/net/spdy/spdy_session.cc
-@@ -1513,6 +1513,19 @@ bool SpdySession::HasAcceptableTransportSecurity() const {
+@@ -1513,6 +1513,18 @@ bool SpdySession::HasAcceptableTransportSecurity() const {
    SSLInfo ssl_info;
    CHECK(GetSSLInfo(&ssl_info));
  
-+#define GOSTSSL
-+#ifdef GOSTSSL
++#ifndef NO_GOSTSSL
 +  // GOST is acceptable, even in TLS 1.0
 +  switch( SSLConnectionStatusToCipherSuite( ssl_info.connection_status ) )
 +  {
@@ -524,58 +412,35 @@ index ba7797357e76..00101fc38f02 100644
 +  default:
 +      break;
 +  }
-+#endif
++#endif // GOSTSSL
 +
    // HTTP/2 requires TLS 1.2+
    if (SSLConnectionStatusToVersion(ssl_info.connection_status) <
        SSL_CONNECTION_VERSION_TLS1_2) {
 diff --git a/net/ssl/client_cert_store_mac.cc b/net/ssl/client_cert_store_mac.cc
-index fc448f463329..b77945fc5e09 100644
+index fc448f463329..402d1805552f 100644
 --- a/net/ssl/client_cert_store_mac.cc
 +++ b/net/ssl/client_cert_store_mac.cc
-@@ -295,6 +295,21 @@ void AddIdentity(ScopedCFTypeRef<SecIdentityRef> sec_identity,
+@@ -295,6 +295,12 @@ void AddIdentity(ScopedCFTypeRef<SecIdentityRef> sec_identity,
    }
  }
  
-+#define GOSTSSL
-+#ifdef GOSTSSL
-+#define EXPLICITSSL_CALL
-+#include <dlfcn.h>
-+#define GOSTSSLLIB "gostssl.so"
-+#define LIBLOAD( name ) dlopen( name, RTLD_LAZY )
-+#define LIBFUNC( lib, name ) dlsym( lib, name )
-+typedef void * HMODULE;
-+#if defined( __has_attribute )
-+#define NOCFI __attribute__((no_sanitize("cfi-icall")))
-+#else
-+#define NOCFI
-+#endif
++#ifndef NO_GOSTSSL
++extern "C" {
++void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost );
++}
 +#endif // GOSTSSL
 +
  ClientCertIdentityList GetClientCertsOnBackgroundThread(
      const SSLCertRequestInfo& request) {
    std::string server_domain = request.host_and_port.host();
-@@ -385,6 +400,89 @@ ClientCertIdentityList GetClientCertsOnBackgroundThread(
+@@ -385,6 +391,75 @@ ClientCertIdentityList GetClientCertsOnBackgroundThread(
    GetClientCertsImpl(std::move(preferred_identity),
                       std::move(regular_identities), request, true,
                       &selected_identities);
 +
-+#if defined(GOSTSSL)
++#ifndef NO_GOSTSSL
 +    {
-+        static void ( EXPLICITSSL_CALL * clientcertshook )( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost ) = NULL;
-+        static int is_tried = 0;
-+
-+        if( !is_tried )
-+        {
-+            HMODULE hGSSL = LIBLOAD( GOSTSSLLIB );
-+
-+            if( hGSSL )
-+                *(uintptr_t *)&clientcertshook = (uintptr_t)LIBFUNC( hGSSL, "gostssl_clientcertshook" );
-+
-+            is_tried = 1;
-+        }
-+
-+        if( clientcertshook )
 +        {
 +            char ** certs;
 +            int * lens;
@@ -583,7 +448,7 @@ index fc448f463329..b77945fc5e09 100644
 +            int count;
 +            int is_gost;
 +
-+            [&]()NOCFI{ clientcertshook( &certs, &lens, &names, &count, &is_gost ); }();
++            gostssl_clientcertshook( &certs, &lens, &names, &count, &is_gost );
 +
 +            if( is_gost )
 +                selected_identities.clear();
@@ -646,58 +511,36 @@ index fc448f463329..b77945fc5e09 100644
  }
  
 diff --git a/net/ssl/client_cert_store_nss.cc b/net/ssl/client_cert_store_nss.cc
-index 6bb552aff508..e5343d93d81b 100644
+index 6bb552aff508..3d20ed4c345d 100644
 --- a/net/ssl/client_cert_store_nss.cc
 +++ b/net/ssl/client_cert_store_nss.cc
-@@ -144,6 +144,20 @@ void ClientCertStoreNSS::FilterCertsOnWorkerThread(
+@@ -144,6 +144,12 @@ void ClientCertStoreNSS::FilterCertsOnWorkerThread(
    std::sort(identities->begin(), identities->end(), ClientCertIdentitySorter());
  }
  
-+#ifdef GOSTSSL
-+#define EXPLICITSSL_CALL
-+#include <dlfcn.h>
-+#define GOSTSSLLIB "gostssl.so"
-+#define LIBLOAD( name ) dlopen( name, RTLD_LAZY )
-+#define LIBFUNC( lib, name ) dlsym( lib, name )
-+typedef void * HMODULE;
-+#if defined( __has_attribute )
-+#define NOCFI __attribute__((no_sanitize("cfi-icall")))
-+#else
-+#define NOCFI
-+#endif
++#ifndef NO_GOSTSSL
++extern "C" {
++void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost );
++}
 +#endif // GOSTSSL
 +
  ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
      scoped_refptr<crypto::CryptoModuleBlockingPasswordDelegate>
          password_delegate,
-@@ -158,6 +172,45 @@ ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
+@@ -158,6 +164,31 @@ ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
    GetPlatformCertsOnWorkerThread(std::move(password_delegate), CertFilter(),
                                   &selected_identities);
    FilterCertsOnWorkerThread(&selected_identities, *request);
 +
-+#if defined(GOSTSSL)
++#ifndef NO_GOSTSSL
 +    {
-+        static unsigned ( EXPLICITSSL_CALL * clientcertshook )( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost ) = NULL;
-+        static int is_tried = 0;
-+
-+        if( !is_tried )
-+        {
-+            HMODULE hGSSL = LIBLOAD( GOSTSSLLIB );
-+
-+            if( hGSSL )
-+                *(uintptr_t *)&clientcertshook = (uintptr_t)LIBFUNC( hGSSL, "gostssl_clientcertshook" );
-+
-+            is_tried = 1;
-+        }
-+
-+        if( clientcertshook )
 +        {
 +            char ** certs;
 +            int * lens;
 +            int count;
 +            int is_gost;
 +
-+            [&]()NOCFI{ clientcertshook( &certs, &lens, NULL, &count, &is_gost ); }();
++            gostssl_clientcertshook( &certs, &lens, NULL, &count, &is_gost );
 +
 +            if( is_gost )
 +            {
@@ -717,14 +560,14 @@ index 6bb552aff508..e5343d93d81b 100644
  }
  
 diff --git a/net/ssl/openssl_ssl_util.cc b/net/ssl/openssl_ssl_util.cc
-index f5185218e4ee..8a77015f8748 100644
+index f5185218e4ee..008e15d9f007 100644
 --- a/net/ssl/openssl_ssl_util.cc
 +++ b/net/ssl/openssl_ssl_util.cc
 @@ -84,6 +84,10 @@ int MapOpenSSLErrorSSL(uint32_t error_code) {
      case SSL_R_TLSV1_ALERT_PROTOCOL_VERSION:
      case SSL_R_UNSUPPORTED_PROTOCOL:
        return ERR_SSL_VERSION_OR_CIPHER_MISMATCH;
-+#if defined(GOSTSSL)
++#ifndef NO_GOSTSSL
 +    case SSL_R_TLS_GOST_REQUIRED:
 +      return ERR_TLS_GOST_REQUIRED;
 +#endif // GOSTSSL
@@ -732,14 +575,14 @@ index f5185218e4ee..8a77015f8748 100644
      case SSL_R_SSLV3_ALERT_UNSUPPORTED_CERTIFICATE:
      case SSL_R_SSLV3_ALERT_CERTIFICATE_REVOKED:
 diff --git a/net/ssl/ssl_cipher_suite_names.cc b/net/ssl/ssl_cipher_suite_names.cc
-index 1156ff1774b5..190437347278 100644
+index 1156ff1774b5..7e90ebe3d660 100644
 --- a/net/ssl/ssl_cipher_suite_names.cc
 +++ b/net/ssl/ssl_cipher_suite_names.cc
 @@ -66,6 +66,27 @@ void SSLCipherSuiteToStrings(const char** key_exchange_str,
    *is_aead = false;
    *is_tls13 = false;
  
-+#if defined(GOSTSSL)
++#ifndef NO_GOSTSSL
 +  switch( cipher_suite )
 +  {
 +  case 0x0081: // GOST2001-GOST89-GOST89
@@ -767,23 +610,23 @@ index 1156ff1774b5..190437347278 100644
    obsolete_ssl |= ObsoleteSSLStatusForProtocol(ssl_version);
  
    uint16_t cipher_suite = SSLConnectionStatusToCipherSuite(connection_status);
-+#ifdef GOSTSSL
++#ifndef NO_GOSTSSL
 +  if( cipher_suite == 0x0081 /* GOST2001-GOST89-GOST89 */ || 
 +      cipher_suite == 0xff85 /* GOST2012-GOST8912-GOST8912 */ )
 +    return OBSOLETE_SSL_NONE;
-+#endif
++#endif // GOSTSSL
    obsolete_ssl |= ObsoleteSSLStatusForCipherSuite(cipher_suite);
  
    obsolete_ssl |= ObsoleteSSLStatusForSignature(signature_algorithm);
 diff --git a/net/ssl/ssl_platform_key_util.cc b/net/ssl/ssl_platform_key_util.cc
-index 9baac3b2db27..fe884fc267d0 100644
+index 9baac3b2db27..512ae099ec7e 100644
 --- a/net/ssl/ssl_platform_key_util.cc
 +++ b/net/ssl/ssl_platform_key_util.cc
 @@ -51,6 +51,27 @@ scoped_refptr<base::SingleThreadTaskRunner> GetSSLPlatformKeyTaskRunner() {
    return g_platform_key_task_runner.Get().task_runner();
  }
  
-+#ifdef GOSTSSL
++#ifndef NO_GOSTSSL
 +class SSLEmptyPrivateKey : public ThreadedSSLPrivateKey::Delegate {
 + public:
 +  SSLEmptyPrivateKey() {}
@@ -808,25 +651,24 @@ index 9baac3b2db27..fe884fc267d0 100644
      const X509Certificate* certificate) {
    crypto::OpenSSLErrStackTracer tracker(FROM_HERE);
 diff --git a/net/ssl/ssl_platform_key_util.h b/net/ssl/ssl_platform_key_util.h
-index 02729fecba76..c9cd8a71260e 100644
+index 02729fecba76..a586e0c5e237 100644
 --- a/net/ssl/ssl_platform_key_util.h
 +++ b/net/ssl/ssl_platform_key_util.h
-@@ -15,6 +15,10 @@
+@@ -15,6 +15,9 @@
  #include "base/optional.h"
  #include "base/single_thread_task_runner.h"
  #include "net/base/net_export.h"
-+#define GOSTSSL
-+#if defined(GOSTSSL)
++#ifndef NO_GOSTSSL
 +#include "net/ssl/threaded_ssl_private_key.h"
 +#endif // GOSTSSL
  #include "third_party/boringssl/src/include/openssl/base.h"
  
  namespace net {
-@@ -28,6 +32,10 @@ class X509Certificate;
+@@ -28,6 +31,10 @@ class X509Certificate;
  NET_EXPORT_PRIVATE scoped_refptr<base::SingleThreadTaskRunner>
  GetSSLPlatformKeyTaskRunner();
  
-+#if defined(GOSTSSL)
++#ifndef NO_GOSTSSL
 +NET_EXPORT_PRIVATE scoped_refptr<SSLPrivateKey> GetEmptyPrivateKey();
 +#endif // GOSTSSL
 +

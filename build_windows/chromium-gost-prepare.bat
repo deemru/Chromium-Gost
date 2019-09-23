@@ -27,6 +27,18 @@ copy /y %CHROMIUM_GOST_REPO%\extra\product_logo\product_logo_32.png chrome\app\t
 copy /y %CHROMIUM_GOST_REPO%\extra\product_logo\product_logo_64.png chrome\app\theme\default_200_percent\chromium\product_logo_32.png
 copy /y %CHROMIUM_GOST_REPO%\extra\product_logo\product_logo_32.xpm chrome\app\theme\chromium\linux\product_logo_32.xpm
 
+copy /y %CHROMIUM_GOST_REPO%\src\gostssl.cpp net\gostssl.cpp
+copy /y %CHROMIUM_GOST_REPO%\src\msspi\src\msspi.cpp net\msspi.cpp
+copy /y %CHROMIUM_GOST_REPO%\src\msspi\src\msspi.h net\msspi.h
+
+copy /y %CHROMIUM_GOST_REPO%\src\msspi\third_party\cprocsp\include\CSP_SChannel.h third_party\boringssl\src\include\CSP_SChannel.h
+copy /y %CHROMIUM_GOST_REPO%\src\msspi\third_party\cprocsp\include\CSP_Sspi.h third_party\boringssl\src\include\CSP_Sspi.h
+copy /y %CHROMIUM_GOST_REPO%\src\msspi\third_party\cprocsp\include\CSP_WinBase.h third_party\boringssl\src\include\CSP_WinBase.h
+copy /y %CHROMIUM_GOST_REPO%\src\msspi\third_party\cprocsp\include\CSP_WinCrypt.h third_party\boringssl\src\include\CSP_WinCrypt.h
+copy /y %CHROMIUM_GOST_REPO%\src\msspi\third_party\cprocsp\include\CSP_WinDef.h third_party\boringssl\src\include\CSP_WinDef.h
+copy /y %CHROMIUM_GOST_REPO%\src\msspi\third_party\cprocsp\include\CSP_WinError.h third_party\boringssl\src\include\CSP_WinError.h
+copy /y %CHROMIUM_GOST_REPO%\src\msspi\third_party\cprocsp\include\WinCryptEx.h third_party\boringssl\src\include\WinCryptEx.h
+
 cd %BORINGSSL_PATH%
 call git checkout -b %GOST_BRANCH%
 call git checkout -f %GOST_BRANCH%

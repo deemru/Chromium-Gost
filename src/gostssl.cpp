@@ -20,23 +20,23 @@ extern "C" {
 #endif
 
 // Initialize
-EXPORT int EXPLICITSSL_CALL gostssl_init( BORINGSSL_METHOD * bssl_methods );
+EXPORT int gostssl_init( BORINGSSL_METHOD * bssl_methods );
 
 // Functionality
-EXPORT void EXPLICITSSL_CALL gostssl_cachestring( SSL * s, const char * cachestring );
-EXPORT int EXPLICITSSL_CALL gostssl_connect( SSL * s, int * is_gost );
-EXPORT int EXPLICITSSL_CALL gostssl_read( SSL * s, void * buf, int len, int * is_gost );
-EXPORT int EXPLICITSSL_CALL gostssl_write( SSL * s, const void * buf, int len, int * is_gost );
-EXPORT void EXPLICITSSL_CALL gostssl_free( SSL * s );
+EXPORT void gostssl_cachestring( SSL * s, const char * cachestring );
+EXPORT int gostssl_connect( SSL * s, int * is_gost );
+EXPORT int gostssl_read( SSL * s, void * buf, int len, int * is_gost );
+EXPORT int gostssl_write( SSL * s, const void * buf, int len, int * is_gost );
+EXPORT void gostssl_free( SSL * s );
 
 // Markers
-EXPORT int EXPLICITSSL_CALL gostssl_tls_gost_required( SSL * s );
+EXPORT int gostssl_tls_gost_required( SSL * s );
 
 // Hooks
-EXPORT void EXPLICITSSL_CALL gostssl_certhook( void * cert, int size );
-EXPORT void EXPLICITSSL_CALL gostssl_verifyhook( void * s, unsigned * is_gost );
-EXPORT void EXPLICITSSL_CALL gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost );
-EXPORT void EXPLICITSSL_CALL gostssl_isgostcerthook( void * cert, int size, int * is_gost );
+EXPORT void gostssl_certhook( void * cert, int size );
+EXPORT void gostssl_verifyhook( void * s, unsigned * is_gost );
+EXPORT void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost );
+EXPORT void gostssl_isgostcerthook( void * cert, int size, int * is_gost );
 
 }
 
