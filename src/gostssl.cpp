@@ -1,6 +1,6 @@
 #define GOSTSSL
 #define BORINGSSL_ALLOW_CXX_RUNTIME
-#define WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN 1
 #ifdef _WIN32
 #pragma warning( push )
 #pragma warning( disable:4003 )
@@ -240,9 +240,9 @@ typedef std::map< void *, GostSSL_Worker * > WORKERS_DB;
 typedef std::unordered_map< std::string, GOSTSSL_HOST_STATUS > HOST_STATUSES_DB;
 typedef std::pair< std::string, GOSTSSL_HOST_STATUS > HOST_STATUSES_DB_PAIR;
 
-static WORKERS_DB workers_db;
-static HOST_STATUSES_DB host_statuses_db;
-static std::recursive_mutex gmutex;
+static WORKERS_DB & workers_db = *( new WORKERS_DB() );
+static HOST_STATUSES_DB & host_statuses_db = *( new HOST_STATUSES_DB() );
+static std::recursive_mutex & gmutex = *( new std::recursive_mutex() );
 
 static void host_status_set( std::string & site, GOSTSSL_HOST_STATUS status )
 {
@@ -313,7 +313,7 @@ GostSSL_Worker * workers_api( SSL * s, WORKER_DB_ACTION action, const char * cac
         if( cachestring )
             msspi_set_cachestring( w->h, cachestring );
         if( s->config->alpn_client_proto_list.size() )
-            msspi_set_alpn( w->h, s->config->alpn_client_proto_list.data(), s->config->alpn_client_proto_list.size() );
+            msspi_set_alpn( w->h, s->config->alpn_client_proto_list.data(), (unsigned)s->config->alpn_client_proto_list.size() );
 
         w->host_string = s->hostname.get() ? s->hostname.get() : "*";
         w->host_string += ":";
@@ -587,12 +587,12 @@ void gostssl_verifyhook( void * s, unsigned * gost_status )
     }
 }
 
-static std::vector<char *> g_certs;
-static std::vector<int> g_certlens;
-static std::vector<std::string> g_certbufs;
+static std::vector<char *> & g_certs = *( new std::vector<char *>() );
+static std::vector<int> & g_certlens = *( new std::vector<int>() );
+static std::vector<std::string> & g_certbufs = *( new std::vector<std::string>() );
 
-static std::vector<wchar_t *> g_certnames;
-static std::vector<std::wstring> g_certnamebufs;
+static std::vector<wchar_t *> & g_certnames = *( new std::vector<wchar_t *>() );
+static std::vector<std::wstring> & g_certnamebufs = *( new std::vector<std::wstring>() );
 
 void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost )
 {
