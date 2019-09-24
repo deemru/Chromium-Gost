@@ -1,4 +1,4 @@
-From c5e3e5b1243e92e764786a8c9b863323487fe258 Mon Sep 17 00:00:00 2001
+From 192f8d4585b38d61857a29e3d8d460b1f8c4b01d Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Mon, 5 Aug 2019 15:55:13 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -22,7 +22,8 @@ Subject: [PATCH] chromium GOSTSSL
  net/ssl/ssl_cipher_suite_names.cc             |  26 +++++
  net/ssl/ssl_platform_key_util.cc              |  21 ++++
  net/ssl/ssl_platform_key_util.h               |   7 ++
- 18 files changed, 360 insertions(+), 5 deletions(-)
+ sandbox/win/src/process_mitigations.cc        |   2 +
+ 19 files changed, 362 insertions(+), 5 deletions(-)
 
 diff --git a/chrome/browser/devtools/devtools_window.cc b/chrome/browser/devtools/devtools_window.cc
 index 3dbd95ca379a..3da36beb9cd7 100644
@@ -675,6 +676,26 @@ index 02729fecba76..a586e0c5e237 100644
  // Returns the public key of |certificate| as an |EVP_PKEY| or nullptr on error.
  bssl::UniquePtr<EVP_PKEY> GetClientCertPublicKey(
      const X509Certificate* certificate);
+diff --git a/sandbox/win/src/process_mitigations.cc b/sandbox/win/src/process_mitigations.cc
+index 08a9c8948556..e46106ede0b5 100644
+--- a/sandbox/win/src/process_mitigations.cc
++++ b/sandbox/win/src/process_mitigations.cc
+@@ -223,6 +223,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
+   if (version < base::win::Version::WIN8_1)
+     return true;
+ 
++#ifdef NO_GOSTSSL
+   // Enable dynamic code policies.
+   if (!IsRunning32bitEmulatedOnArm64() &&
+       (flags & MITIGATION_DYNAMIC_CODE_DISABLE ||
+@@ -242,6 +243,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
+       return false;
+     }
+   }
++#endif // GOSTSSL
+ 
+   if (version < base::win::Version::WIN10)
+     return true;
 -- 
 2.17.0.windows.1
 
