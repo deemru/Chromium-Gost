@@ -19,6 +19,7 @@ call git checkout -f %GOST_BRANCH%
 call gclient sync --with_branch_heads -D
 call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\chromium.patch || goto :finish
 copy /y %CHROMIUM_GOST_REPO%\extra\chromium-gost.ico chrome\app\theme\chromium\win\chromium.ico
+copy /y %CHROMIUM_GOST_REPO%\extra\chromium-gost.ico chrome\installer\mini_installer\mini_installer.ico
 
 copy /y %CHROMIUM_GOST_REPO%\extra\product_logo\*.png chrome\app\theme\chromium\
 copy /y %CHROMIUM_GOST_REPO%\extra\product_logo\product_logo_16.png chrome\app\theme\default_100_percent\chromium\product_logo_16.png

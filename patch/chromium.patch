@@ -1,9 +1,10 @@
-From 192f8d4585b38d61857a29e3d8d460b1f8c4b01d Mon Sep 17 00:00:00 2001
+From 47313c2b91d8998359792644fb21ed083b8c2651 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Mon, 5 Aug 2019 15:55:13 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
+ chrome/app/chromium_strings.grd               |  82 +++++++-------
  chrome/browser/devtools/devtools_window.cc    |  16 +++
  .../ssl_client_certificate_selector_mac.mm    |   8 ++
  .../chromium-browser/chromium-browser.info    |  10 +-
@@ -22,9 +23,340 @@ Subject: [PATCH] chromium GOSTSSL
  net/ssl/ssl_cipher_suite_names.cc             |  26 +++++
  net/ssl/ssl_platform_key_util.cc              |  21 ++++
  net/ssl/ssl_platform_key_util.h               |   7 ++
- sandbox/win/src/process_mitigations.cc        |   2 +
- 19 files changed, 362 insertions(+), 5 deletions(-)
+ sandbox/win/src/process_mitigations.cc        |   5 +-
+ 20 files changed, 405 insertions(+), 47 deletions(-)
 
+diff --git a/chrome/app/chromium_strings.grd b/chrome/app/chromium_strings.grd
+index 65c56a70cd10..bd778267ec79 100644
+--- a/chrome/app/chromium_strings.grd
++++ b/chrome/app/chromium_strings.grd
+@@ -130,10 +130,10 @@ If you update this file, be sure also to update google_chrome_strings.grd. -->
+         Disconnecting <ph name="USERNAME">$1<ex>someone@example.com</ex></ph> will clear your history, bookmarks, settings, and other Chromium data stored on this device. Data stored in your Google Account will not be cleared and can be managed on <ph name="GOOGLE_DASHBOARD_LINK">&lt;a target="_blank" href="$2"&gt;</ph>Google Dashboard<ph name="END_GOOGLE_DASHBOARD_LINK">&lt;/a&gt;</ph>.
+       </message>
+       <message name="IDS_PRODUCT_NAME" desc="The Chrome application name">
+-        Chromium
++        Chromium GOST
+       </message>
+       <message name="IDS_SHORT_PRODUCT_NAME" desc="The Chrome application short name.">
+-        Chromium
++        Chromium GOST
+       </message>
+       <if expr="is_win">
+         <message name="IDS_SXS_SHORTCUT_NAME" desc="Unused in Chromium builds" translateable="false">
+@@ -165,10 +165,10 @@ If you update this file, be sure also to update google_chrome_strings.grd. -->
+         </message>
+       </if>
+       <message name="IDS_BOOKMARK_SYNC_PROMO_LINK" desc="Text of the link to sign in from the bookmark sync promo.">
+-        sign in to Chromium
++        sign in to Chromium GOST
+       </message>
+       <message name="IDS_TASK_MANAGER_TITLE" desc="The title of the Task Manager window">
+-        Task Manager - Chromium
++        Task Manager - Chromium GOST
+       </message>
+       <message name="IDS_SESSION_CRASHED_VIEW_UMA_OPTIN" desc="Text besides the checkbox to let users optin to UMA in the restore from previous crash bubble.">
+         Help make Chromium better by sending crash reports and <ph name="UMA_LINK">$1<ex>usage statistics</ex></ph> to Google
+@@ -176,7 +176,7 @@ If you update this file, be sure also to update google_chrome_strings.grd. -->
+       <if expr="not chromeos">
+         <!-- Browser Window Title Format -->
+         <message name="IDS_BROWSER_WINDOW_TITLE_FORMAT" desc="The format for titles displayed in tabs and popup windows">
+-          <ph name="PAGE_TITLE">$1<ex>Google</ex></ph> - Chromium
++          <ph name="PAGE_TITLE">$1<ex>Google</ex></ph> - Chromium GOST
+         </message>
+       </if>
+       <if expr="chromeos">
+@@ -188,7 +188,7 @@ If you update this file, be sure also to update google_chrome_strings.grd. -->
+       <!-- Accessible window title format - includes the channel, and the same
+            on all browser platforms rather than different on Chrome OS. -->
+       <message name="IDS_ACCESSIBLE_BROWSER_WINDOW_TITLE_FORMAT" desc="The format for the accessible name of a tabbed browser window">
+-        <ph name="PAGE_TITLE">$1<ex>Google</ex></ph> - Chromium
++        <ph name="PAGE_TITLE">$1<ex>Google</ex></ph> - Chromium GOST
+       </message>
+       <message name="IDS_ACCESSIBLE_BETA_BROWSER_WINDOW_TITLE_FORMAT" desc="The format for the accessible name of a tabbed browser window for the beta channel version of the browser">
+         <ph name="PAGE_TITLE">$1<ex>Google</ex></ph> - Chromium Beta
+@@ -201,7 +201,7 @@ If you update this file, be sure also to update google_chrome_strings.grd. -->
+       </message>
+       <if expr="not chromeos">
+         <message name="IDS_GET_HELP_USING_CHROME" desc="Text of the button which takes the user to the Chrome help page.">
+-          Get help with using Chromium
++          Get help with using Chromium GOST
+         </message>
+       </if>
+       <if expr="chromeos">
+@@ -240,7 +240,7 @@ If you update this file, be sure also to update google_chrome_strings.grd. -->
+         </message>
+       </if>
+       <message name="IDS_ACCNAME_APP" desc="The accessible name for the app menu.">
+-        Chromium
++        Chromium GOST
+       </message>
+       <!-- Hung Browser Detector -->
+       <if expr="is_win">
+@@ -257,7 +257,7 @@ If you update this file, be sure also to update google_chrome_strings.grd. -->
+           Are you sure you want to uninstall Chromium?
+         </message>
+         <message name="IDS_UNINSTALL_CHROME" desc="The title of the Chromium uninstall dialog.">
+-          Uninstall Chromium
++          Uninstall Chromium GOST
+         </message>
+       </if>
+       <message name="IDS_FR_CUSTOMIZE_DEFAULT_BROWSER" desc="Default browser checkbox label">
+@@ -305,7 +305,7 @@ Chromium is unable to recover your settings.
+       </message>
+       <!-- Crash Recovery Dialog -->
+       <message name="IDS_CRASH_RECOVERY_TITLE" desc="Title of dialog shown when the browser crashes.">
+-        Chromium
++        Chromium GOST
+       </message>
+       <if expr="is_win">
+         <message name="IDS_CRASH_RECOVERY_CONTENT" desc="Text content telling the user the browser has crashed.">
+@@ -317,7 +317,7 @@ Chromium is unable to recover your settings.
+         Chromium will save this password in your Google Account. You won’t have to remember it.
+       </message>
+       <message name="IDS_PASSWORD_MANAGER_TITLE_BRAND" desc="The product name used in the title of the password bubble.">
+-        Chromium
++        Chromium GOST
+       </message>
+       <if expr="is_macosx">
+         <message name="IDS_PASSWORDS_PAGE_AUTHENTICATION_PROMPT" desc="Text for the dialog box that prompts the user for their OS account password before revealing plaintext passwords on the password page.">
+@@ -516,10 +516,10 @@ Chromium is unable to recover your settings.
+       <if expr="enable_extensions">
+         <!-- Extension installed bubble -->
+         <message name="IDS_EXTENSION_INSTALLED_HEADING" desc="Title of the extension-installed bubble. Instructs that the extension was installed.">
+-          <ph name="EXTENSION_NAME">$1<ex>Gmail Checker</ex></ph> has been added to Chromium
++          <ph name="EXTENSION_NAME">$1<ex>Gmail Checker</ex></ph> has been added to Chromium GOST
+         </message>
+         <message name="IDS_EXTENSION_INSTALLED_SYNC_PROMO_LINK_NEW" desc="Text of the link to sign in to Chromium from the extension installed bubble. This will be converted to a link, with additional text around it.">
+-          sign in to Chromium
++          sign in to Chromium GOST
+         </message>
+ 
+         <!-- Extension uninstall prompt -->
+@@ -553,7 +553,7 @@ Chromium is unable to recover your settings.
+         Remove from Chromium...
+       </message>
+       <message name="IDS_EXTENSIONS_SHORTCUT_SCOPE_IN_CHROME" desc="The label to indicate that a shortcut will be triggerable only from within the Chrome application.">
+-        In Chromium
++        In Chromium GOST
+       </message>
+ 
+       <if expr="enable_extensions">
+@@ -567,7 +567,7 @@ Chromium is unable to recover your settings.
+ 
+       <!-- Main Chrome menu -->
+       <message name="IDS_APPMENU_TOOLTIP" desc="The tooltip to show for the browser menu">
+-        Customize and control Chromium
++        Customize and control Chromium GOST
+       </message>
+ 
+       <message name="IDS_APPMENU_TOOLTIP_UPDATE_AVAILABLE" desc="The tooltip to show for the browser menu when an update is available">
+@@ -579,28 +579,28 @@ Chromium is unable to recover your settings.
+       </message>
+ 
+       <message name="IDS_OPEN_IN_CHROME" desc="The text label of the Open in Chrome menu item for the Hosted App app menu">
+-        &amp;Open in Chromium
++        &amp;Open in Chromium GOST
+       </message>
+ 
+       <if expr="use_titlecase and not chromeos">
+         <message name="IDS_ABOUT" desc="In Title Case: The text label of the About Chrome menu item">
+-          About &amp;Chromium
++          About &amp;Chromium GOST
+         </message>
+         <message name="IDS_UPDATE_NOW" desc="In Title Case: The text label of the Update Chrome Now menu item">
+-          Update &amp;Chromium
++          Update &amp;Chromium GOST
+         </message>
+       </if>
+       <if expr="not use_titlecase and not chromeos">
+         <message name="IDS_ABOUT" desc="The text label of the About Chrome menu item">
+-          About &amp;Chromium
++          About &amp;Chromium GOST
+         </message>
+         <message name="IDS_UPDATE_NOW" desc="The text label of the Update Chrome Now menu item">
+-          Update &amp;Chromium
++          Update &amp;Chromium GOST
+         </message>
+       </if>
+       <if expr="chromeos">
+         <message name="IDS_ABOUT" desc="The text label of the About Chrome menu item">
+-          About &amp;Chromium
++          About &amp;Chromium GOST
+         </message>
+         <message name="IDS_ABOUT_OS" desc="The text label of the About Chrome OS menu item">
+           About &amp;Chromium OS
+@@ -612,7 +612,7 @@ Chromium is unable to recover your settings.
+ 
+       <if expr="is_macosx">
+         <message name="IDS_APP_MENU_PRODUCT_NAME" desc="The application's short name, used for the Mac's application menu, activity monitor, etc. This should be less than 16 characters. Example: Chrome, not Google Chrome.">
+-          Chromium
++          Chromium GOST
+         </message>
+         <message name="IDS_HELPER_NAME" desc="The helper application's name.  Should contain the Chrome application name (IDS_PRODUCT_NAME). Example: Google Chrome Helper.">
+           Chromium Helper
+@@ -624,7 +624,7 @@ Chromium is unable to recover your settings.
+ 
+       <!-- Chrome sign-in page -->
+       <message name="IDS_CHROME_SIGNIN_TITLE" desc="Title on the about:chrome-signin page">
+-        Chromium
++        Chromium GOST
+       </message>
+ 
+       <!-- DICE sign-in promo strings -->
+@@ -634,10 +634,10 @@ Chromium is unable to recover your settings.
+ 
+       <!-- Tutorial card in the avatar menu bubble -->
+       <message name="IDS_PROFILES_CONFIRM_SIGNIN_TUTORIAL_TITLE" desc="The title of the tutorial card in the avatar menu bubble view shown when a user signs in to Chromium.">
+-        You're now signed in to Chromium
++        You're now signed in to Chromium GOST
+       </message>
+       <message name="IDS_PROFILES_WELCOME_UPGRADE_TUTORIAL_TITLE" desc="Title of the tutorial card in the avatar menu bubble view that introduces an upgrade user to the new profile management UI.">
+-        This is your Chromium
++        This is your Chromium GOST
+       </message>
+       <message name="IDS_PROFILES_WELCOME_UPGRADE_TUTORIAL_CONTENT_TEXT" desc="The main content of the tutorial card in the avatar menu bubble view that introduces an upgrade user to the new profile management UI.">
+         Share a computer? Now you can set up Chromium just the way you like it.
+@@ -702,7 +702,7 @@ Signing in anyway will merge Chromium information like bookmarks, history, and o
+       <!-- Signin Email Confirmation tab modal dialog -->
+       <if expr="not chromeos">
+         <message name="IDS_SIGNIN_EMAIL_CONFIRMATION_TITLE" desc="Title of the signin email confirmation tab modal dialog.">
+-          <ph name="USER_EMAIL_ADDRESS">$1<ex>foo@gmail.com</ex></ph> was previously using Chromium
++          <ph name="USER_EMAIL_ADDRESS">$1<ex>foo@gmail.com</ex></ph> was previously using Chromium GOST
+         </message>
+       </if>
+ 
+@@ -756,7 +756,7 @@ Signing in anyway will merge Chromium information like bookmarks, history, and o
+ 
+       <if expr="is_android">
+         <message name="IDS_AUTOFILL_DESCRIBE_LOCAL_COPY" desc="Text label that described a Wallet credit card which has been copied to the local Chrome instance.">
+-          Copied to Chromium
++          Copied to Chromium GOST
+         </message>
+       </if>
+ 
+@@ -771,7 +771,7 @@ Signing in anyway will merge Chromium information like bookmarks, history, and o
+           </message>
+         </if>
+         <message name="IDS_APP_LIST_SIGNIN_HEADING" desc="Heading for when the launcher needs to sign in.">
+-          Sign in to Chromium
++          Sign in to Chromium GOST
+         </message>
+         <message name="IDS_APP_LIST_SIGNIN_TEXT" desc="Text for when the launcher needs to sign in.">
+           You need to be signed in to Chromium to use apps. This allows Chromium to sync your apps, bookmarks, history, passwords and other settings across devices.
+@@ -864,7 +864,7 @@ Please check your email at <ph name="ACCOUNT_EMAIL">$2<ex>jane.doe@example.com</
+           Now it's easier to use Chromium with your Google Account and on shared computers.
+         </message>
+         <message name="IDS_USER_MANAGER_TUTORIAL_SLIDE_YOUR_CHROME_TITLE" desc="Title of the slide about personalizing the browser">
+-          This is your Chromium
++          This is your Chromium GOST
+         </message>
+         <message name="IDS_USER_MANAGER_TUTORIAL_SLIDE_YOUR_CHROME_TEXT" desc="Main text of the slide about personalizing the browser">
+           Your web, bookmarks, and other Chromium stuff live here.
+@@ -879,7 +879,7 @@ Please check your email at <ph name="ACCOUNT_EMAIL">$2<ex>jane.doe@example.com</
+           Click your name to open Chromium and start browsing.
+         </message>
+         <message name="IDS_USER_MANAGER_TUTORIAL_SLIDE_OUTRO_ADD_USER" desc="Text of the add a new user button">
+-          Add yourself to Chromium
++          Add yourself to Chromium GOST
+         </message>
+       </if>
+ 
+@@ -964,7 +964,7 @@ Please check your email at <ph name="ACCOUNT_EMAIL">$2<ex>jane.doe@example.com</
+       <!-- Update Recommended dialog -->
+       <if expr="not chromeos">
+         <message name="IDS_UPDATE_RECOMMENDED_DIALOG_TITLE" desc="The window title for the Update Recommended dialog.">
+-          Relaunch Chromium
++          Relaunch Chromium GOST
+         </message>
+         <message name="IDS_UPDATE_RECOMMENDED" desc="The main text of the Update Recommended dialog.">
+           A new update for Chromium is available and will be applied as soon as you relaunch.
+@@ -998,7 +998,7 @@ Please check your email at <ph name="ACCOUNT_EMAIL">$2<ex>jane.doe@example.com</
+ 
+       <!-- Update bubble -->
+       <message name="IDS_REINSTALL_APP" desc="Text for the button the user clicks to reinstall the app.">
+-        Reinstall Chromium
++        Reinstall Chromium GOST
+       </message>
+       <if expr="use_titlecase">
+         <message name="IDS_UPGRADE_BUBBLE_MENU_ITEM" desc="In Title Case: Text for the Chrome menu option replacing Update required.">
+@@ -1011,7 +1011,7 @@ Please check your email at <ph name="ACCOUNT_EMAIL">$2<ex>jane.doe@example.com</
+         </message>
+       </if>
+       <message name="IDS_UPGRADE_BUBBLE_TITLE" desc="Text for the title of the upgrade bubble view.">
+-        Can't update Chromium
++        Can't update Chromium GOST
+       </message>
+       <message name="IDS_UPGRADE_BUBBLE_TEXT" desc="Text for the upgrade bubble view full description.">
+         Chromium couldn't update to the latest version, so you're missing out on new features and security fixes.
+@@ -1022,7 +1022,7 @@ Please check your email at <ph name="ACCOUNT_EMAIL">$2<ex>jane.doe@example.com</
+         Chromium is out of date
+       </message>
+       <message name="IDS_SYNC_ERROR_USER_MENU_UPGRADE_BUTTON" desc="Button in the header of desktop user menu that prompts the user to update Chrome to fix the out-of-date Chrome client error.">
+-        Update Chromium
++        Update Chromium GOST
+       </message>
+ 
+       <!-- Sync errors. Android uses native UI to handle Sync settings -->
+@@ -1031,7 +1031,7 @@ Please check your email at <ph name="ACCOUNT_EMAIL">$2<ex>jane.doe@example.com</
+           Update Chromium to start sync
+         </message>
+         <message name="IDS_SYNC_UPGRADE_CLIENT_LINK_LABEL" desc="Hyperlink text indicating client needs to be upgraded to the latest version.">
+-          Update Chromium
++          Update Chromium GOST
+         </message>
+       </if>
+ 
+@@ -1041,12 +1041,12 @@ Please check your email at <ph name="ACCOUNT_EMAIL">$2<ex>jane.doe@example.com</
+       </message>
+       <if expr="use_titlecase">
+         <message name="IDS_RUN_RECOVERY" desc="In Title Case: Text for the button the user clicks to recover chromium and its updater.">
+-          Update Chromium
++          Update Chromium GOST
+         </message>
+       </if>
+       <if expr="not use_titlecase">
+         <message name="IDS_RUN_RECOVERY" desc="Text for the button the user clicks to recover chromium and its updater.">
+-          Update Chromium
++          Update Chromium GOST
+         </message>
+       </if>
+       <message name="IDS_RECOVERY_BUBBLE_TEXT" desc="Text for the chrome recovery bubble view full description.">
+@@ -1162,7 +1162,7 @@ Please check your email at <ph name="ACCOUNT_EMAIL">$2<ex>jane.doe@example.com</
+       <if expr="is_win">
+         <message name="IDS_METRO_FLOW_TAB_TITLE"
+                  desc="The dialog window title.">
+-          Welcome to Chromium
++          Welcome to Chromium GOST
+         </message>
+         <message name="IDS_METRO_FLOW_TITLE_SHORT"
+                  desc="The title at the top of the window guiding user through making Chrome default in Metro.">
+@@ -1173,7 +1173,7 @@ Please check your email at <ph name="ACCOUNT_EMAIL">$2<ex>jane.doe@example.com</
+       <!-- Welcome page (chrome://welcome) strings -->
+       <if expr="not chromeos and not is_android">
+         <message name="IDS_WELCOME_HEADER" desc="A message which will appear as the header on the Welcome UI if the user has never run Chromium before.">
+-          Welcome to Chromium
++          Welcome to Chromium GOST
+         </message>
+       </if>
+ 
+@@ -1230,7 +1230,7 @@ Please check your email at <ph name="ACCOUNT_EMAIL">$2<ex>jane.doe@example.com</
+           Couldn't launch Chromium. Try again.
+         </message>
+         <message name="IDS_ENTERPRISE_STARTUP_RELAUNCH_BUTTON" desc="The text of relaunch button of Chromium launch blocking dialog.">
+-          Relaunch Chromium
++          Relaunch Chromium GOST
+         </message>
+         <message name="IDS_ENTERPRISE_STARTUP_CANCEL_BUTTON" desc="The text of cancel button of Chromium launch blocking dialog.">
+           Close
+@@ -1242,7 +1242,7 @@ Please check your email at <ph name="ACCOUNT_EMAIL">$2<ex>jane.doe@example.com</
+       <!-- User happiness tracking survey UI -->
+       <if expr="not is_android">
+         <message name="IDS_HATS_BUBBLE_TITLE" translateable="false" desc="The title of Happiness Tracking Survey's invitation banner, it invites users to take a survey">
+-          Help us improve Chromium
++          Help us improve Chromium GOST
+         </message>
+       </if>
+     </messages>
 diff --git a/chrome/browser/devtools/devtools_window.cc b/chrome/browser/devtools/devtools_window.cc
 index 3dbd95ca379a..3da36beb9cd7 100644
 --- a/chrome/browser/devtools/devtools_window.cc
@@ -677,25 +1009,49 @@ index 02729fecba76..a586e0c5e237 100644
  bssl::UniquePtr<EVP_PKEY> GetClientCertPublicKey(
      const X509Certificate* certificate);
 diff --git a/sandbox/win/src/process_mitigations.cc b/sandbox/win/src/process_mitigations.cc
-index 08a9c8948556..e46106ede0b5 100644
+index 08a9c8948556..ff0c0cb86bd5 100644
 --- a/sandbox/win/src/process_mitigations.cc
 +++ b/sandbox/win/src/process_mitigations.cc
-@@ -223,6 +223,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
-   if (version < base::win::Version::WIN8_1)
-     return true;
- 
-+#ifdef NO_GOSTSSL
-   // Enable dynamic code policies.
+@@ -227,6 +227,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
    if (!IsRunning32bitEmulatedOnArm64() &&
        (flags & MITIGATION_DYNAMIC_CODE_DISABLE ||
-@@ -242,6 +243,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
+        flags & MITIGATION_DYNAMIC_CODE_DISABLE_WITH_OPT_OUT)) {
++#ifdef NO_GOSTSSL
+     PROCESS_MITIGATION_DYNAMIC_CODE_POLICY policy = {};
+     policy.ProhibitDynamicCode = true;
+ 
+@@ -241,6 +242,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
+         ERROR_ACCESS_DENIED != ::GetLastError()) {
        return false;
      }
-   }
 +#endif // GOSTSSL
+   }
  
    if (version < base::win::Version::WIN10)
-     return true;
+@@ -250,7 +252,6 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
+   if (flags & MITIGATION_NONSYSTEM_FONT_DISABLE) {
+     PROCESS_MITIGATION_FONT_DISABLE_POLICY policy = {};
+     policy.DisableNonSystemFonts = true;
+-
+     if (!set_process_mitigation_policy(ProcessFontDisablePolicy, &policy,
+                                        sizeof(policy)) &&
+         ERROR_ACCESS_DENIED != ::GetLastError()) {
+@@ -263,6 +264,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
+ 
+   // Enable binary signing policies.
+   if (flags & MITIGATION_FORCE_MS_SIGNED_BINS) {
++#ifdef NO_GOSTSSL
+     PROCESS_MITIGATION_BINARY_SIGNATURE_POLICY policy = {};
+     // Allow only MS signed binaries.
+     policy.MicrosoftSignedOnly = true;
+@@ -275,6 +277,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
+         ERROR_ACCESS_DENIED != ::GetLastError()) {
+       return false;
+     }
++#endif // GOSTSSL
+   }
+ 
+   // Enable image load policies.
 -- 
 2.17.0.windows.1
 
