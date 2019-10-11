@@ -13,30 +13,25 @@
 
 extern "C" {
 
-#ifdef _WIN32
-#define EXPORT __declspec(dllexport)
-#else
-#define EXPORT __attribute__((visibility("default")))
-#endif
 
 // Initialize
-EXPORT int gostssl_init( BORINGSSL_METHOD * bssl_methods );
+int gostssl_init( BORINGSSL_METHOD * bssl_methods );
 
 // Functionality
-EXPORT void gostssl_cachestring( SSL * s, const char * cachestring );
-EXPORT int gostssl_connect( SSL * s, int * is_gost );
-EXPORT int gostssl_read( SSL * s, void * buf, int len, int * is_gost );
-EXPORT int gostssl_write( SSL * s, const void * buf, int len, int * is_gost );
-EXPORT void gostssl_free( SSL * s );
+void gostssl_cachestring( SSL * s, const char * cachestring );
+int gostssl_connect( SSL * s, int * is_gost );
+int gostssl_read( SSL * s, void * buf, int len, int * is_gost );
+int gostssl_write( SSL * s, const void * buf, int len, int * is_gost );
+void gostssl_free( SSL * s );
 
 // Markers
-EXPORT int gostssl_tls_gost_required( SSL * s );
+int gostssl_tls_gost_required( SSL * s );
 
 // Hooks
-EXPORT void gostssl_certhook( void * cert, int size );
-EXPORT void gostssl_verifyhook( void * s, unsigned * is_gost );
-EXPORT void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost );
-EXPORT void gostssl_isgostcerthook( void * cert, int size, int * is_gost );
+void gostssl_certhook( void * cert, int size );
+void gostssl_verifyhook( void * s, unsigned * is_gost );
+void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost );
+void gostssl_isgostcerthook( void * cert, int size, int * is_gost );
 
 }
 
