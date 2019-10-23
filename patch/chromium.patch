@@ -1,4 +1,4 @@
-From 47313c2b91d8998359792644fb21ed083b8c2651 Mon Sep 17 00:00:00 2001
+From 1e1c1853a98d621f2dbbaa1d7c57e330df93fdff Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Mon, 5 Aug 2019 15:55:13 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -8,10 +8,8 @@ Subject: [PATCH] chromium GOSTSSL
  chrome/browser/devtools/devtools_window.cc    |  16 +++
  .../ssl_client_certificate_selector_mac.mm    |   8 ++
  .../chromium-browser/chromium-browser.info    |  10 +-
- .../installer/linux/common/installer.include  |   3 +
  .../installer/linux/rpm/chrome.spec.template  |   4 +
  content/browser/network_service_client.cc     |   9 ++
- net/BUILD.gn                                  |   2 +
  net/base/net_error_list.h                     |   5 +
  net/cert/cert_verify_proc.cc                  |  23 ++++
  net/http/http_network_transaction.cc          |   9 ++
@@ -24,7 +22,8 @@ Subject: [PATCH] chromium GOSTSSL
  net/ssl/ssl_platform_key_util.cc              |  21 ++++
  net/ssl/ssl_platform_key_util.h               |   7 ++
  sandbox/win/src/process_mitigations.cc        |   5 +-
- 20 files changed, 405 insertions(+), 47 deletions(-)
+ third_party/boringssl/BUILD.generated.gni     |   2 +
+ 19 files changed, 402 insertions(+), 47 deletions(-)
 
 diff --git a/chrome/app/chromium_strings.grd b/chrome/app/chromium_strings.grd
 index 65c56a70cd10..bd778267ec79 100644
@@ -442,20 +441,6 @@ index 3593c9e797ef..9826523e0f36 100644
  
  # Package maintainer information.
  # TODO(mmoss) Setup a mailbox for this address
-diff --git a/chrome/installer/linux/common/installer.include b/chrome/installer/linux/common/installer.include
-index 58b80612445a..f6b9159db407 100644
---- a/chrome/installer/linux/common/installer.include
-+++ b/chrome/installer/linux/common/installer.include
-@@ -199,6 +199,9 @@ stage_install_common() {
-     install -m ${SHLIB_PERMS} "${BUILDDIR}/libwidevinecdm.so" "${STAGEDIR}/${INSTALLDIR}/"
-   fi
- 
-+  # GOSTSSL
-+  install -m ${SHLIB_PERMS} "${BUILDDIR}/gostssl.so" "${STAGEDIR}/${INSTALLDIR}/"
-+
-   # ANGLE
-   if [ -f "${BUILDDIR}/libEGL.so" ]; then
-     if [ "${CHANNEL}" != "stable" ]; then
 diff --git a/chrome/installer/linux/rpm/chrome.spec.template b/chrome/installer/linux/rpm/chrome.spec.template
 index 55a35677b9c4..abbc16d5f5f1 100644
 --- a/chrome/installer/linux/rpm/chrome.spec.template
@@ -505,19 +490,6 @@ index b89e764feb03..a609d4fe4285 100644
      DCHECK((cert && private_key) || (!cert && !private_key));
  
      if (cert && private_key) {
-diff --git a/net/BUILD.gn b/net/BUILD.gn
-index be5b930f97e5..39b169c194b5 100644
---- a/net/BUILD.gn
-+++ b/net/BUILD.gn
-@@ -374,6 +374,8 @@ component("net") {
-     "third_party/quiche/src/quic/core/quic_error_codes.h",
-     "third_party/uri_template/uri_template.cc",
-     "third_party/uri_template/uri_template.h",
-+    "msspi.cpp",
-+    "gostssl.cpp",
-   ]
-   net_unfiltered_sources = []
- 
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
 index 6fc8c5ea1d27..b9ae388c9097 100644
 --- a/net/base/net_error_list.h
@@ -1052,6 +1024,19 @@ index 08a9c8948556..ff0c0cb86bd5 100644
    }
  
    // Enable image load policies.
+diff --git a/third_party/boringssl/BUILD.generated.gni b/third_party/boringssl/BUILD.generated.gni
+index 594f431bfec2..761e4934b5dd 100644
+--- a/third_party/boringssl/BUILD.generated.gni
++++ b/third_party/boringssl/BUILD.generated.gni
+@@ -5,6 +5,8 @@
+ # This file is created by generate_build_files.py. Do not edit manually.
+ 
+ crypto_sources = [
++  "gostssl.cpp",
++  "msspi.cpp",
+   "err_data.c",
+   "src/crypto/asn1/a_bitstr.c",
+   "src/crypto/asn1/a_bool.c",
 -- 
 2.17.0.windows.1
 

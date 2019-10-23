@@ -1,4 +1,4 @@
-From 6bf6d22c090fcd6e7ed72ec3d7b1801068da8ffb Mon Sep 17 00:00:00 2001
+From 2b890319ec333cc346987b5bc24b53e9be256fda Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 30 Jan 2019 15:04:56 +0300
 Subject: [PATCH] boringssl GOSTSSL
@@ -6,11 +6,11 @@ Subject: [PATCH] boringssl GOSTSSL
 ---
  include/openssl/ssl.h   |   4 +
  include/openssl/tls1.h  |   7 ++
- ssl/handshake_client.cc |  11 ++
- ssl/internal.h          |  58 ++++++++++
- ssl/ssl_cipher.cc       |  50 +++++++++
- ssl/ssl_lib.cc          | 228 ++++++++++++++++++++++++++++++++++++++++
- 6 files changed, 358 insertions(+)
+ ssl/handshake_client.cc |  11 +++
+ ssl/internal.h          |  34 +++++++
+ ssl/ssl_cipher.cc       |  50 +++++++++++
+ ssl/ssl_lib.cc          | 194 ++++++++++++++++++++++++++++++++++++++++
+ 6 files changed, 300 insertions(+)
 
 diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
 index 9285b3f18..1af294bd5 100644
@@ -46,7 +46,7 @@ index e3209b6fc..d17d5a956 100644
  #define TLS1_TXT_AES_128_GCM_SHA256 "TLS_AES_128_GCM_SHA256"
  #define TLS1_TXT_AES_256_GCM_SHA384 "TLS_AES_256_GCM_SHA384"
 diff --git a/ssl/handshake_client.cc b/ssl/handshake_client.cc
-index a53e43030..113df21e9 100644
+index a53e43030..8b4e4c55d 100644
 --- a/ssl/handshake_client.cc
 +++ b/ssl/handshake_client.cc
 @@ -703,6 +703,17 @@ static enum ssl_hs_wait_t do_read_server_hello(SSL_HANDSHAKE *hs) {
@@ -56,7 +56,7 @@ index a53e43030..113df21e9 100644
 +#ifndef NO_GOSTSSL
 +  if( gostssl() )
 +  {
-+      if( gostssl()->tls_gost_required( ssl ) )
++      if( gostssl_tls_gost_required( ssl ) )
 +      {
 +          ssl_send_alert( ssl, SSL3_AL_FATAL, SSL_AD_ILLEGAL_PARAMETER );
 +          return ssl_hs_error;
@@ -68,7 +68,7 @@ index a53e43030..113df21e9 100644
    // ServerHello.
    if (!hs->transcript.InitHash(ssl_protocol_version(ssl), hs->new_cipher) ||
 diff --git a/ssl/internal.h b/ssl/internal.h
-index 85b811275..00511e936 100644
+index 85b811275..a208fe60d 100644
 --- a/ssl/internal.h
 +++ b/ssl/internal.h
 @@ -435,6 +435,15 @@ BSSL_NAMESPACE_BEGIN
@@ -87,7 +87,7 @@ index 85b811275..00511e936 100644
  // Bits for |algorithm_auth| (server authentication).
  #define SSL_aRSA 0x00000001u
  #define SSL_aECDSA 0x00000002u
-@@ -2874,6 +2883,55 @@ void ssl_set_read_error(SSL *ssl);
+@@ -2874,6 +2883,31 @@ void ssl_set_read_error(SSL *ssl);
  
  BSSL_NAMESPACE_END
  
@@ -99,44 +99,20 @@ index 85b811275..00511e936 100644
 +void boring_ERR_clear_error(void);
 +void boring_ERR_put_error(int, int, int, const char *file, unsigned line);
 +const SSL_CIPHER *boring_SSL_get_cipher_by_value(uint16_t value);
-+char boring_set_ca_names_cb(SSL *s, const void **bufs, int *lens, size_t count);
++char boring_set_ca_names_cb(SSL *s, const char **bufs, int *lens, size_t count);
 +char boring_set_connected_cb(SSL *s, const char *alpn, size_t alpn_len,
 +                             uint16_t version, uint16_t cipher_id,
 +                             const char **cert_bufs, int *cert_lens,
 +                             size_t cert_count);
 +//
-+struct boringssl_method_st
-+{
-+  int( *boring_BIO_read)(SSL *s, void *data, int len);
-+  int( *boring_BIO_write)(SSL *s, const void *data, int len);
-+  void( *boring_ERR_clear_error)(void);
-+  void( *boring_ERR_put_error)(int, int, int, const char *file,
-+                                               unsigned line);
-+  const SSL_CIPHER *( *boring_SSL_get_cipher_by_value)(
-+      uint16_t value);
-+  char( *boring_set_ca_names_cb)(SSL *s, const char **bufs,
-+                                                 int *lens, size_t count);
-+  char( *boring_set_connected_cb)(
-+      SSL *s, const char *alpn, size_t alpn_len, uint16_t version,
-+      uint16_t cipher_id, const char **cert_bufs, int *cert_lens,
-+      size_t cert_count);
-+};
++char gostssl();
 +//
-+typedef struct boringssl_method_st BORINGSSL_METHOD;
-+//
-+struct gostssl_method_st
-+{
-+    int  ( * init )( BORINGSSL_METHOD * bssl_methods );
-+    int  ( * connect )( SSL * s, int * is_gost );
-+    int  ( * read )( SSL * s, void * buf, int len, int * is_gost );
-+    int  ( * write )( SSL * s, const void * buf, int len, int * is_gost );
-+    void ( * free )( SSL * s );
-+    int  ( * tls_gost_required )( SSL * s );
-+};
-+//
-+typedef struct gostssl_method_st GOSTSSL_METHOD;
-+//
-+GOSTSSL_METHOD * gostssl();
++int gostssl_init();
++int gostssl_connect( SSL * s, int * is_gost );
++int gostssl_read( SSL * s, void * buf, int len, int * is_gost );
++int gostssl_write( SSL * s, const void * buf, int len, int * is_gost );
++void gostssl_free( SSL * s );
++int gostssl_tls_gost_required( SSL * s );
 +//
 +}
 +#endif // GOSTSSL
@@ -240,23 +216,14 @@ index a420f4dd9..a096b45dd 100644
        alg_bits = 256;
        strength_bits = 256;
 diff --git a/ssl/ssl_lib.cc b/ssl/ssl_lib.cc
-index 00ee7da23..a70fddae4 100644
+index 00ee7da23..d33d3c4da 100644
 --- a/ssl/ssl_lib.cc
 +++ b/ssl/ssl_lib.cc
-@@ -554,6 +554,195 @@ static int ssl_session_cmp(const SSL_SESSION *a, const SSL_SESSION *b) {
+@@ -554,6 +554,161 @@ static int ssl_session_cmp(const SSL_SESSION *a, const SSL_SESSION *b) {
    return OPENSSL_memcmp(a->session_id, b->session_id, a->session_id_length);
  }
  
 +#ifndef NO_GOSTSSL
-+extern "C" {
-+int gostssl_init( BORINGSSL_METHOD * bssl_methods );
-+int gostssl_connect( SSL * s, int * is_gost );
-+int gostssl_read( SSL * s, void * buf, int len, int * is_gost );
-+int gostssl_write( SSL * s, const void * buf, int len, int * is_gost );
-+void gostssl_free( SSL * s );
-+int gostssl_tls_gost_required( SSL * s );
-+}
-+
 +int boring_BIO_read(SSL *s, void *data, int len) {
 +  return BIO_read(s->rbio.get(), data, len);
 +}
@@ -395,43 +362,18 @@ index 00ee7da23..a70fddae4 100644
 +  return 1;
 +}
 +
-+static BORINGSSL_METHOD gostssl_bssl = {
-+    boring_BIO_read,
-+    boring_BIO_write,
-+    boring_ERR_clear_error,
-+    boring_ERR_put_error,
-+    boring_SSL_get_cipher_by_value,
-+    boring_set_ca_names_cb,
-+    boring_set_connected_cb,
-+};
++char gostssl() {
++  static char is_gostssl = 0;
 +
-+GOSTSSL_METHOD *gostssl() {
-+  static GOSTSSL_METHOD gssl = {0};
-+  static int is_gost = 0;
++  if( is_gostssl == 1 )
++    return 1;
 +
-+  if( is_gost == 1 )
-+    return &gssl;
++  if( is_gostssl == 0 )
++      is_gostssl = gostssl_init() ? 1 : -1;
 +
-+  if( is_gost == 0 )
-+  {
-+      *(uintptr_t *)&gssl.init = (uintptr_t)gostssl_init;
-+      *(uintptr_t *)&gssl.connect = (uintptr_t)gostssl_connect;
-+      *(uintptr_t *)&gssl.read = (uintptr_t)gostssl_read;
-+      *(uintptr_t *)&gssl.write = (uintptr_t)gostssl_write;
-+      *(uintptr_t *)&gssl.free = (uintptr_t)gostssl_free;
-+      *(uintptr_t *)&gssl.tls_gost_required = (uintptr_t)gostssl_tls_gost_required;
-+
-+      if (gssl.init && gssl.connect && gssl.read && gssl.write && gssl.free &&
-+          gssl.tls_gost_required &&
-+          gssl.init( &gostssl_bssl )) {
-+        is_gost = 1;
-+        return &gssl;
-+      }
-+
-+      is_gost = -1;
-+  }
-+
-+  return NULL;
++  if( is_gostssl == 1 )
++    return 1;
++  return 0;
 +}
 +
 +#endif // GOSTSSL
@@ -439,19 +381,19 @@ index 00ee7da23..a70fddae4 100644
  ssl_ctx_st::ssl_ctx_st(const SSL_METHOD *ssl_method)
      : method(ssl_method->method),
        x509_method(ssl_method->x509_method),
-@@ -746,6 +935,11 @@ SSL_CONFIG::~SSL_CONFIG() {
+@@ -746,6 +901,11 @@ SSL_CONFIG::~SSL_CONFIG() {
  }
  
  void SSL_free(SSL *ssl) {
 +#ifndef NO_GOSTSSL
 +  if (ssl && gostssl()) {
-+    gostssl()->free(ssl);
++    gostssl_free(ssl);
 +  }
 +#endif // GOSTSSL
    Delete(ssl);
  }
  
-@@ -874,6 +1068,16 @@ int SSL_provide_quic_data(SSL *ssl, enum ssl_encryption_level_t level,
+@@ -874,6 +1034,16 @@ int SSL_provide_quic_data(SSL *ssl, enum ssl_encryption_level_t level,
  }
  
  int SSL_do_handshake(SSL *ssl) {
@@ -460,7 +402,7 @@ index 00ee7da23..a70fddae4 100644
 +    int is_gost;
 +    int ret_gost;
 +
-+    ret_gost = gostssl()->connect(ssl, &is_gost);
++    ret_gost = gostssl_connect(ssl, &is_gost);
 +    if (is_gost)
 +      return ret_gost;
 +  }
@@ -468,7 +410,7 @@ index 00ee7da23..a70fddae4 100644
    ssl_reset_error_state(ssl);
  
    if (ssl->do_handshake == NULL) {
-@@ -1065,6 +1269,16 @@ static int ssl_read_impl(SSL *ssl) {
+@@ -1065,6 +1235,16 @@ static int ssl_read_impl(SSL *ssl) {
  }
  
  int SSL_read(SSL *ssl, void *buf, int num) {
@@ -477,7 +419,7 @@ index 00ee7da23..a70fddae4 100644
 +    int is_gost;
 +    int ret_gost;
 +
-+    ret_gost = gostssl()->read(ssl, buf, num, &is_gost);
++    ret_gost = gostssl_read(ssl, buf, num, &is_gost);
 +    if (is_gost)
 +      return ret_gost;
 +  }
@@ -485,7 +427,7 @@ index 00ee7da23..a70fddae4 100644
    int ret = SSL_peek(ssl, buf, num);
    if (ret <= 0) {
      return ret;
-@@ -1099,6 +1313,16 @@ int SSL_peek(SSL *ssl, void *buf, int num) {
+@@ -1099,6 +1279,16 @@ int SSL_peek(SSL *ssl, void *buf, int num) {
  }
  
  int SSL_write(SSL *ssl, const void *buf, int num) {
@@ -494,7 +436,7 @@ index 00ee7da23..a70fddae4 100644
 +    int is_gost;
 +    int ret_gost;
 +
-+    ret_gost = gostssl()->write(ssl, buf, num, &is_gost);
++    ret_gost = gostssl_write(ssl, buf, num, &is_gost);
 +    if (is_gost)
 +      return ret_gost;
 +  }
@@ -502,7 +444,7 @@ index 00ee7da23..a70fddae4 100644
    ssl_reset_error_state(ssl);
  
    if (ssl->quic_method != nullptr) {
-@@ -2356,6 +2580,10 @@ EVP_PKEY *SSL_CTX_get0_privatekey(const SSL_CTX *ctx) {
+@@ -2356,6 +2546,10 @@ EVP_PKEY *SSL_CTX_get0_privatekey(const SSL_CTX *ctx) {
  }
  
  const SSL_CIPHER *SSL_get_current_cipher(const SSL *ssl) {
