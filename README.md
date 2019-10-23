@@ -39,5 +39,4 @@
 - Использовать скрипты из `build_linux`, `build_mac` или `build_windows`
 - Скорректировать пути — `chromium-gost-env`
 - Подготовить сборку — `chromium-gost-prepare`
-- Собрать библиотеку `gostssl` — `chromium-gost-build-gostssl`
 - Собрать дистрибутив `chromium-gost` — `chromium-gost-build-release`
