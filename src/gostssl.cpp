@@ -1,5 +1,5 @@
 #define GOSTSSL
-#define BORINGSSL_ALLOW_CXX_RUNTIME
+#define BORINGSSL_ALLOW_CXX_RUNTIME 1
 #define WIN32_LEAN_AND_MEAN 1
 #ifdef _WIN32
 #pragma warning( push )
@@ -13,9 +13,8 @@
 
 extern "C" {
 
-
 // Initialize
-int gostssl_init( BORINGSSL_METHOD * bssl_methods );
+int gostssl_init();
 
 // Functionality
 void gostssl_cachestring( SSL * s, const char * cachestring );
@@ -55,28 +54,14 @@ void gostssl_isgostcerthook( void * cert, int size, int * is_gost );
 
 #include "msspi.h"
 
-// type correctness test
-static GOSTSSL_METHOD gssl = {
-    gostssl_init,
-    gostssl_connect,
-    gostssl_read,
-    gostssl_write,
-    gostssl_free,
-    gostssl_tls_gost_required
-};
-
-static BORINGSSL_METHOD * bssls = NULL;
-
 #define TLS_GOST_CIPHER_2001 0x0081
 #define TLS_GOST_CIPHER_2012 0xFF85
 
 static const SSL_CIPHER * tlsgost2001 = NULL;
 static const SSL_CIPHER * tlsgost2012 = NULL;
 
-int gostssl_init( BORINGSSL_METHOD * bssl_methods )
+int gostssl_init()
 {
-    bssls = bssl_methods;
-
     MSSPI_HANDLE h = msspi_open( NULL, (msspi_read_cb)(uintptr_t)1, (msspi_write_cb)(uintptr_t)1 );
     if( !h )
         return 0;
@@ -90,13 +75,11 @@ int gostssl_init( BORINGSSL_METHOD * bssl_methods )
 
     CryptReleaseContext( hProv, 0 );
 
-    tlsgost2001 = bssls->boring_SSL_get_cipher_by_value( TLS_GOST_CIPHER_2001 );
-    tlsgost2012 = bssls->boring_SSL_get_cipher_by_value( TLS_GOST_CIPHER_2012 );
+    tlsgost2001 = boring_SSL_get_cipher_by_value( TLS_GOST_CIPHER_2001 );
+    tlsgost2012 = boring_SSL_get_cipher_by_value( TLS_GOST_CIPHER_2012 );
     
     if( !tlsgost2001 || !tlsgost2012 )
         return 0;
-
-    (void)gssl;
 
     return 1;
 }
@@ -134,12 +117,12 @@ struct GostSSL_Worker
 
 static int gostssl_read_cb( GostSSL_Worker * w, void * buf, int len )
 {
-    return bssls->boring_BIO_read( w->s, buf, len );
+    return boring_BIO_read( w->s, buf, len );
 }
 
 static int gostssl_write_cb( GostSSL_Worker * w, const void * buf, int len )
 {
-    return bssls->boring_BIO_write( w->s, buf, len );
+    return boring_BIO_write( w->s, buf, len );
 }
 
 static PCCERT_CONTEXT gcert = NULL;
@@ -167,7 +150,7 @@ static int gostssl_cert_cb( GostSSL_Worker * w )
                 lens.resize( count );
 
                 if( msspi_get_issuerlist( w->h, &bufs[0], &lens[0], &count ) )
-                    bssls->boring_set_ca_names_cb( w->s, &bufs[0], &lens[0], count );
+                    boring_set_ca_names_cb( w->s, &bufs[0], &lens[0], count );
             }
         }
 
@@ -182,7 +165,7 @@ static int gostssl_cert_cb( GostSSL_Worker * w )
         if( gcert )
         {
             if( msspi_set_mycert( w->h, (const char *)gcert->pbCertEncoded, gcert->cbCertEncoded ) )
-                bssls->boring_ERR_clear_error();
+                boring_ERR_clear_error();
 
             CertFreeCertificateContext( gcert );
             gcert = NULL;
@@ -285,7 +268,7 @@ typedef enum
 }
 WORKER_DB_ACTION;
 
-GostSSL_Worker * workers_api( SSL * s, WORKER_DB_ACTION action, const char * cachestring = NULL )
+static GostSSL_Worker * workers_api( SSL * s, WORKER_DB_ACTION action, const char * cachestring = NULL )
 {
     GostSSL_Worker * w = NULL;
 
@@ -367,8 +350,8 @@ int gostssl_tls_gost_required( SSL * s )
     if( w && 
         ( s->s3->hs->new_cipher == tlsgost2001 || s->s3->hs->new_cipher == tlsgost2012 ) )
     {
-        bssls->boring_ERR_clear_error();
-        bssls->boring_ERR_put_error( ERR_LIB_SSL, 0, SSL_R_TLS_GOST_REQUIRED, __FILE__, __LINE__ );
+        boring_ERR_clear_error();
+        boring_ERR_put_error( ERR_LIB_SSL, 0, SSL_R_TLS_GOST_REQUIRED, __FILE__, __LINE__ );
         host_status_set( w->host_string, GOSTSSL_HOST_PROBING );
         return 1;
     }
@@ -543,7 +526,7 @@ int gostssl_connect( SSL * s, int * is_gost )
         w->host_status = GOSTSSL_HOST_YES;
         host_status_set( w->host_string, GOSTSSL_HOST_YES );
 
-        char ssl_ret = bssls->boring_set_connected_cb( w->s, alpn, alpn_len, version, cipher_id, &servercerts_bufs[0], &servercerts_lens[0], servercerts_count );
+        char ssl_ret = boring_set_connected_cb( w->s, alpn, alpn_len, version, cipher_id, &servercerts_bufs[0], &servercerts_lens[0], servercerts_count );
         if( !ssl_ret )
             return -1;
 
@@ -656,3 +639,221 @@ void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, in
 
     CertCloseStore( hStore, 0 );
 }
+
+/* CAPI Proxy (capix) section for non Windows systems */
+
+#ifndef _WIN32
+
+#if defined( __cplusplus )
+extern "C" {
+#endif
+#ifdef _WIN32
+#define LIBLOAD( name ) LoadLibraryA( name )
+#define LIBFUNC( lib, name ) (UINT_PTR)GetProcAddress( lib, name )
+#else
+#include <dlfcn.h>
+#define LIBLOAD( name ) dlopen( name, RTLD_LAZY )
+#define LIBFUNC( lib, name ) dlsym( lib, name )
+#endif
+#if defined( __cplusplus )
+}
+#endif
+
+#ifdef _WIN32
+#define CAPI10_LIB "capi10_win.dll"
+#define CAPI20_LIB "capi20_win.dll"
+#elif defined( __APPLE__ )
+#define CAPI10_LIB "/opt/cprocsp/lib/libcapi10.dylib"
+#define CAPI20_LIB "/opt/cprocsp/lib/libcapi20.dylib"
+#include <TargetConditionals.h>
+#else // other LINUX
+#if defined( __mips__ ) // archs
+    #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+        #define CAPI10_LIB "/opt/cprocsp/lib/mipsel/libcapi10.so"
+        #define CAPI20_LIB "/opt/cprocsp/lib/mipsel/libcapi20.so"
+    #else // byte order
+        #define CAPI10_LIB "/opt/cprocsp/lib/mips/libcapi10.so"
+        #define CAPI20_LIB "/opt/cprocsp/lib/mips/libcapi20.so"
+    #endif // byte order
+#elif defined( __arm__ )
+    #define CAPI10_LIB "/opt/cprocsp/lib/arm/libcapi10.so"
+    #define CAPI20_LIB "/opt/cprocsp/lib/arm/libcapi20.so"
+#elif defined( __aarch64__ ) // archs
+    #define CAPI10_LIB "/opt/cprocsp/lib/aarch64/libcapi10.so"
+    #define CAPI20_LIB "/opt/cprocsp/lib/aarch64/libcapi20.so"
+#elif defined( __i386__ ) // archs
+    #define CAPI10_LIB "/opt/cprocsp/lib/ia32/libcapi10.so"
+    #define CAPI20_LIB "/opt/cprocsp/lib/ia32/libcapi20.so"
+#else // archs
+#define CAPI10_LIB "/opt/cprocsp/lib/amd64/libcapi10.so"
+#define CAPI20_LIB "/opt/cprocsp/lib/amd64/libcapi20.so"
+#endif // archs
+#endif // _WIN32 or __APPLE__ or LINUX
+
+#if defined( __has_attribute )
+#define NOCFI __attribute__((no_sanitize("cfi-icall")))
+#else
+#define NOCFI
+#endif
+
+extern "C" {
+
+static void * get_capi10x( LPCSTR name )
+{
+    static void * capi10 = NULL;
+    if( !capi10 )
+        capi10 = dlopen( CAPI10_LIB, RTLD_LAZY );
+    return capi10 ? dlsym( capi10, name ) : NULL;
+}
+
+static void * get_capi20x( LPCSTR name )
+{
+    static void * capi20 = NULL;
+    if( !capi20 )
+        capi20 = dlopen( CAPI20_LIB, RTLD_LAZY );
+    return capi20 ? dlsym( capi20, name ) : NULL;
+}
+
+#define DECLARE_CAPI10X_FUNCTION( rettype, name, args, callargs, retfalse ) \
+typedef rettype ( WINAPI * t_##name ) args; \
+rettype WINAPI name args \
+{ \
+    rettype result; \
+    static t_##name capix = NULL; \
+    if( !capix ) \
+        *(void **)&capix = get_capi10x( #name ); \
+    if( !capix ) \
+        return retfalse; \
+    [&]()NOCFI{ result = capix callargs; }(); \
+    return result; \
+}
+
+#define DECLARE_CAPI20X_FUNCTION( rettype, name, args, callargs, retfalse ) \
+typedef rettype ( WINAPI * t_##name ) args; \
+rettype WINAPI name args \
+{ \
+    rettype result; \
+    static t_##name capix = NULL; \
+    if( !capix ) \
+        *(void **)&capix = get_capi20x( #name ); \
+    if( !capix ) \
+        return retfalse; \
+    [&]()NOCFI{ result = capix callargs; }(); \
+    return result; \
+}
+
+#define DECLARE_CAPI20X_FUNCTION_VOID( name, args, callargs ) \
+typedef void ( WINAPI * t_##name ) args; \
+void WINAPI name args \
+{ \
+    static t_##name capix = NULL; \
+    if( !capix ) \
+        *(void **)&capix = get_capi20x( #name ); \
+    if( !capix ) \
+        return; \
+    [&]()NOCFI{ capix callargs; }(); \
+}
+
+DECLARE_CAPI10X_FUNCTION( BOOL, CryptAcquireContextA,
+    ( HCRYPTPROV * phProv, LPCSTR szContainer, LPCSTR szProvider, DWORD dwProvType, DWORD dwFlags ),
+    ( phProv, szContainer, szProvider, dwProvType, dwFlags ), FALSE )
+
+DECLARE_CAPI10X_FUNCTION( BOOL, CryptAcquireContextW,
+    ( HCRYPTPROV * phProv, LPCWSTR szContainer, LPCWSTR szProvider, DWORD dwProvType, DWORD dwFlags ),
+    ( phProv, szContainer, szProvider, dwProvType, dwFlags ), FALSE )
+
+DECLARE_CAPI10X_FUNCTION( BOOL, CryptReleaseContext,
+    ( HCRYPTPROV hProv, DWORD dwFlags ),
+    ( hProv, dwFlags ), FALSE )
+
+DECLARE_CAPI10X_FUNCTION( BOOL, CryptSetProvParam,
+    ( HCRYPTPROV hProv, DWORD dwParam, const BYTE * pbData, DWORD dwFlags ),
+    ( hProv, dwParam, pbData, dwFlags ), FALSE )
+
+DECLARE_CAPI10X_FUNCTION( BOOL, CryptGetUserKey,
+    ( HCRYPTPROV hProv, DWORD dwKeySpec, HCRYPTKEY * phUserKey ),
+    ( hProv, dwKeySpec, phUserKey ), FALSE )
+
+DECLARE_CAPI10X_FUNCTION( BOOL, CryptExportKey,
+    ( HCRYPTKEY hKey, HCRYPTKEY hExpKey, DWORD dwBlobType, DWORD dwFlags, BYTE * pbData, DWORD * pdwDataLen ),
+    ( hKey, hExpKey, dwBlobType, dwFlags, pbData, pdwDataLen ), FALSE )
+
+DECLARE_CAPI10X_FUNCTION( BOOL, CryptImportKey,
+    ( HCRYPTPROV hProv, const BYTE * pbData, DWORD dwDataLen, HCRYPTKEY hPubKey, DWORD dwFlags, HCRYPTKEY * phKey ),
+    ( hProv, pbData, dwDataLen, hPubKey, dwFlags, phKey ), FALSE )
+
+DECLARE_CAPI10X_FUNCTION( BOOL, CryptSetKeyParam,
+    ( HCRYPTKEY hKey, DWORD dwParam, const BYTE * pbData, DWORD dwFlags ),
+    ( hKey, dwParam, pbData, dwFlags ), FALSE )
+
+DECLARE_CAPI10X_FUNCTION( BOOL, CryptEncrypt,
+    ( HCRYPTKEY hKey, HCRYPTHASH hHash, BOOL Final, DWORD dwFlags, BYTE * pbData, DWORD * pdwDataLen, DWORD dwBufLen ),
+    ( hKey, hHash, Final, dwFlags, pbData, pdwDataLen, dwBufLen ), FALSE )
+
+DECLARE_CAPI10X_FUNCTION( BOOL, CryptDestroyKey,
+    ( HCRYPTKEY hKey ),
+    ( hKey ), FALSE )
+
+DECLARE_CAPI20X_FUNCTION( PCCERT_CONTEXT, CertCreateCertificateContext,
+    ( DWORD dwCertEncodingType, const BYTE * pbCertEncoded, DWORD cbCertEncoded ),
+    ( dwCertEncodingType, pbCertEncoded, cbCertEncoded ), NULL )
+
+DECLARE_CAPI20X_FUNCTION( BOOL, CertFreeCertificateContext,
+    ( PCCERT_CONTEXT pCertContext ),
+    ( pCertContext ), FALSE )
+
+DECLARE_CAPI20X_FUNCTION( PCCERT_CONTEXT, CertDuplicateCertificateContext,
+    ( PCCERT_CONTEXT pCertContext ),
+    ( pCertContext ), NULL )
+
+DECLARE_CAPI20X_FUNCTION( HCERTSTORE, CertOpenStore,
+    ( LPCSTR lpszStoreProvider, DWORD dwEncodingType, HCRYPTPROV hCryptProv, DWORD dwFlags, const void * pvPara ),
+    ( lpszStoreProvider, dwEncodingType, hCryptProv, dwFlags, pvPara ), NULL )
+
+DECLARE_CAPI20X_FUNCTION( PCCERT_CONTEXT, CertFindCertificateInStore,
+    ( HCERTSTORE hCertStore, DWORD dwCertEncodingType, DWORD dwFindFlags, DWORD dwFindType, const void * pvFindPara, PCCERT_CONTEXT pPrevCertContext ),
+    ( hCertStore, dwCertEncodingType, dwFindFlags, dwFindType, pvFindPara, pPrevCertContext ), NULL )
+
+DECLARE_CAPI20X_FUNCTION( BOOL, CertVerifyCertificateChainPolicy,
+    ( LPCSTR pszPolicyOID, PCCERT_CHAIN_CONTEXT pChainContext, PCERT_CHAIN_POLICY_PARA pPolicyPara, PCERT_CHAIN_POLICY_STATUS pPolicyStatus ),
+    ( pszPolicyOID, pChainContext, pPolicyPara, pPolicyStatus ), FALSE )
+
+DECLARE_CAPI20X_FUNCTION( BOOL, CertGetIntendedKeyUsage,
+    ( DWORD dwCertEncodingType, PCERT_INFO pCertInfo, BYTE * pbKeyUsage, DWORD cbKeyUsage ),
+    ( dwCertEncodingType, pCertInfo, pbKeyUsage, cbKeyUsage ), FALSE )
+
+DECLARE_CAPI20X_FUNCTION( BOOL, CertGetCertificateContextProperty,
+    ( PCCERT_CONTEXT pCertContext, DWORD dwPropId, void * pvData, DWORD * pcbData ),
+    ( pCertContext, dwPropId, pvData, pcbData ), FALSE )
+
+DECLARE_CAPI20X_FUNCTION( BOOL, CertCloseStore,
+    ( HCERTSTORE hCertStore, DWORD dwFlags ),
+    ( hCertStore, dwFlags ), FALSE )
+
+DECLARE_CAPI20X_FUNCTION( BOOL, CertSetCertificateContextProperty,
+    ( PCCERT_CONTEXT pCertContext, DWORD dwPropId, DWORD dwFlags, const void *pvData ),
+    ( pCertContext, dwPropId, dwFlags, pvData ), FALSE )
+
+DECLARE_CAPI20X_FUNCTION( DWORD, CertGetNameStringW,
+    ( PCCERT_CONTEXT pCertContext, DWORD dwType, DWORD dwFlags, void * pvTypePara, LPWSTR pszNameString, DWORD cchNameString ),
+    ( pCertContext, dwType, dwFlags, pvTypePara, pszNameString, cchNameString ), 0 )
+
+DECLARE_CAPI20X_FUNCTION( LONG, CertVerifyTimeValidity,
+    ( LPFILETIME pTimeToVerify, PCERT_INFO pCertInfo ),
+    ( pTimeToVerify, pCertInfo ), -1 )
+
+DECLARE_CAPI20X_FUNCTION( PCCERT_CONTEXT, CertGetIssuerCertificateFromStore,
+    ( HCERTSTORE hCertStore, PCCERT_CONTEXT pSubjectContext, PCCERT_CONTEXT pPrevIssuerContext, DWORD * pdwFlags ),
+    ( hCertStore, pSubjectContext, pPrevIssuerContext, pdwFlags ), NULL )
+
+DECLARE_CAPI20X_FUNCTION( BOOL, CertGetCertificateChain,
+    ( HCERTCHAINENGINE hChainEngine, PCCERT_CONTEXT pCertContext, LPFILETIME pTime, HCERTSTORE hAdditionalStore, PCERT_CHAIN_PARA pChainPara, DWORD dwFlags, LPVOID pvReserved, PCCERT_CHAIN_CONTEXT * ppChainContext ),
+    ( hChainEngine, pCertContext, pTime, hAdditionalStore, pChainPara, dwFlags, pvReserved, ppChainContext ), FALSE )
+
+DECLARE_CAPI20X_FUNCTION_VOID( CertFreeCertificateChain,
+    ( PCCERT_CHAIN_CONTEXT pChainContext ),
+    ( pChainContext ) )
+
+}
+
+#endif // not _WIN32
