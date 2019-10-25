@@ -1,15 +1,15 @@
-From 1e1c1853a98d621f2dbbaa1d7c57e330df93fdff Mon Sep 17 00:00:00 2001
+From a50851e11058d04cc7d56058eef713e18010275e Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
-Date: Mon, 5 Aug 2019 15:55:13 +0300
+Date: Fri, 25 Oct 2019 17:44:37 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
- chrome/app/chromium_strings.grd               |  82 +++++++-------
+ chrome/app/chromium_strings.grd               |  80 +++++++-------
  chrome/browser/devtools/devtools_window.cc    |  16 +++
  .../ssl_client_certificate_selector_mac.mm    |   8 ++
  .../chromium-browser/chromium-browser.info    |  10 +-
  .../installer/linux/rpm/chrome.spec.template  |   4 +
- content/browser/network_service_client.cc     |   9 ++
+ content/browser/network_service_client.cc     |   4 +
  net/base/net_error_list.h                     |   5 +
  net/cert/cert_verify_proc.cc                  |  23 ++++
  net/http/http_network_transaction.cc          |   9 ++
@@ -21,12 +21,12 @@ Subject: [PATCH] chromium GOSTSSL
  net/ssl/ssl_cipher_suite_names.cc             |  26 +++++
  net/ssl/ssl_platform_key_util.cc              |  21 ++++
  net/ssl/ssl_platform_key_util.h               |   7 ++
- sandbox/win/src/process_mitigations.cc        |   5 +-
+ sandbox/win/src/process_mitigations.cc        |   4 +
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 19 files changed, 402 insertions(+), 47 deletions(-)
+ 19 files changed, 396 insertions(+), 45 deletions(-)
 
 diff --git a/chrome/app/chromium_strings.grd b/chrome/app/chromium_strings.grd
-index 65c56a70cd10..bd778267ec79 100644
+index eaee8343c13d..47399f7e13a4 100644
 --- a/chrome/app/chromium_strings.grd
 +++ b/chrome/app/chromium_strings.grd
 @@ -130,10 +130,10 @@ If you update this file, be sure also to update google_chrome_strings.grd. -->
@@ -109,8 +109,8 @@ index 65c56a70cd10..bd778267ec79 100644
        </message>
        <if expr="is_win">
          <message name="IDS_CRASH_RECOVERY_CONTENT" desc="Text content telling the user the browser has crashed.">
-@@ -317,7 +317,7 @@ Chromium is unable to recover your settings.
-         Chromium will save this password in your Google Account. You won’t have to remember it.
+@@ -321,7 +321,7 @@ Chromium is unable to recover your settings.
+         Chromium lets you know if your passwords are ever compromised
        </message>
        <message name="IDS_PASSWORD_MANAGER_TITLE_BRAND" desc="The product name used in the title of the password bubble.">
 -        Chromium
@@ -118,7 +118,7 @@ index 65c56a70cd10..bd778267ec79 100644
        </message>
        <if expr="is_macosx">
          <message name="IDS_PASSWORDS_PAGE_AUTHENTICATION_PROMPT" desc="Text for the dialog box that prompts the user for their OS account password before revealing plaintext passwords on the password page.">
-@@ -516,10 +516,10 @@ Chromium is unable to recover your settings.
+@@ -520,10 +520,10 @@ Chromium is unable to recover your settings.
        <if expr="enable_extensions">
          <!-- Extension installed bubble -->
          <message name="IDS_EXTENSION_INSTALLED_HEADING" desc="Title of the extension-installed bubble. Instructs that the extension was installed.">
@@ -131,7 +131,7 @@ index 65c56a70cd10..bd778267ec79 100644
          </message>
  
          <!-- Extension uninstall prompt -->
-@@ -553,7 +553,7 @@ Chromium is unable to recover your settings.
+@@ -557,7 +557,7 @@ Chromium is unable to recover your settings.
          Remove from Chromium...
        </message>
        <message name="IDS_EXTENSIONS_SHORTCUT_SCOPE_IN_CHROME" desc="The label to indicate that a shortcut will be triggerable only from within the Chrome application.">
@@ -140,7 +140,7 @@ index 65c56a70cd10..bd778267ec79 100644
        </message>
  
        <if expr="enable_extensions">
-@@ -567,7 +567,7 @@ Chromium is unable to recover your settings.
+@@ -571,7 +571,7 @@ Chromium is unable to recover your settings.
  
        <!-- Main Chrome menu -->
        <message name="IDS_APPMENU_TOOLTIP" desc="The tooltip to show for the browser menu">
@@ -149,7 +149,7 @@ index 65c56a70cd10..bd778267ec79 100644
        </message>
  
        <message name="IDS_APPMENU_TOOLTIP_UPDATE_AVAILABLE" desc="The tooltip to show for the browser menu when an update is available">
-@@ -579,28 +579,28 @@ Chromium is unable to recover your settings.
+@@ -583,28 +583,28 @@ Chromium is unable to recover your settings.
        </message>
  
        <message name="IDS_OPEN_IN_CHROME" desc="The text label of the Open in Chrome menu item for the Hosted App app menu">
@@ -184,7 +184,7 @@ index 65c56a70cd10..bd778267ec79 100644
          </message>
          <message name="IDS_ABOUT_OS" desc="The text label of the About Chrome OS menu item">
            About &amp;Chromium OS
-@@ -612,7 +612,7 @@ Chromium is unable to recover your settings.
+@@ -616,7 +616,7 @@ Chromium is unable to recover your settings.
  
        <if expr="is_macosx">
          <message name="IDS_APP_MENU_PRODUCT_NAME" desc="The application's short name, used for the Mac's application menu, activity monitor, etc. This should be less than 16 characters. Example: Chrome, not Google Chrome.">
@@ -193,7 +193,7 @@ index 65c56a70cd10..bd778267ec79 100644
          </message>
          <message name="IDS_HELPER_NAME" desc="The helper application's name.  Should contain the Chrome application name (IDS_PRODUCT_NAME). Example: Google Chrome Helper.">
            Chromium Helper
-@@ -624,7 +624,7 @@ Chromium is unable to recover your settings.
+@@ -628,7 +628,7 @@ Chromium is unable to recover your settings.
  
        <!-- Chrome sign-in page -->
        <message name="IDS_CHROME_SIGNIN_TITLE" desc="Title on the about:chrome-signin page">
@@ -202,7 +202,7 @@ index 65c56a70cd10..bd778267ec79 100644
        </message>
  
        <!-- DICE sign-in promo strings -->
-@@ -634,10 +634,10 @@ Chromium is unable to recover your settings.
+@@ -638,10 +638,10 @@ Chromium is unable to recover your settings.
  
        <!-- Tutorial card in the avatar menu bubble -->
        <message name="IDS_PROFILES_CONFIRM_SIGNIN_TUTORIAL_TITLE" desc="The title of the tutorial card in the avatar menu bubble view shown when a user signs in to Chromium.">
@@ -215,7 +215,7 @@ index 65c56a70cd10..bd778267ec79 100644
        </message>
        <message name="IDS_PROFILES_WELCOME_UPGRADE_TUTORIAL_CONTENT_TEXT" desc="The main content of the tutorial card in the avatar menu bubble view that introduces an upgrade user to the new profile management UI.">
          Share a computer? Now you can set up Chromium just the way you like it.
-@@ -702,7 +702,7 @@ Signing in anyway will merge Chromium information like bookmarks, history, and o
+@@ -706,7 +706,7 @@ Signing in anyway will merge Chromium information like bookmarks, history, and o
        <!-- Signin Email Confirmation tab modal dialog -->
        <if expr="not chromeos">
          <message name="IDS_SIGNIN_EMAIL_CONFIRMATION_TITLE" desc="Title of the signin email confirmation tab modal dialog.">
@@ -224,7 +224,7 @@ index 65c56a70cd10..bd778267ec79 100644
          </message>
        </if>
  
-@@ -756,7 +756,7 @@ Signing in anyway will merge Chromium information like bookmarks, history, and o
+@@ -760,7 +760,7 @@ Signing in anyway will merge Chromium information like bookmarks, history, and o
  
        <if expr="is_android">
          <message name="IDS_AUTOFILL_DESCRIBE_LOCAL_COPY" desc="Text label that described a Wallet credit card which has been copied to the local Chrome instance.">
@@ -233,7 +233,7 @@ index 65c56a70cd10..bd778267ec79 100644
          </message>
        </if>
  
-@@ -771,7 +771,7 @@ Signing in anyway will merge Chromium information like bookmarks, history, and o
+@@ -775,7 +775,7 @@ Signing in anyway will merge Chromium information like bookmarks, history, and o
            </message>
          </if>
          <message name="IDS_APP_LIST_SIGNIN_HEADING" desc="Heading for when the launcher needs to sign in.">
@@ -242,7 +242,7 @@ index 65c56a70cd10..bd778267ec79 100644
          </message>
          <message name="IDS_APP_LIST_SIGNIN_TEXT" desc="Text for when the launcher needs to sign in.">
            You need to be signed in to Chromium to use apps. This allows Chromium to sync your apps, bookmarks, history, passwords and other settings across devices.
-@@ -864,7 +864,7 @@ Please check your email at <ph name="ACCOUNT_EMAIL">$2<ex>jane.doe@example.com</
+@@ -853,7 +853,7 @@ Signing in anyway will merge Chromium information like bookmarks, history, and o
            Now it's easier to use Chromium with your Google Account and on shared computers.
          </message>
          <message name="IDS_USER_MANAGER_TUTORIAL_SLIDE_YOUR_CHROME_TITLE" desc="Title of the slide about personalizing the browser">
@@ -251,7 +251,7 @@ index 65c56a70cd10..bd778267ec79 100644
          </message>
          <message name="IDS_USER_MANAGER_TUTORIAL_SLIDE_YOUR_CHROME_TEXT" desc="Main text of the slide about personalizing the browser">
            Your web, bookmarks, and other Chromium stuff live here.
-@@ -879,7 +879,7 @@ Please check your email at <ph name="ACCOUNT_EMAIL">$2<ex>jane.doe@example.com</
+@@ -868,7 +868,7 @@ Signing in anyway will merge Chromium information like bookmarks, history, and o
            Click your name to open Chromium and start browsing.
          </message>
          <message name="IDS_USER_MANAGER_TUTORIAL_SLIDE_OUTRO_ADD_USER" desc="Text of the add a new user button">
@@ -260,7 +260,7 @@ index 65c56a70cd10..bd778267ec79 100644
          </message>
        </if>
  
-@@ -964,7 +964,7 @@ Please check your email at <ph name="ACCOUNT_EMAIL">$2<ex>jane.doe@example.com</
+@@ -953,7 +953,7 @@ Signing in anyway will merge Chromium information like bookmarks, history, and o
        <!-- Update Recommended dialog -->
        <if expr="not chromeos">
          <message name="IDS_UPDATE_RECOMMENDED_DIALOG_TITLE" desc="The window title for the Update Recommended dialog.">
@@ -269,7 +269,7 @@ index 65c56a70cd10..bd778267ec79 100644
          </message>
          <message name="IDS_UPDATE_RECOMMENDED" desc="The main text of the Update Recommended dialog.">
            A new update for Chromium is available and will be applied as soon as you relaunch.
-@@ -998,7 +998,7 @@ Please check your email at <ph name="ACCOUNT_EMAIL">$2<ex>jane.doe@example.com</
+@@ -987,7 +987,7 @@ Signing in anyway will merge Chromium information like bookmarks, history, and o
  
        <!-- Update bubble -->
        <message name="IDS_REINSTALL_APP" desc="Text for the button the user clicks to reinstall the app.">
@@ -278,7 +278,7 @@ index 65c56a70cd10..bd778267ec79 100644
        </message>
        <if expr="use_titlecase">
          <message name="IDS_UPGRADE_BUBBLE_MENU_ITEM" desc="In Title Case: Text for the Chrome menu option replacing Update required.">
-@@ -1011,7 +1011,7 @@ Please check your email at <ph name="ACCOUNT_EMAIL">$2<ex>jane.doe@example.com</
+@@ -1000,7 +1000,7 @@ Signing in anyway will merge Chromium information like bookmarks, history, and o
          </message>
        </if>
        <message name="IDS_UPGRADE_BUBBLE_TITLE" desc="Text for the title of the upgrade bubble view.">
@@ -287,7 +287,7 @@ index 65c56a70cd10..bd778267ec79 100644
        </message>
        <message name="IDS_UPGRADE_BUBBLE_TEXT" desc="Text for the upgrade bubble view full description.">
          Chromium couldn't update to the latest version, so you're missing out on new features and security fixes.
-@@ -1022,7 +1022,7 @@ Please check your email at <ph name="ACCOUNT_EMAIL">$2<ex>jane.doe@example.com</
+@@ -1011,7 +1011,7 @@ Signing in anyway will merge Chromium information like bookmarks, history, and o
          Chromium is out of date
        </message>
        <message name="IDS_SYNC_ERROR_USER_MENU_UPGRADE_BUTTON" desc="Button in the header of desktop user menu that prompts the user to update Chrome to fix the out-of-date Chrome client error.">
@@ -296,7 +296,7 @@ index 65c56a70cd10..bd778267ec79 100644
        </message>
  
        <!-- Sync errors. Android uses native UI to handle Sync settings -->
-@@ -1031,7 +1031,7 @@ Please check your email at <ph name="ACCOUNT_EMAIL">$2<ex>jane.doe@example.com</
+@@ -1020,7 +1020,7 @@ Signing in anyway will merge Chromium information like bookmarks, history, and o
            Update Chromium to start sync
          </message>
          <message name="IDS_SYNC_UPGRADE_CLIENT_LINK_LABEL" desc="Hyperlink text indicating client needs to be upgraded to the latest version.">
@@ -305,7 +305,7 @@ index 65c56a70cd10..bd778267ec79 100644
          </message>
        </if>
  
-@@ -1041,12 +1041,12 @@ Please check your email at <ph name="ACCOUNT_EMAIL">$2<ex>jane.doe@example.com</
+@@ -1030,12 +1030,12 @@ Signing in anyway will merge Chromium information like bookmarks, history, and o
        </message>
        <if expr="use_titlecase">
          <message name="IDS_RUN_RECOVERY" desc="In Title Case: Text for the button the user clicks to recover chromium and its updater.">
@@ -320,16 +320,7 @@ index 65c56a70cd10..bd778267ec79 100644
          </message>
        </if>
        <message name="IDS_RECOVERY_BUBBLE_TEXT" desc="Text for the chrome recovery bubble view full description.">
-@@ -1162,7 +1162,7 @@ Please check your email at <ph name="ACCOUNT_EMAIL">$2<ex>jane.doe@example.com</
-       <if expr="is_win">
-         <message name="IDS_METRO_FLOW_TAB_TITLE"
-                  desc="The dialog window title.">
--          Welcome to Chromium
-+          Welcome to Chromium GOST
-         </message>
-         <message name="IDS_METRO_FLOW_TITLE_SHORT"
-                  desc="The title at the top of the window guiding user through making Chrome default in Metro.">
-@@ -1173,7 +1173,7 @@ Please check your email at <ph name="ACCOUNT_EMAIL">$2<ex>jane.doe@example.com</
+@@ -1150,7 +1150,7 @@ Signing in anyway will merge Chromium information like bookmarks, history, and o
        <!-- Welcome page (chrome://welcome) strings -->
        <if expr="not chromeos and not is_android">
          <message name="IDS_WELCOME_HEADER" desc="A message which will appear as the header on the Welcome UI if the user has never run Chromium before.">
@@ -338,7 +329,7 @@ index 65c56a70cd10..bd778267ec79 100644
          </message>
        </if>
  
-@@ -1230,7 +1230,7 @@ Please check your email at <ph name="ACCOUNT_EMAIL">$2<ex>jane.doe@example.com</
+@@ -1207,7 +1207,7 @@ Signing in anyway will merge Chromium information like bookmarks, history, and o
            Couldn't launch Chromium. Try again.
          </message>
          <message name="IDS_ENTERPRISE_STARTUP_RELAUNCH_BUTTON" desc="The text of relaunch button of Chromium launch blocking dialog.">
@@ -347,7 +338,7 @@ index 65c56a70cd10..bd778267ec79 100644
          </message>
          <message name="IDS_ENTERPRISE_STARTUP_CANCEL_BUTTON" desc="The text of cancel button of Chromium launch blocking dialog.">
            Close
-@@ -1242,7 +1242,7 @@ Please check your email at <ph name="ACCOUNT_EMAIL">$2<ex>jane.doe@example.com</
+@@ -1219,7 +1219,7 @@ Signing in anyway will merge Chromium information like bookmarks, history, and o
        <!-- User happiness tracking survey UI -->
        <if expr="not is_android">
          <message name="IDS_HATS_BUBBLE_TITLE" translateable="false" desc="The title of Happiness Tracking Survey's invitation banner, it invites users to take a survey">
@@ -357,10 +348,10 @@ index 65c56a70cd10..bd778267ec79 100644
        </if>
      </messages>
 diff --git a/chrome/browser/devtools/devtools_window.cc b/chrome/browser/devtools/devtools_window.cc
-index 3dbd95ca379a..3da36beb9cd7 100644
+index 14bc702c89fc..4a9f30027e62 100644
 --- a/chrome/browser/devtools/devtools_window.cc
 +++ b/chrome/browser/devtools/devtools_window.cc
-@@ -1446,6 +1446,12 @@ void DevToolsWindow::RenderProcessGone(bool crashed) {
+@@ -1453,6 +1453,12 @@ void DevToolsWindow::RenderProcessGone(bool crashed) {
    }
  }
  
@@ -373,7 +364,7 @@ index 3dbd95ca379a..3da36beb9cd7 100644
  void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
    base::Optional<base::Value> value = base::JSONReader::Read(cert_chain);
    CHECK(value && value->is_list());
-@@ -1454,6 +1460,16 @@ void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
+@@ -1461,6 +1467,16 @@ void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
      CHECK(item.is_string());
      std::string temp;
      CHECK(base::Base64Decode(item.GetString(), &temp));
@@ -464,11 +455,11 @@ index 55a35677b9c4..abbc16d5f5f1 100644
  case $CHANNEL in
    stable )
 diff --git a/content/browser/network_service_client.cc b/content/browser/network_service_client.cc
-index b89e764feb03..a609d4fe4285 100644
+index 7b0b5606b4aa..6d719d2849f8 100644
 --- a/content/browser/network_service_client.cc
 +++ b/content/browser/network_service_client.cc
-@@ -46,6 +46,10 @@
- #include "net/android/http_auth_negotiate_android.h"
+@@ -36,6 +36,10 @@
+ #include "base/android/content_uri_utils.h"
  #endif
  
 +#ifndef NO_GOSTSSL
@@ -478,20 +469,8 @@ index b89e764feb03..a609d4fe4285 100644
  namespace content {
  namespace {
  
-@@ -114,6 +118,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
-       scoped_refptr<net::X509Certificate> cert,
-       scoped_refptr<net::SSLPrivateKey> private_key) override {
-     DCHECK_CURRENTLY_ON(BrowserThread::IO);
-+#ifndef NO_GOSTSSL
-+    if (cert && !private_key) {
-+        private_key = net::GetEmptyPrivateKey();
-+    }
-+#endif // GOSTSSL
-     DCHECK((cert && private_key) || (!cert && !private_key));
- 
-     if (cert && private_key) {
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
-index 6fc8c5ea1d27..b9ae388c9097 100644
+index 6c767af1bca5..d1cb7fad4870 100644
 --- a/net/base/net_error_list.h
 +++ b/net/base/net_error_list.h
 @@ -22,6 +22,11 @@
@@ -507,7 +486,7 @@ index 6fc8c5ea1d27..b9ae388c9097 100644
  // indicate a fatal error.  Typically this error will be generated as a
  // notification to wait for some external notification that the IO operation
 diff --git a/net/cert/cert_verify_proc.cc b/net/cert/cert_verify_proc.cc
-index 906b843e3a97..e61334319328 100644
+index 754bc8147f7e..edaf21bb5926 100644
 --- a/net/cert/cert_verify_proc.cc
 +++ b/net/cert/cert_verify_proc.cc
 @@ -486,6 +486,12 @@ scoped_refptr<CertVerifyProc> CertVerifyProc::CreateDefault(
@@ -539,7 +518,7 @@ index 906b843e3a97..e61334319328 100644
 +
 +  if( is_gost == 1 )
 +  {
-+      // TODO: we can check for weak GOST algos after 2018
++      // TODO: we can check for weak GOST algos
 +  }
 +  else
 +#endif // GOSTSSL
@@ -548,11 +527,11 @@ index 906b843e3a97..e61334319328 100644
    // in the chain. Also fills in the has_* booleans for the digest algorithms
    // present in the chain.
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index 9aea7f000c9f..f8d86198fcde 100644
+index 149fdf61c689..c975ea7fdc22 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
-@@ -1572,6 +1572,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
-       return OK;
+@@ -1499,6 +1499,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
+       }
      }
    }
 +
@@ -568,10 +547,10 @@ index 9aea7f000c9f..f8d86198fcde 100644
  }
  
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 1af7e165fb9b..bc5aae69ed06 100644
+index 7d7f8d944461..84c433da71c0 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
-@@ -452,6 +452,14 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
+@@ -471,6 +471,14 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
    return OK;
  }
  
@@ -586,7 +565,7 @@ index 1af7e165fb9b..bc5aae69ed06 100644
  int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
    // this has never worked for layered sockets. CHECK to detect any consumers
-@@ -470,6 +478,10 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
+@@ -489,6 +497,10 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
      return rv;
    }
  
@@ -597,7 +576,7 @@ index 1af7e165fb9b..bc5aae69ed06 100644
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -1145,6 +1157,82 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
+@@ -1173,6 +1185,82 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
  
    start_cert_verification_time_ = base::TimeTicks::Now();
  
@@ -680,7 +659,7 @@ index 1af7e165fb9b..bc5aae69ed06 100644
    const uint8_t* ocsp_response_raw;
    size_t ocsp_response_len;
    SSL_get0_ocsp_response(ssl_.get(), &ocsp_response_raw, &ocsp_response_len);
-@@ -1580,6 +1668,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1605,6 +1693,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
@@ -697,13 +676,13 @@ index 1af7e165fb9b..bc5aae69ed06 100644
 +#endif // GOSTSSL
 +
    // Second pass: a client certificate should have been selected.
-   if (ssl_config_.client_cert.get()) {
-     if (!ssl_config_.client_private_key) {
+   if (client_cert_.get()) {
+     if (!client_private_key_) {
 diff --git a/net/spdy/spdy_session.cc b/net/spdy/spdy_session.cc
-index ba7797357e76..83ed002e7503 100644
+index af745dde692f..36ff8873d136 100644
 --- a/net/spdy/spdy_session.cc
 +++ b/net/spdy/spdy_session.cc
-@@ -1513,6 +1513,18 @@ bool SpdySession::HasAcceptableTransportSecurity() const {
+@@ -1520,6 +1520,18 @@ bool SpdySession::HasAcceptableTransportSecurity() const {
    SSLInfo ssl_info;
    CHECK(GetSSLInfo(&ssl_info));
  
@@ -816,10 +795,10 @@ index fc448f463329..402d1805552f 100644
  }
  
 diff --git a/net/ssl/client_cert_store_nss.cc b/net/ssl/client_cert_store_nss.cc
-index 6bb552aff508..3d20ed4c345d 100644
+index f4d3e893c231..e5703217e647 100644
 --- a/net/ssl/client_cert_store_nss.cc
 +++ b/net/ssl/client_cert_store_nss.cc
-@@ -144,6 +144,12 @@ void ClientCertStoreNSS::FilterCertsOnWorkerThread(
+@@ -146,6 +146,12 @@ void ClientCertStoreNSS::FilterCertsOnWorkerThread(
    std::sort(identities->begin(), identities->end(), ClientCertIdentitySorter());
  }
  
@@ -832,7 +811,7 @@ index 6bb552aff508..3d20ed4c345d 100644
  ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
      scoped_refptr<crypto::CryptoModuleBlockingPasswordDelegate>
          password_delegate,
-@@ -158,6 +164,31 @@ ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
+@@ -160,6 +166,31 @@ ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
    GetPlatformCertsOnWorkerThread(std::move(password_delegate), CertFilter(),
                                   &selected_identities);
    FilterCertsOnWorkerThread(&selected_identities, *request);
@@ -981,18 +960,18 @@ index 02729fecba76..a586e0c5e237 100644
  bssl::UniquePtr<EVP_PKEY> GetClientCertPublicKey(
      const X509Certificate* certificate);
 diff --git a/sandbox/win/src/process_mitigations.cc b/sandbox/win/src/process_mitigations.cc
-index 08a9c8948556..ff0c0cb86bd5 100644
+index e4c6838f96f8..6b0792b4c927 100644
 --- a/sandbox/win/src/process_mitigations.cc
 +++ b/sandbox/win/src/process_mitigations.cc
-@@ -227,6 +227,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
-   if (!IsRunning32bitEmulatedOnArm64() &&
-       (flags & MITIGATION_DYNAMIC_CODE_DISABLE ||
-        flags & MITIGATION_DYNAMIC_CODE_DISABLE_WITH_OPT_OUT)) {
+@@ -221,6 +221,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
+     // Verify caller is not accidentally setting both mutually exclusive
+     // policies.
+     DCHECK(!(flags & MITIGATION_DYNAMIC_CODE_DISABLE_WITH_OPT_OUT));
 +#ifdef NO_GOSTSSL
      PROCESS_MITIGATION_DYNAMIC_CODE_POLICY policy = {};
      policy.ProhibitDynamicCode = true;
  
-@@ -241,6 +242,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
+@@ -229,6 +230,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
          ERROR_ACCESS_DENIED != ::GetLastError()) {
        return false;
      }
@@ -1000,15 +979,7 @@ index 08a9c8948556..ff0c0cb86bd5 100644
    }
  
    if (version < base::win::Version::WIN10)
-@@ -250,7 +252,6 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
-   if (flags & MITIGATION_NONSYSTEM_FONT_DISABLE) {
-     PROCESS_MITIGATION_FONT_DISABLE_POLICY policy = {};
-     policy.DisableNonSystemFonts = true;
--
-     if (!set_process_mitigation_policy(ProcessFontDisablePolicy, &policy,
-                                        sizeof(policy)) &&
-         ERROR_ACCESS_DENIED != ::GetLastError()) {
-@@ -263,6 +264,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
+@@ -251,6 +253,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
  
    // Enable binary signing policies.
    if (flags & MITIGATION_FORCE_MS_SIGNED_BINS) {
@@ -1016,7 +987,7 @@ index 08a9c8948556..ff0c0cb86bd5 100644
      PROCESS_MITIGATION_BINARY_SIGNATURE_POLICY policy = {};
      // Allow only MS signed binaries.
      policy.MicrosoftSignedOnly = true;
-@@ -275,6 +277,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
+@@ -263,6 +266,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
          ERROR_ACCESS_DENIED != ::GetLastError()) {
        return false;
      }
@@ -1025,7 +996,7 @@ index 08a9c8948556..ff0c0cb86bd5 100644
  
    // Enable image load policies.
 diff --git a/third_party/boringssl/BUILD.generated.gni b/third_party/boringssl/BUILD.generated.gni
-index 594f431bfec2..761e4934b5dd 100644
+index 7b00aa8d330b..77906dcf030f 100644
 --- a/third_party/boringssl/BUILD.generated.gni
 +++ b/third_party/boringssl/BUILD.generated.gni
 @@ -5,6 +5,8 @@
