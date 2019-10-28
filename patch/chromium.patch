@@ -1,4 +1,4 @@
-From bb0a2f726c53ca2ccfbdad2aa9059fda34820c28 Mon Sep 17 00:00:00 2001
+From ac362bd19944b3e4261de9a0ec46220090783fd2 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Fri, 25 Oct 2019 17:44:37 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -9,7 +9,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../ssl_client_certificate_selector_mac.mm    |   8 ++
  .../chromium-browser/chromium-browser.info    |  10 +-
  .../installer/linux/rpm/chrome.spec.template  |   4 +
- content/browser/network_service_client.cc     |   4 +
+ content/browser/storage_partition_impl.cc     |   9 ++
  net/base/net_error_list.h                     |   5 +
  net/cert/cert_verify_proc.cc                  |  23 ++++
  net/http/http_network_transaction.cc          |   9 ++
@@ -23,7 +23,7 @@ Subject: [PATCH] chromium GOSTSSL
  net/ssl/ssl_platform_key_util.h               |   7 ++
  sandbox/win/src/process_mitigations.cc        |   4 +
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 19 files changed, 397 insertions(+), 45 deletions(-)
+ 19 files changed, 402 insertions(+), 45 deletions(-)
 
 diff --git a/chrome/app/chromium_strings.grd b/chrome/app/chromium_strings.grd
 index eaee8343c13d..47399f7e13a4 100644
@@ -454,21 +454,33 @@ index 55a35677b9c4..abbc16d5f5f1 100644
  CHANNEL=@@CHANNEL@@
  case $CHANNEL in
    stable )
-diff --git a/content/browser/network_service_client.cc b/content/browser/network_service_client.cc
-index 7b0b5606b4aa..6d719d2849f8 100644
---- a/content/browser/network_service_client.cc
-+++ b/content/browser/network_service_client.cc
-@@ -36,6 +36,10 @@
- #include "base/android/content_uri_utils.h"
- #endif
+diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
+index c626801963af..4f6385f02e40 100644
+--- a/content/browser/storage_partition_impl.cc
++++ b/content/browser/storage_partition_impl.cc
+@@ -95,6 +95,10 @@
+ #include "content/browser/host_zoom_map_impl.h"
+ #endif  // defined(OS_ANDROID)
  
 +#ifndef NO_GOSTSSL
 +#include "net/ssl/ssl_platform_key_util.h"
 +#endif // GOSTSSL
 +
- namespace content {
- namespace {
+ #if BUILDFLAG(ENABLE_PLUGINS)
+ #include "content/browser/plugin_private_storage_helper.h"
+ #endif  // BUILDFLAG(ENABLE_PLUGINS)
+@@ -763,6 +767,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
+       scoped_refptr<net::X509Certificate> cert,
+       scoped_refptr<net::SSLPrivateKey> private_key) override {
+     DCHECK_CURRENTLY_ON(BrowserThread::IO);
++#ifndef NO_GOSTSSL
++    if (cert && !private_key) {
++        private_key = net::GetEmptyPrivateKey();
++    }
++#endif // GOSTSSL
+     DCHECK((cert && private_key) || (!cert && !private_key));
  
+     if (cert && private_key) {
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
 index 6c767af1bca5..d1cb7fad4870 100644
 --- a/net/base/net_error_list.h
