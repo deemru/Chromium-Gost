@@ -1,4 +1,6 @@
 cd /d %~dp0
+call git submodule init
+call git submodule update
 call chromium-gost-env.bat
 set PATH=%DEPOT_TOOLS_PATH%;%PATH%
 set DEPOT_TOOLS_WIN_TOOLCHAIN=0

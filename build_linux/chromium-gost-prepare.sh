@@ -1,6 +1,8 @@
 #!/bin/sh
 
 cd $(dirname $0)
+git submodule init
+git submodule update
 . ./chromium-gost-env.sh
 export PATH=$DEPOT_TOOLS_PATH:$PATH
 export GOST_BRANCH=GOSTSSL-$CHROMIUM_TAG
