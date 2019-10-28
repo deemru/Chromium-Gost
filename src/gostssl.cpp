@@ -390,7 +390,7 @@ static int msspi_to_ssl_state_ret( int state, SSL * s, int ret )
     else if( state & MSSPI_SENT_SHUTDOWN && state & MSSPI_RECEIVED_SHUTDOWN )
         s->s3->rwstate = SSL_NOTHING;
     else if( state & MSSPI_X509_LOOKUP )
-        s->s3->rwstate = SSL_X509_LOOKUP;
+        s->s3->rwstate = SSL_ERROR_WANT_X509_LOOKUP;
     else if( state & MSSPI_WRITING )
     {
         if( state & MSSPI_LAST_PROC_WRITE )
