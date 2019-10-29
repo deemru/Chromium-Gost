@@ -1,4 +1,4 @@
-From ac362bd19944b3e4261de9a0ec46220090783fd2 Mon Sep 17 00:00:00 2001
+From 211c4153a3e95d85ae450cdf8ec1a8fdce9bf6f7 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Fri, 25 Oct 2019 17:44:37 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -22,8 +22,9 @@ Subject: [PATCH] chromium GOSTSSL
  net/ssl/ssl_platform_key_util.cc              |  21 ++++
  net/ssl/ssl_platform_key_util.h               |   7 ++
  sandbox/win/src/process_mitigations.cc        |   4 +
+ .../service_manager/sandbox/mac/common.sb     |   8 ++
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 19 files changed, 402 insertions(+), 45 deletions(-)
+ 20 files changed, 410 insertions(+), 45 deletions(-)
 
 diff --git a/chrome/app/chromium_strings.grd b/chrome/app/chromium_strings.grd
 index eaee8343c13d..47399f7e13a4 100644
@@ -1008,6 +1009,25 @@ index e4c6838f96f8..6b0792b4c927 100644
    }
  
    // Enable image load policies.
+diff --git a/services/service_manager/sandbox/mac/common.sb b/services/service_manager/sandbox/mac/common.sb
+index 90e99f14dc8a..86048a273476 100644
+--- a/services/service_manager/sandbox/mac/common.sb
++++ b/services/service_manager/sandbox/mac/common.sb
+@@ -118,6 +118,14 @@
+   (subpath "/usr/lib")
+ )
+ 
++(allow file*
++  (subpath "/opt/cprocsp")
++  (subpath "/etc/opt/cprocsp")
++  (subpath "/var/opt/cprocsp")
++  (subpath "/private/etc/opt/cprocsp")
++  (subpath "/private/var/opt/cprocsp")
++)
++
+ ; Reads from /etc.
+ ; This is read by CFPrefs calling getpwuid in a loop. libinfo then fails to
+ ; contact any of the opendirectoryd mach services, and falls back to
 diff --git a/third_party/boringssl/BUILD.generated.gni b/third_party/boringssl/BUILD.generated.gni
 index 7b00aa8d330b..77906dcf030f 100644
 --- a/third_party/boringssl/BUILD.generated.gni
