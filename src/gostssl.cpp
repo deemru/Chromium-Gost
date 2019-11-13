@@ -700,16 +700,16 @@ extern "C" {
 
 static void * get_capi10x( LPCSTR name )
 {
-    static void * capi10 = NULL;
-    if( !capi10 )
+    static void * capi10 = (void *)(uintptr_t)-1;
+    if( capi10 == (void *)(uintptr_t)-1 )
         capi10 = dlopen( CAPI10_LIB, RTLD_LAZY );
     return capi10 ? dlsym( capi10, name ) : NULL;
 }
 
 static void * get_capi20x( LPCSTR name )
 {
-    static void * capi20 = NULL;
-    if( !capi20 )
+    static void * capi20 = (void *)(uintptr_t)-1;
+    if( !capi20 == (void *)(uintptr_t)-1 )
         capi20 = dlopen( CAPI20_LIB, RTLD_LAZY );
     return capi20 ? dlsym( capi20, name ) : NULL;
 }
