@@ -709,7 +709,7 @@ static void * get_capi10x( LPCSTR name )
 static void * get_capi20x( LPCSTR name )
 {
     static void * capi20 = (void *)(uintptr_t)-1;
-    if( !capi20 == (void *)(uintptr_t)-1 )
+    if( capi20 == (void *)(uintptr_t)-1 )
         capi20 = dlopen( CAPI20_LIB, RTLD_LAZY );
     return capi20 ? dlsym( capi20, name ) : NULL;
 }
