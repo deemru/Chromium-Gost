@@ -20,6 +20,7 @@ int gostssl_init();
 void gostssl_cachestring( SSL * s, const char * cachestring );
 int gostssl_connect( SSL * s, int * is_gost );
 int gostssl_read( SSL * s, void * buf, int len, int * is_gost );
+int gostssl_peek( SSL * s, void * buf, int len, int * is_gost );
 int gostssl_write( SSL * s, const void * buf, int len, int * is_gost );
 void gostssl_free( SSL * s );
 
@@ -422,6 +423,23 @@ int gostssl_read( SSL * s, void * buf, int len, int * is_gost )
     *is_gost = TRUE;
 
     int ret = msspi_read( w->h, buf, len );
+    return msspi_to_ssl_state_ret( msspi_state( w->h ), s, ret );
+}
+
+int gostssl_peek( SSL * s, void * buf, int len, int * is_gost )
+{
+    GostSSL_Worker * w = workers_api( s, WDB_SEARCH );
+
+    // fallback
+    if( !w || w->host_status != GOSTSSL_HOST_YES )
+    {
+        *is_gost = FALSE;
+        return 1;
+    }
+
+    *is_gost = TRUE;
+
+    int ret = msspi_peek( w->h, buf, len );
     return msspi_to_ssl_state_ret( msspi_state( w->h ), s, ret );
 }
 
