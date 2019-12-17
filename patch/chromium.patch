@@ -1,4 +1,4 @@
-From a9e556e5019737c1c7299182b87c1060d57868bb Mon Sep 17 00:00:00 2001
+From 888268bd691f98eacbde5dd6c37c7cefe8413d90 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Thu, 12 Dec 2019 11:20:50 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -10,6 +10,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../chromium-browser/chromium-browser.info    |  10 +-
  .../installer/linux/rpm/chrome.spec.template  |   4 +
  content/browser/storage_partition_impl.cc     |   9 ++
+ content/common/user_agent.cc                  |   2 +-
  net/base/net_error_list.h                     |   5 +
  net/cert/cert_verify_proc.cc                  |  23 ++++
  net/http/http_network_transaction.cc          |   9 ++
@@ -24,7 +25,7 @@ Subject: [PATCH] chromium GOSTSSL
  sandbox/win/src/process_mitigations.cc        |   4 +
  .../service_manager/sandbox/mac/common.sb     |   8 ++
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 20 files changed, 410 insertions(+), 40 deletions(-)
+ 21 files changed, 411 insertions(+), 41 deletions(-)
 
 diff --git a/chrome/app/chromium_strings.grd b/chrome/app/chromium_strings.grd
 index 7b8a2fd6b1e6..942422e9c73d 100644
@@ -442,6 +443,19 @@ index a9318c8de615..7c32f0c229ab 100644
      DCHECK((cert && private_key) || (!cert && !private_key));
  
      if (cert && private_key) {
+diff --git a/content/common/user_agent.cc b/content/common/user_agent.cc
+index 37e72394997a..ba5d873ec0ab 100644
+--- a/content/common/user_agent.cc
++++ b/content/common/user_agent.cc
+@@ -193,7 +193,7 @@ std::string BuildUserAgentFromOSAndProduct(const std::string& os_info,
+   std::string user_agent;
+   base::StringAppendF(
+       &user_agent,
+-      "Mozilla/5.0 (%s) AppleWebKit/%d.%d (KHTML, like Gecko) %s Safari/%d.%d",
++      "Mozilla/5.0 (%s) AppleWebKit/%d.%d (KHTML, like Gecko) %s (Chromium GOST) Safari/%d.%d",
+       os_info.c_str(),
+       WEBKIT_VERSION_MAJOR,
+       WEBKIT_VERSION_MINOR,
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
 index 9a36c9780f16..0a7a55ccca09 100644
 --- a/net/base/net_error_list.h
