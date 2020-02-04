@@ -1,9 +1,10 @@
-From 888268bd691f98eacbde5dd6c37c7cefe8413d90 Mon Sep 17 00:00:00 2001
+From 299d76219099a774cbe10efbd33df818dab9bcf0 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Thu, 12 Dec 2019 11:20:50 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
+ chrome/app/app-entitlements.plist             |   8 +-
  chrome/app/chromium_strings.grd               |  70 ++++++------
  chrome/browser/devtools/devtools_window.cc    |  16 +++
  .../ssl_client_certificate_selector_mac.mm    |   8 ++
@@ -23,10 +24,35 @@ Subject: [PATCH] chromium GOSTSSL
  net/ssl/ssl_platform_key_util.cc              |  21 ++++
  net/ssl/ssl_platform_key_util.h               |   7 ++
  sandbox/win/src/process_mitigations.cc        |   4 +
- .../service_manager/sandbox/mac/common.sb     |   8 ++
+ .../service_manager/sandbox/mac/common.sb     |  15 +++
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 21 files changed, 411 insertions(+), 41 deletions(-)
+ 22 files changed, 420 insertions(+), 47 deletions(-)
 
+diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
+index 1a198c5be48d..310d9aab7d47 100644
+--- a/chrome/app/app-entitlements.plist
++++ b/chrome/app/app-entitlements.plist
+@@ -2,12 +2,6 @@
+ <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+ <plist version="1.0">
+ <dict>
+-	<key>com.apple.application-identifier</key>
+-	<string>${CHROMIUM_TEAM_ID}.${CHROMIUM_BUNDLE_ID}</string>
+-	<key>keychain-access-groups</key>
+-	<array>
+-		<string>${CHROMIUM_TEAM_ID}.${CHROMIUM_BUNDLE_ID}.webauthn</string>
+-	</array>
+ 	<key>com.apple.security.device.audio-input</key>
+ 	<true/>
+ 	<key>com.apple.security.device.bluetooth</key>
+@@ -18,5 +12,7 @@
+ 	<true/>
+ 	<key>com.apple.security.device.usb</key>
+ 	<true/>
++	<key>com.apple.security.smartcard</key>
++	<true/>
+ </dict>
+ </plist>
 diff --git a/chrome/app/chromium_strings.grd b/chrome/app/chromium_strings.grd
 index 7b8a2fd6b1e6..942422e9c73d 100644
 --- a/chrome/app/chromium_strings.grd
@@ -344,7 +370,7 @@ index f0e249161a7c..12d835f14818 100644
    }
  
 diff --git a/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm b/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm
-index 81080ad3f498..d38678111095 100644
+index 81080ad3f498..1ef22a6e2447 100644
 --- a/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm
 +++ b/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm
 @@ -239,6 +239,14 @@ initWithBrowserContext:(const content::BrowserContext*)browserContext
@@ -355,7 +381,7 @@ index 81080ad3f498..d38678111095 100644
 +    if( cert_identities_.size() == 1 && cert_identities_[0]->sec_identity_ref() == nullptr )
 +    {
 +        observer_->CertificateSelected( cert_identities_[0]->certificate(), nullptr );
-+        return;
++        cert_identities_.clear();
 +    }
 +#endif // GOSTSSL
 +
@@ -989,10 +1015,10 @@ index e4c6838f96f8..6b0792b4c927 100644
  
    // Enable image load policies.
 diff --git a/services/service_manager/sandbox/mac/common.sb b/services/service_manager/sandbox/mac/common.sb
-index e6e367aec142..da29af7f1c95 100644
+index e6e367aec142..350fdcad0b14 100644
 --- a/services/service_manager/sandbox/mac/common.sb
 +++ b/services/service_manager/sandbox/mac/common.sb
-@@ -120,6 +120,14 @@
+@@ -120,6 +120,21 @@
    (subpath "/usr/lib")
  )
  
@@ -1002,6 +1028,13 @@ index e6e367aec142..da29af7f1c95 100644
 +  (subpath "/var/opt/cprocsp")
 +  (subpath "/private/etc/opt/cprocsp")
 +  (subpath "/private/var/opt/cprocsp")
++  (subpath "/Applications/CryptoPro")
++)
++
++(allow mach-lookup
++  (global-name "com.apple.windowserver.active")
++  (global-name "com.apple.UNCUserNotification")
++  (global-name "com.apple.ctkpcscd")
 +)
 +
  ; Reads from /etc.
