@@ -17,7 +17,7 @@ extern "C" {
 int gostssl_init();
 
 // Functionality
-void gostssl_cachestring( SSL * s, const char * cachestring );
+void gostssl_cachestring( SSL * s, void * cachestring, size_t len );
 int gostssl_connect( SSL * s, int * is_gost );
 int gostssl_read( SSL * s, void * buf, int len, int * is_gost );
 int gostssl_peek( SSL * s, void * buf, int len, int * is_gost );
@@ -460,9 +460,22 @@ int gostssl_write( SSL * s, const void * buf, int len, int * is_gost )
     return msspi_to_ssl_state_ret( msspi_state( w->h ), s, ret );
 }
 
-void gostssl_cachestring( SSL * s, const char * cachestring )
+#define B2C(x) ( x < 0xA ? x + '0' : x + 'A' - 10 )
+
+void gostssl_cachestring( SSL * s, void * cachestring, size_t len )
 {
-    workers_api( s, WDB_NEW, cachestring );
+    BYTE * bb = (BYTE *)cachestring;
+    std::vector<BYTE> cc;
+    cc.resize( len * 2 + 1 );
+    for( int i = 0; i < 8; i++ )
+    {
+        BYTE xF = ( bb[i] ) >> 4;
+        BYTE Fx = ( bb[i] ) & 0xF;
+        cc[i * 2 + 0] = B2C( xF );
+        cc[i * 2 + 1] = B2C( Fx );
+    }
+    cc[len * 2] = 0;
+    workers_api( s, WDB_NEW, (char *)&cc[0] );
 }
 
 int gostssl_connect( SSL * s, int * is_gost )
@@ -868,9 +881,13 @@ DECLARE_CAPI20X_FUNCTION( BOOL, CertGetCertificateChain,
     ( HCERTCHAINENGINE hChainEngine, PCCERT_CONTEXT pCertContext, LPFILETIME pTime, HCERTSTORE hAdditionalStore, PCERT_CHAIN_PARA pChainPara, DWORD dwFlags, LPVOID pvReserved, PCCERT_CHAIN_CONTEXT * ppChainContext ),
     ( hChainEngine, pCertContext, pTime, hAdditionalStore, pChainPara, dwFlags, pvReserved, ppChainContext ), FALSE )
 
-DECLARE_CAPI20X_FUNCTION_VOID( CertFreeCertificateChain,
-    ( PCCERT_CHAIN_CONTEXT pChainContext ),
-    ( pChainContext ) )
+DECLARE_CAPI20X_FUNCTION( BOOL, CryptGenRandom,
+    ( HCRYPTPROV hProv, DWORD dwLen, BYTE * pbBuffer ),
+    ( hProv, dwLen, pbBuffer ), FALSE )
+
+DECLARE_CAPI20X_FUNCTION( BOOL, CryptBinaryToStringA,
+    ( const BYTE * pbBinary, DWORD cbBinary, DWORD dwFlags, LPSTR pszString, DWORD * pcchString ),
+    ( pbBinary, cbBinary, dwFlags, pszString, pcchString ), FALSE )
 
 }
 

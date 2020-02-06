@@ -1,4 +1,4 @@
-From f10245423c62c8b31efaf33625ae9b0be0f51bf6 Mon Sep 17 00:00:00 2001
+From 252dd21f7c9ed8326a54d472fc3efb793ac8542f Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 5 Feb 2020 11:48:25 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -14,7 +14,9 @@ Subject: [PATCH] chromium GOSTSSL
  net/base/net_error_list.h                     |   5 +
  net/cert/cert_verify_proc.cc                  |  23 ++++
  net/http/http_network_transaction.cc          |   9 ++
- net/socket/ssl_client_socket_impl.cc          | 101 ++++++++++++++++++
+ net/socket/ssl_client_socket.cc               |   9 ++
+ net/socket/ssl_client_socket.h                |   4 +
+ net/socket/ssl_client_socket_impl.cc          | 100 ++++++++++++++++++
  net/spdy/spdy_session.cc                      |  12 +++
  net/ssl/client_cert_store_mac.cc              |  80 ++++++++++++++
  net/ssl/client_cert_store_nss.cc              |  31 ++++++
@@ -25,7 +27,7 @@ Subject: [PATCH] chromium GOSTSSL
  sandbox/win/src/process_mitigations.cc        |   4 +
  .../service_manager/sandbox/mac/common.sb     |  15 +++
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 21 files changed, 385 insertions(+), 12 deletions(-)
+ 23 files changed, 397 insertions(+), 12 deletions(-)
 
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
 index 4a1d735cfe35..a8ad48b18064 100644
@@ -276,8 +278,50 @@ index eeae0da29d6f..2d9e58357282 100644
    return error;
  }
  
+diff --git a/net/socket/ssl_client_socket.cc b/net/socket/ssl_client_socket.cc
+index 9f905ddecd9e..926f2b1712e2 100644
+--- a/net/socket/ssl_client_socket.cc
++++ b/net/socket/ssl_client_socket.cc
+@@ -12,6 +12,10 @@
+ #include "net/ssl/ssl_client_session_cache.h"
+ #include "net/ssl/ssl_key_logger.h"
+ 
++#ifndef NO_GOSTSSL
++#include "base/atomic_sequence_num.h"
++#endif /* NO_GOSTSSL */
++
+ namespace net {
+ 
+ SSLClientSocket::SSLClientSocket()
+@@ -69,6 +73,11 @@ SSLClientContext::SSLClientContext(
+     ssl_config_service_->AddObserver(this);
+   }
+   CertDatabase::GetInstance()->AddObserver(this);
++
++#ifndef NO_GOSTSSL
++  static base::AtomicSequenceNumber g_seqnum;
++  seqnum_ = g_seqnum.GetNext();
++#endif /* NO_GOSTSSL */
+ }
+ 
+ SSLClientContext::~SSLClientContext() {
+diff --git a/net/socket/ssl_client_socket.h b/net/socket/ssl_client_socket.h
+index 705281a95978..1f925e386655 100644
+--- a/net/socket/ssl_client_socket.h
++++ b/net/socket/ssl_client_socket.h
+@@ -176,6 +176,10 @@ class NET_EXPORT SSLClientContext : public SSLConfigService::Observer,
+   // CertDatabase::Observer:
+   void OnCertDBChanged() override;
+ 
++#ifndef NO_GOSTSSL
++  int seqnum_;
++#endif /* NO_GOSTSSL */
++
+  private:
+   void NotifySSLConfigChanged(bool is_cert_database_change);
+   void NotifySSLConfigForServerChanged(const HostPortPair& server);
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 173e0ad8cc55..d399f2aa58d3 100644
+index 173e0ad8cc55..8490b2dab420 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
 @@ -450,6 +450,14 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
@@ -286,7 +330,7 @@ index 173e0ad8cc55..d399f2aa58d3 100644
  
 +#ifndef NO_GOSTSSL
 +extern "C" {
-+void gostssl_cachestring( SSL * s, const char * cachestring );
++void gostssl_cachestring( SSL * s, void * cachestring, size_t len );
 +void gostssl_certhook( void * cert, int size );
 +void gostssl_verifyhook( void * s, unsigned * is_gost );
 +}
@@ -295,19 +339,18 @@ index 173e0ad8cc55..d399f2aa58d3 100644
  int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
    // this has never worked for layered sockets. CHECK to detect any consumers
-@@ -468,6 +476,11 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
+@@ -468,6 +476,10 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
      return rv;
    }
  
 +#ifndef NO_GOSTSSL
-+  gostssl_cachestring( ssl_.get(),
-+    GetSessionCacheKey(base::nullopt).network_isolation_key.ToString().data() );
++  gostssl_cachestring( ssl_.get(), &context_->seqnum_, sizeof( context_->seqnum_ ) );
 +#endif // GOSTSSL
 +
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -1168,6 +1181,82 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
+@@ -1168,6 +1180,82 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
  
    start_cert_verification_time_ = base::TimeTicks::Now();
  
@@ -390,7 +433,7 @@ index 173e0ad8cc55..d399f2aa58d3 100644
    const uint8_t* ocsp_response_raw;
    size_t ocsp_response_len;
    SSL_get0_ocsp_response(ssl_.get(), &ocsp_response_raw, &ocsp_response_len);
-@@ -1649,6 +1738,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1649,6 +1737,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
