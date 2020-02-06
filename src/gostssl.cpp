@@ -881,6 +881,10 @@ DECLARE_CAPI20X_FUNCTION( BOOL, CertGetCertificateChain,
     ( HCERTCHAINENGINE hChainEngine, PCCERT_CONTEXT pCertContext, LPFILETIME pTime, HCERTSTORE hAdditionalStore, PCERT_CHAIN_PARA pChainPara, DWORD dwFlags, LPVOID pvReserved, PCCERT_CHAIN_CONTEXT * ppChainContext ),
     ( hChainEngine, pCertContext, pTime, hAdditionalStore, pChainPara, dwFlags, pvReserved, ppChainContext ), FALSE )
 
+DECLARE_CAPI20X_FUNCTION_VOID( CertFreeCertificateChain,
+    ( PCCERT_CHAIN_CONTEXT pChainContext ),
+    ( pChainContext ) )
+
 DECLARE_CAPI20X_FUNCTION( BOOL, CryptGenRandom,
     ( HCRYPTPROV hProv, DWORD dwLen, BYTE * pbBuffer ),
     ( hProv, dwLen, pbBuffer ), FALSE )
@@ -888,6 +892,10 @@ DECLARE_CAPI20X_FUNCTION( BOOL, CryptGenRandom,
 DECLARE_CAPI20X_FUNCTION( BOOL, CryptBinaryToStringA,
     ( const BYTE * pbBinary, DWORD cbBinary, DWORD dwFlags, LPSTR pszString, DWORD * pcchString ),
     ( pbBinary, cbBinary, dwFlags, pszString, pcchString ), FALSE )
+
+DECLARE_CAPI20X_FUNCTION( BOOL, CryptStringToBinaryA,
+    ( LPCSTR pszString, DWORD cchString, DWORD dwFlags, BYTE * pbBinary, DWORD * pcbBinary, DWORD * pdwSkip, DWORD * pdwFlags ),
+    ( pszString, cchString, dwFlags, pbBinary, pcbBinary, pdwSkip, pdwFlags ), FALSE )
 
 }
 
