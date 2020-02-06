@@ -1,11 +1,10 @@
-From 299d76219099a774cbe10efbd33df818dab9bcf0 Mon Sep 17 00:00:00 2001
+From f10245423c62c8b31efaf33625ae9b0be0f51bf6 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
-Date: Thu, 12 Dec 2019 11:20:50 +0300
+Date: Wed, 5 Feb 2020 11:48:25 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
  chrome/app/app-entitlements.plist             |   8 +-
- chrome/app/chromium_strings.grd               |  70 ++++++------
  chrome/browser/devtools/devtools_window.cc    |  16 +++
  .../ssl_client_certificate_selector_mac.mm    |   8 ++
  .../chromium-browser/chromium-browser.info    |  10 +-
@@ -26,10 +25,10 @@ Subject: [PATCH] chromium GOSTSSL
  sandbox/win/src/process_mitigations.cc        |   4 +
  .../service_manager/sandbox/mac/common.sb     |  15 +++
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 22 files changed, 420 insertions(+), 47 deletions(-)
+ 21 files changed, 385 insertions(+), 12 deletions(-)
 
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
-index 1a198c5be48d..310d9aab7d47 100644
+index 4a1d735cfe35..a8ad48b18064 100644
 --- a/chrome/app/app-entitlements.plist
 +++ b/chrome/app/app-entitlements.plist
 @@ -2,12 +2,6 @@
@@ -42,10 +41,10 @@ index 1a198c5be48d..310d9aab7d47 100644
 -	<array>
 -		<string>${CHROMIUM_TEAM_ID}.${CHROMIUM_BUNDLE_ID}.webauthn</string>
 -	</array>
- 	<key>com.apple.security.device.audio-input</key>
+ 	<key>com.apple.developer.associated-domains.applinks.read-write</key>
  	<true/>
- 	<key>com.apple.security.device.bluetooth</key>
-@@ -18,5 +12,7 @@
+ 	<key>com.apple.security.device.audio-input</key>
+@@ -20,5 +14,7 @@
  	<true/>
  	<key>com.apple.security.device.usb</key>
  	<true/>
@@ -53,293 +52,11 @@ index 1a198c5be48d..310d9aab7d47 100644
 +	<true/>
  </dict>
  </plist>
-diff --git a/chrome/app/chromium_strings.grd b/chrome/app/chromium_strings.grd
-index 7b8a2fd6b1e6..942422e9c73d 100644
---- a/chrome/app/chromium_strings.grd
-+++ b/chrome/app/chromium_strings.grd
-@@ -127,10 +127,10 @@ If you update this file, be sure also to update google_chrome_strings.grd. -->
-       </if>
- 
-       <message name="IDS_PRODUCT_NAME" desc="The Chrome application name">
--        Chromium
-+        Chromium GOST
-       </message>
-       <message name="IDS_SHORT_PRODUCT_NAME" desc="The Chrome application short name.">
--        Chromium
-+        Chromium GOST
-       </message>
-       <if expr="is_win">
-         <message name="IDS_SXS_SHORTCUT_NAME" desc="Unused in Chromium builds" translateable="false">
-@@ -162,10 +162,10 @@ If you update this file, be sure also to update google_chrome_strings.grd. -->
-         </message>
-       </if>
-       <message name="IDS_BOOKMARK_SYNC_PROMO_LINK" desc="Text of the link to sign in from the bookmark sync promo.">
--        sign in to Chromium
-+        sign in to Chromium GOST
-       </message>
-       <message name="IDS_TASK_MANAGER_TITLE" desc="The title of the Task Manager window">
--        Task Manager - Chromium
-+        Task Manager - Chromium GOST
-       </message>
-       <message name="IDS_SESSION_CRASHED_VIEW_UMA_OPTIN" desc="Text besides the checkbox to let users optin to UMA in the restore from previous crash bubble.">
-         Help make Chromium better by sending crash reports and <ph name="UMA_LINK">$1<ex>usage statistics</ex></ph> to Google
-@@ -173,7 +173,7 @@ If you update this file, be sure also to update google_chrome_strings.grd. -->
-       <if expr="not chromeos">
-         <!-- Browser Window Title Format -->
-         <message name="IDS_BROWSER_WINDOW_TITLE_FORMAT" desc="The format for titles displayed in tabs and popup windows">
--          <ph name="PAGE_TITLE">$1<ex>Google</ex></ph> - Chromium
-+          <ph name="PAGE_TITLE">$1<ex>Google</ex></ph> - Chromium GOST
-         </message>
-       </if>
-       <if expr="chromeos">
-@@ -185,7 +185,7 @@ If you update this file, be sure also to update google_chrome_strings.grd. -->
-       <!-- Accessible window title format - includes the channel, and the same
-            on all browser platforms rather than different on Chrome OS. -->
-       <message name="IDS_ACCESSIBLE_BROWSER_WINDOW_TITLE_FORMAT" desc="The format for the accessible name of a tabbed browser window">
--        <ph name="PAGE_TITLE">$1<ex>Google</ex></ph> - Chromium
-+        <ph name="PAGE_TITLE">$1<ex>Google</ex></ph> - Chromium GOST
-       </message>
-       <message name="IDS_ACCESSIBLE_BETA_BROWSER_WINDOW_TITLE_FORMAT" desc="The format for the accessible name of a tabbed browser window for the beta channel version of the browser">
-         <ph name="PAGE_TITLE">$1<ex>Google</ex></ph> - Chromium Beta
-@@ -227,7 +227,7 @@ If you update this file, be sure also to update google_chrome_strings.grd. -->
-         </message>
-       </if>
-       <message name="IDS_ACCNAME_APP" desc="The accessible name for the app menu.">
--        Chromium
-+        Chromium GOST
-       </message>
-       <!-- Hung Browser Detector -->
-       <if expr="is_win">
-@@ -244,7 +244,7 @@ If you update this file, be sure also to update google_chrome_strings.grd. -->
-           Are you sure you want to uninstall Chromium?
-         </message>
-         <message name="IDS_UNINSTALL_CHROME" desc="The title of the Chromium uninstall dialog.">
--          Uninstall Chromium
-+          Uninstall Chromium GOST
-         </message>
-       </if>
-       <message name="IDS_FR_CUSTOMIZE_DEFAULT_BROWSER" desc="Default browser checkbox label">
-@@ -292,7 +292,7 @@ Chromium is unable to recover your settings.
-       </message>
-       <!-- Crash Recovery Dialog -->
-       <message name="IDS_CRASH_RECOVERY_TITLE" desc="Title of dialog shown when the browser crashes.">
--        Chromium
-+        Chromium GOST
-       </message>
-       <if expr="is_win">
-         <message name="IDS_CRASH_RECOVERY_CONTENT" desc="Text content telling the user the browser has crashed.">
-@@ -308,7 +308,7 @@ Chromium is unable to recover your settings.
-         Chromium lets you know if your passwords are ever compromised
-       </message>
-       <message name="IDS_PASSWORD_MANAGER_TITLE_BRAND" desc="The product name used in the title of the password bubble.">
--        Chromium
-+        Chromium GOST
-       </message>
-       <if expr="is_macosx">
-         <message name="IDS_PASSWORDS_PAGE_AUTHENTICATION_PROMPT" desc="Text for the dialog box that prompts the user for their OS account password before revealing plaintext passwords on the password page.">
-@@ -460,10 +460,10 @@ Chromium is unable to recover your settings.
-       <if expr="enable_extensions">
-         <!-- Extension installed bubble -->
-         <message name="IDS_EXTENSION_INSTALLED_HEADING" desc="Title of the extension-installed bubble. Instructs that the extension was installed.">
--          <ph name="EXTENSION_NAME">$1<ex>Gmail Checker</ex></ph> has been added to Chromium
-+          <ph name="EXTENSION_NAME">$1<ex>Gmail Checker</ex></ph> has been added to Chromium GOST
-         </message>
-         <message name="IDS_EXTENSION_INSTALLED_SYNC_PROMO_LINK_NEW" desc="Text of the link to sign in to Chromium from the extension installed bubble. This will be converted to a link, with additional text around it.">
--          sign in to Chromium
-+          sign in to Chromium GOST
-         </message>
- 
-         <!-- Extension uninstall prompt -->
-@@ -492,7 +492,7 @@ Chromium is unable to recover your settings.
-         Remove from Chromium...
-       </message>
-       <message name="IDS_EXTENSIONS_SHORTCUT_SCOPE_IN_CHROME" desc="The label to indicate that a shortcut will be triggerable only from within the Chrome application.">
--        In Chromium
-+        In Chromium GOST
-       </message>
- 
-       <if expr="enable_extensions">
-@@ -506,7 +506,7 @@ Chromium is unable to recover your settings.
- 
-       <!-- Main Chrome menu -->
-       <message name="IDS_APPMENU_TOOLTIP" desc="The tooltip to show for the browser menu">
--        Customize and control Chromium
-+        Customize and control Chromium GOST
-       </message>
- 
-       <message name="IDS_APPMENU_TOOLTIP_UPDATE_AVAILABLE" desc="The tooltip to show for the browser menu when an update is available">
-@@ -518,28 +518,28 @@ Chromium is unable to recover your settings.
-       </message>
- 
-       <message name="IDS_OPEN_IN_CHROME" desc="The text label of the Open in Chrome menu item for the Hosted App app menu">
--        &amp;Open in Chromium
-+        &amp;Open in Chromium GOST
-       </message>
- 
-       <if expr="use_titlecase and not chromeos">
-         <message name="IDS_ABOUT" desc="In Title Case: The text label of the About Chrome menu item">
--          About &amp;Chromium
-+          About &amp;Chromium GOST
-         </message>
-         <message name="IDS_UPDATE_NOW" desc="In Title Case: The text label of the Update Chrome Now menu item">
--          Update &amp;Chromium
-+          Update &amp;Chromium GOST
-         </message>
-       </if>
-       <if expr="not use_titlecase and not chromeos">
-         <message name="IDS_ABOUT" desc="The text label of the About Chrome menu item">
--          About &amp;Chromium
-+          About &amp;Chromium GOST
-         </message>
-         <message name="IDS_UPDATE_NOW" desc="The text label of the Update Chrome Now menu item">
--          Update &amp;Chromium
-+          Update &amp;Chromium GOST
-         </message>
-       </if>
-       <if expr="chromeos">
-         <message name="IDS_ABOUT" desc="The text label of the About Chrome menu item">
--          About &amp;Chromium
-+          About &amp;Chromium GOST
-         </message>
-         <message name="IDS_ABOUT_OS" desc="The text label of the About Chrome OS menu item">
-           About &amp;Chromium OS
-@@ -551,7 +551,7 @@ Chromium is unable to recover your settings.
- 
-       <if expr="is_macosx">
-         <message name="IDS_APP_MENU_PRODUCT_NAME" desc="The application's short name, used for the Mac's application menu, activity monitor, etc. This should be less than 16 characters. Example: Chrome, not Google Chrome.">
--          Chromium
-+          Chromium GOST
-         </message>
-         <message name="IDS_HELPER_NAME" desc="The helper application's name.  Should contain the Chrome application name (IDS_PRODUCT_NAME). Example: Google Chrome Helper.">
-           Chromium Helper
-@@ -563,7 +563,7 @@ Chromium is unable to recover your settings.
- 
-       <!-- Chrome sign-in page -->
-       <message name="IDS_CHROME_SIGNIN_TITLE" desc="Title on the about:chrome-signin page">
--        Chromium
-+        Chromium GOST
-       </message>
- 
-       <!-- DICE sign-in promo strings -->
-@@ -614,7 +614,7 @@ Chromium is unable to recover your settings.
-       <!-- Signin Email Confirmation tab modal dialog -->
-       <if expr="not chromeos">
-         <message name="IDS_SIGNIN_EMAIL_CONFIRMATION_TITLE" desc="Title of the signin email confirmation tab modal dialog.">
--          <ph name="USER_EMAIL_ADDRESS">$1<ex>foo@gmail.com</ex></ph> was previously using Chromium
-+          <ph name="USER_EMAIL_ADDRESS">$1<ex>foo@gmail.com</ex></ph> was previously using Chromium GOST
-         </message>
-       </if>
- 
-@@ -741,7 +741,7 @@ Chromium is unable to recover your settings.
-           Now it's easier to use Chromium with your Google Account and on shared computers.
-         </message>
-         <message name="IDS_USER_MANAGER_TUTORIAL_SLIDE_YOUR_CHROME_TITLE" desc="Title of the slide about personalizing the browser">
--          This is your Chromium
-+          This is your Chromium GOST
-         </message>
-         <message name="IDS_USER_MANAGER_TUTORIAL_SLIDE_YOUR_CHROME_TEXT" desc="Main text of the slide about personalizing the browser">
-           Your web, bookmarks, and other Chromium stuff live here.
-@@ -756,7 +756,7 @@ Chromium is unable to recover your settings.
-           Click your name to open Chromium and start browsing.
-         </message>
-         <message name="IDS_USER_MANAGER_TUTORIAL_SLIDE_OUTRO_ADD_USER" desc="Text of the add a new user button">
--          Add yourself to Chromium
-+          Add yourself to Chromium GOST
-         </message>
-       </if>
- 
-@@ -835,7 +835,7 @@ Chromium is unable to recover your settings.
-       <!-- Update Recommended dialog -->
-       <if expr="not chromeos">
-         <message name="IDS_UPDATE_RECOMMENDED_DIALOG_TITLE" desc="The window title for the Update Recommended dialog.">
--          Relaunch Chromium
-+          Relaunch Chromium GOST
-         </message>
-         <message name="IDS_UPDATE_RECOMMENDED" desc="The main text of the Update Recommended dialog with a count of open incognito windows.">
-           {COUNT, plural,
-@@ -872,7 +872,7 @@ Chromium is unable to recover your settings.
- 
-       <!-- Update bubble -->
-       <message name="IDS_REINSTALL_APP" desc="Text for the button the user clicks to reinstall the app.">
--        Reinstall Chromium
-+        Reinstall Chromium GOST
-       </message>
-       <if expr="use_titlecase">
-         <message name="IDS_UPGRADE_BUBBLE_MENU_ITEM" desc="In Title Case: Text for the Chrome menu option replacing Update required.">
-@@ -885,7 +885,7 @@ Chromium is unable to recover your settings.
-         </message>
-       </if>
-       <message name="IDS_UPGRADE_BUBBLE_TITLE" desc="Text for the title of the upgrade bubble view.">
--        Can't update Chromium
-+        Can't update Chromium GOST
-       </message>
-       <message name="IDS_UPGRADE_BUBBLE_TEXT" desc="Text for the upgrade bubble view full description.">
-         Chromium couldn't update to the latest version, so you're missing out on new features and security fixes.
-@@ -896,7 +896,7 @@ Chromium is unable to recover your settings.
-         Chromium is out of date
-       </message>
-       <message name="IDS_SYNC_ERROR_USER_MENU_UPGRADE_BUTTON" desc="Button in the header of desktop user menu that prompts the user to update Chrome to fix the out-of-date Chrome client error.">
--        Update Chromium
-+        Update Chromium GOST
-       </message>
- 
-       <!-- Sync errors. Android uses native UI to handle Sync settings -->
-@@ -905,7 +905,7 @@ Chromium is unable to recover your settings.
-           Update Chromium to start sync
-         </message>
-         <message name="IDS_SYNC_UPGRADE_CLIENT_LINK_LABEL" desc="Hyperlink text indicating client needs to be upgraded to the latest version.">
--          Update Chromium
-+          Update Chromium GOST
-         </message>
-       </if>
- 
-@@ -915,12 +915,12 @@ Chromium is unable to recover your settings.
-       </message>
-       <if expr="use_titlecase">
-         <message name="IDS_RUN_RECOVERY" desc="In Title Case: Text for the button the user clicks to recover chromium and its updater.">
--          Update Chromium
-+          Update Chromium GOST
-         </message>
-       </if>
-       <if expr="not use_titlecase">
-         <message name="IDS_RUN_RECOVERY" desc="Text for the button the user clicks to recover chromium and its updater.">
--          Update Chromium
-+          Update Chromium GOST
-         </message>
-       </if>
-       <message name="IDS_RECOVERY_BUBBLE_TEXT" desc="Text for the chrome recovery bubble view full description.">
-@@ -996,7 +996,7 @@ Chromium is unable to recover your settings.
-       <!-- Welcome page (chrome://welcome) strings -->
-       <if expr="not chromeos and not is_android">
-         <message name="IDS_WELCOME_HEADER" desc="A message which will appear as the header on the Welcome UI if the user has never run Chromium before.">
--          Welcome to Chromium
-+          Welcome to Chromium GOST
-         </message>
-       </if>
- 
-@@ -1059,7 +1059,7 @@ Chromium is unable to recover your settings.
-           Couldn't launch Chromium. Try again.
-         </message>
-         <message name="IDS_ENTERPRISE_STARTUP_RELAUNCH_BUTTON" desc="The text of relaunch button of Chromium launch blocking dialog.">
--          Relaunch Chromium
-+          Relaunch Chromium GOST
-         </message>
-       </if>
-       <message name="IDS_DESKTOP_MEDIA_PICKER_TITLE_WEB_CONTENTS_ONLY" desc="Title for the window picker dialog shown when desktop capture of a tab is requested by an app.">
-@@ -1068,7 +1068,7 @@ Chromium is unable to recover your settings.
-       <!-- User happiness tracking survey UI -->
-       <if expr="not is_android">
-         <message name="IDS_HATS_BUBBLE_TITLE" translateable="false" desc="The title of Happiness Tracking Survey's invitation banner, it invites users to take a survey">
--          Help us improve Chromium
-+          Help us improve Chromium GOST
-         </message>
-       </if>
-     </messages>
 diff --git a/chrome/browser/devtools/devtools_window.cc b/chrome/browser/devtools/devtools_window.cc
-index f0e249161a7c..12d835f14818 100644
+index 283e61c374d7..1b82535eb90d 100644
 --- a/chrome/browser/devtools/devtools_window.cc
 +++ b/chrome/browser/devtools/devtools_window.cc
-@@ -1464,6 +1464,12 @@ void DevToolsWindow::RenderProcessGone(bool crashed) {
+@@ -1458,6 +1458,12 @@ void DevToolsWindow::RenderProcessGone(bool crashed) {
    }
  }
  
@@ -352,7 +69,7 @@ index f0e249161a7c..12d835f14818 100644
  void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
    base::Optional<base::Value> value = base::JSONReader::Read(cert_chain);
    CHECK(value && value->is_list());
-@@ -1472,6 +1478,16 @@ void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
+@@ -1466,6 +1472,16 @@ void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
      CHECK(item.is_string());
      std::string temp;
      CHECK(base::Base64Decode(item.GetString(), &temp));
@@ -443,10 +160,10 @@ index 55a35677b9c4..abbc16d5f5f1 100644
  case $CHANNEL in
    stable )
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
-index a9318c8de615..7c32f0c229ab 100644
+index c05ce85a2327..1b9d7a7fd7d0 100644
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
-@@ -95,6 +95,10 @@
+@@ -94,6 +94,10 @@
  #include "content/browser/host_zoom_map_impl.h"
  #endif  // defined(OS_ANDROID)
  
@@ -457,10 +174,10 @@ index a9318c8de615..7c32f0c229ab 100644
  #if BUILDFLAG(ENABLE_PLUGINS)
  #include "content/browser/plugin_private_storage_helper.h"
  #endif  // BUILDFLAG(ENABLE_PLUGINS)
-@@ -760,6 +764,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
+@@ -761,6 +765,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
        scoped_refptr<net::X509Certificate> cert,
        scoped_refptr<net::SSLPrivateKey> private_key) override {
-     DCHECK_CURRENTLY_ON(BrowserThread::IO);
+     DCHECK_CURRENTLY_ON(BrowserThread::UI);
 +#ifndef NO_GOSTSSL
 +    if (cert && !private_key) {
 +        private_key = net::GetEmptyPrivateKey();
@@ -483,7 +200,7 @@ index 37e72394997a..ba5d873ec0ab 100644
        WEBKIT_VERSION_MAJOR,
        WEBKIT_VERSION_MINOR,
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
-index 9a36c9780f16..0a7a55ccca09 100644
+index ac7254c31e3a..c4d820829093 100644
 --- a/net/base/net_error_list.h
 +++ b/net/base/net_error_list.h
 @@ -22,6 +22,11 @@
@@ -499,7 +216,7 @@ index 9a36c9780f16..0a7a55ccca09 100644
  // indicate a fatal error.  Typically this error will be generated as a
  // notification to wait for some external notification that the IO operation
 diff --git a/net/cert/cert_verify_proc.cc b/net/cert/cert_verify_proc.cc
-index 0d0bfee61e98..f1513949221c 100644
+index a2e8cae7b43e..dd93bfe95491 100644
 --- a/net/cert/cert_verify_proc.cc
 +++ b/net/cert/cert_verify_proc.cc
 @@ -486,6 +486,12 @@ scoped_refptr<CertVerifyProc> CertVerifyProc::CreateBuiltinVerifyProc(
@@ -540,10 +257,10 @@ index 0d0bfee61e98..f1513949221c 100644
    // in the chain. Also fills in the has_* booleans for the digest algorithms
    // present in the chain.
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index 66c41641e4c5..5d69aa7b6290 100644
+index eeae0da29d6f..2d9e58357282 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
-@@ -1499,6 +1499,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
+@@ -1497,6 +1497,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
        }
      }
    }
@@ -560,10 +277,10 @@ index 66c41641e4c5..5d69aa7b6290 100644
  }
  
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index df4f720c3146..4ec893b0065e 100644
+index 173e0ad8cc55..d399f2aa58d3 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
-@@ -444,6 +444,14 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
+@@ -450,6 +450,14 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
    return OK;
  }
  
@@ -578,7 +295,7 @@ index df4f720c3146..4ec893b0065e 100644
  int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
    // this has never worked for layered sockets. CHECK to detect any consumers
-@@ -462,6 +470,11 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
+@@ -468,6 +476,11 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
      return rv;
    }
  
@@ -590,7 +307,7 @@ index df4f720c3146..4ec893b0065e 100644
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -1159,6 +1172,82 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
+@@ -1168,6 +1181,82 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
  
    start_cert_verification_time_ = base::TimeTicks::Now();
  
@@ -673,7 +390,7 @@ index df4f720c3146..4ec893b0065e 100644
    const uint8_t* ocsp_response_raw;
    size_t ocsp_response_len;
    SSL_get0_ocsp_response(ssl_.get(), &ocsp_response_raw, &ocsp_response_len);
-@@ -1620,6 +1709,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1649,6 +1738,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
@@ -693,10 +410,10 @@ index df4f720c3146..4ec893b0065e 100644
    if (client_cert_.get()) {
      if (!client_private_key_) {
 diff --git a/net/spdy/spdy_session.cc b/net/spdy/spdy_session.cc
-index fc2cb7cd24e8..d2fffce8516c 100644
+index 4716724c7b4f..9c76065b4020 100644
 --- a/net/spdy/spdy_session.cc
 +++ b/net/spdy/spdy_session.cc
-@@ -1518,6 +1518,18 @@ bool SpdySession::HasAcceptableTransportSecurity() const {
+@@ -1508,6 +1508,18 @@ bool SpdySession::HasAcceptableTransportSecurity() const {
    SSLInfo ssl_info;
    CHECK(GetSSLInfo(&ssl_info));
  
@@ -1015,10 +732,10 @@ index e4c6838f96f8..6b0792b4c927 100644
  
    // Enable image load policies.
 diff --git a/services/service_manager/sandbox/mac/common.sb b/services/service_manager/sandbox/mac/common.sb
-index e6e367aec142..350fdcad0b14 100644
+index af8ff04678e9..6acb4d4bb5cc 100644
 --- a/services/service_manager/sandbox/mac/common.sb
 +++ b/services/service_manager/sandbox/mac/common.sb
-@@ -120,6 +120,21 @@
+@@ -124,6 +124,21 @@
    (subpath "/usr/lib")
  )
  
@@ -1041,7 +758,7 @@ index e6e367aec142..350fdcad0b14 100644
  ; This is read by CFPrefs calling getpwuid in a loop. libinfo then fails to
  ; contact any of the opendirectoryd mach services, and falls back to
 diff --git a/third_party/boringssl/BUILD.generated.gni b/third_party/boringssl/BUILD.generated.gni
-index 56bc2574eab0..91da78dc19f7 100644
+index f9da44466668..4d0dbfdabd93 100644
 --- a/third_party/boringssl/BUILD.generated.gni
 +++ b/third_party/boringssl/BUILD.generated.gni
 @@ -5,6 +5,8 @@
