@@ -1,10 +1,10 @@
-From 252dd21f7c9ed8326a54d472fc3efb793ac8542f Mon Sep 17 00:00:00 2001
+From f45ab9c9cd9790bcdf3f72f2cc606e2115cb4efd Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 5 Feb 2020 11:48:25 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
- chrome/app/app-entitlements.plist             |   8 +-
+ chrome/app/app-entitlements.plist             |  10 +-
  chrome/browser/devtools/devtools_window.cc    |  16 +++
  .../ssl_client_certificate_selector_mac.mm    |   8 ++
  .../chromium-browser/chromium-browser.info    |  10 +-
@@ -27,13 +27,13 @@ Subject: [PATCH] chromium GOSTSSL
  sandbox/win/src/process_mitigations.cc        |   4 +
  .../service_manager/sandbox/mac/common.sb     |  15 +++
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 23 files changed, 397 insertions(+), 12 deletions(-)
+ 23 files changed, 397 insertions(+), 14 deletions(-)
 
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
-index 4a1d735cfe35..a8ad48b18064 100644
+index 4a1d735cfe35..310d9aab7d47 100644
 --- a/chrome/app/app-entitlements.plist
 +++ b/chrome/app/app-entitlements.plist
-@@ -2,12 +2,6 @@
+@@ -2,14 +2,6 @@
  <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
  <plist version="1.0">
  <dict>
@@ -43,10 +43,12 @@ index 4a1d735cfe35..a8ad48b18064 100644
 -	<array>
 -		<string>${CHROMIUM_TEAM_ID}.${CHROMIUM_BUNDLE_ID}.webauthn</string>
 -	</array>
- 	<key>com.apple.developer.associated-domains.applinks.read-write</key>
- 	<true/>
+-	<key>com.apple.developer.associated-domains.applinks.read-write</key>
+-	<true/>
  	<key>com.apple.security.device.audio-input</key>
-@@ -20,5 +14,7 @@
+ 	<true/>
+ 	<key>com.apple.security.device.bluetooth</key>
+@@ -20,5 +12,7 @@
  	<true/>
  	<key>com.apple.security.device.usb</key>
  	<true/>
