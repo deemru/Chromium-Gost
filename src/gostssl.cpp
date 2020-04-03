@@ -693,31 +693,39 @@ extern "C" {
 #ifdef _WIN32
 #define CAPI10_LIB "capi10_win.dll"
 #define CAPI20_LIB "capi20_win.dll"
+#define RDRSUP_LIB "cpsuprt.dll"
 #elif defined( __APPLE__ )
 #define CAPI10_LIB "/opt/cprocsp/lib/libcapi10.dylib"
 #define CAPI20_LIB "/opt/cprocsp/lib/libcapi20.dylib"
+#define RDRSUP_LIB "/opt/cprocsp/lib/librdrsup.dylib"
 #include <TargetConditionals.h>
 #else // other LINUX
 #if defined( __mips__ ) // archs
     #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
         #define CAPI10_LIB "/opt/cprocsp/lib/mipsel/libcapi10.so"
         #define CAPI20_LIB "/opt/cprocsp/lib/mipsel/libcapi20.so"
+        #define RDRSUP_LIB "/opt/cprocsp/lib/mipsel/librdrsup.so"
     #else // byte order
         #define CAPI10_LIB "/opt/cprocsp/lib/mips/libcapi10.so"
         #define CAPI20_LIB "/opt/cprocsp/lib/mips/libcapi20.so"
+        #define RDRSUP_LIB "/opt/cprocsp/lib/mips/librdrsup.so"
     #endif // byte order
 #elif defined( __arm__ )
     #define CAPI10_LIB "/opt/cprocsp/lib/arm/libcapi10.so"
     #define CAPI20_LIB "/opt/cprocsp/lib/arm/libcapi20.so"
+    #define RDRSUP_LIB "/opt/cprocsp/lib/arm/librdrsup.so"
 #elif defined( __aarch64__ ) // archs
     #define CAPI10_LIB "/opt/cprocsp/lib/aarch64/libcapi10.so"
     #define CAPI20_LIB "/opt/cprocsp/lib/aarch64/libcapi20.so"
+    #define RDRSUP_LIB "/opt/cprocsp/lib/aarch64/librdrsup.so"
 #elif defined( __i386__ ) // archs
     #define CAPI10_LIB "/opt/cprocsp/lib/ia32/libcapi10.so"
     #define CAPI20_LIB "/opt/cprocsp/lib/ia32/libcapi20.so"
+    #define RDRSUP_LIB "/opt/cprocsp/lib/ia32/librdrsup.so"
 #else // archs
 #define CAPI10_LIB "/opt/cprocsp/lib/amd64/libcapi10.so"
 #define CAPI20_LIB "/opt/cprocsp/lib/amd64/libcapi20.so"
+#define RDRSUP_LIB "/opt/cprocsp/lib/amd64/librdrsup.so"
 #endif // archs
 #endif // _WIN32 or __APPLE__ or LINUX
 
@@ -743,6 +751,14 @@ static void * get_capi20x( LPCSTR name )
     if( capi20 == (void *)(uintptr_t)-1 )
         capi20 = dlopen( CAPI20_LIB, RTLD_LAZY );
     return capi20 ? dlsym( capi20, name ) : NULL;
+}
+
+static void * get_rdrsupx( LPCSTR name )
+{
+    static void * rdrsup = (void *)(uintptr_t)-1;
+    if( rdrsup == (void *)(uintptr_t)-1 )
+        rdrsup = dlopen( RDRSUP_LIB, RTLD_LAZY );
+    return rdrsup ? dlsym( rdrsup, name ) : NULL;
 }
 
 #define DECLARE_CAPI10X_FUNCTION( rettype, name, args, callargs, retfalse ) \
@@ -783,6 +799,20 @@ void WINAPI name args \
     if( !capix ) \
         return; \
     [&]()NOCFI{ capix callargs; }(); \
+}
+
+#define DECLARE_RDRSUPX_FUNCTION( rettype, name, args, callargs, retfalse ) \
+typedef rettype ( WINAPI * t_##name ) args; \
+rettype WINAPI name args \
+{ \
+    rettype result; \
+    static t_##name capix = NULL; \
+    if( !capix ) \
+        *(void **)&capix = get_rdrsupx( #name ); \
+    if( !capix ) \
+        return retfalse; \
+    [&]()NOCFI{ result = capix callargs; }(); \
+    return result; \
 }
 
 DECLARE_CAPI10X_FUNCTION( BOOL, CryptAcquireContextA,
@@ -897,6 +927,8 @@ DECLARE_CAPI20X_FUNCTION( BOOL, CryptStringToBinaryA,
     ( LPCSTR pszString, DWORD cchString, DWORD dwFlags, BYTE * pbBinary, DWORD * pcbBinary, DWORD * pdwSkip, DWORD * pdwFlags ),
     ( pszString, cchString, dwFlags, pbBinary, pcbBinary, pdwSkip, pdwFlags ), FALSE )
 
-}
+DECLARE_RDRSUPX_FUNCTION( int, WideCharToMultiByte,
+    ( UINT CodePage, DWORD dwFlags, LPCWSTR lpWideCharStr, int cchWideChar, LPSTR lpMultiByteStr, int cbMultiByte, LPCSTR lpDefaultChar, LPBOOL lpUsedDefaultChar ),
+    ( CodePage, dwFlags, lpWideCharStr, cchWideChar, lpMultiByteStr, cbMultiByte, lpDefaultChar, lpUsedDefaultChar ), 0 )
 
 #endif // not _WIN32
