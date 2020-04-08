@@ -1,6 +1,6 @@
-From f45ab9c9cd9790bcdf3f72f2cc606e2115cb4efd Mon Sep 17 00:00:00 2001
+From 6a80f7c7fee9567327b7cd0517080c4306f70ab8 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
-Date: Wed, 5 Feb 2020 11:48:25 +0300
+Date: Wed, 8 Apr 2020 13:31:28 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
@@ -17,17 +17,17 @@ Subject: [PATCH] chromium GOSTSSL
  net/socket/ssl_client_socket.cc               |   9 ++
  net/socket/ssl_client_socket.h                |   4 +
  net/socket/ssl_client_socket_impl.cc          | 100 ++++++++++++++++++
- net/spdy/spdy_session.cc                      |  12 +++
+ net/spdy/spdy_session.cc                      |  15 +++
  net/ssl/client_cert_store_mac.cc              |  80 ++++++++++++++
  net/ssl/client_cert_store_nss.cc              |  31 ++++++
  net/ssl/openssl_ssl_util.cc                   |   4 +
- net/ssl/ssl_cipher_suite_names.cc             |  26 +++++
+ net/ssl/ssl_cipher_suite_names.cc             |  36 +++++++
  net/ssl/ssl_platform_key_util.cc              |  21 ++++
  net/ssl/ssl_platform_key_util.h               |   7 ++
  sandbox/win/src/process_mitigations.cc        |   4 +
  .../service_manager/sandbox/mac/common.sb     |  15 +++
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 23 files changed, 397 insertions(+), 14 deletions(-)
+ 23 files changed, 410 insertions(+), 14 deletions(-)
 
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
 index 4a1d735cfe35..310d9aab7d47 100644
@@ -57,7 +57,7 @@ index 4a1d735cfe35..310d9aab7d47 100644
  </dict>
  </plist>
 diff --git a/chrome/browser/devtools/devtools_window.cc b/chrome/browser/devtools/devtools_window.cc
-index 283e61c374d7..1b82535eb90d 100644
+index 7e8ec5030218..379c07c5de96 100644
 --- a/chrome/browser/devtools/devtools_window.cc
 +++ b/chrome/browser/devtools/devtools_window.cc
 @@ -1458,6 +1458,12 @@ void DevToolsWindow::RenderProcessGone(bool crashed) {
@@ -91,24 +91,24 @@ index 283e61c374d7..1b82535eb90d 100644
    }
  
 diff --git a/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm b/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm
-index 81080ad3f498..1ef22a6e2447 100644
+index 0657ad49380b..1407f9bc5ee9 100644
 --- a/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm
 +++ b/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm
-@@ -239,6 +239,14 @@ initWithBrowserContext:(const content::BrowserContext*)browserContext
-                  clientCerts:(net::ClientCertIdentityList)inputClientCerts {
-   cert_identities_ = std::move(inputClientCerts);
+@@ -273,6 +273,14 @@ class SSLClientCertificateSelectorDelegate
+     _delegate = delegate;
+     _certIdentities = std::move(clientCerts);
  
 +#ifndef NO_GOSTSSL
-+    if( cert_identities_.size() == 1 && cert_identities_[0]->sec_identity_ref() == nullptr )
++    if( _certIdentities.size() == 1 && _certIdentities[0]->sec_identity_ref() == nullptr )
 +    {
-+        observer_->CertificateSelected( cert_identities_[0]->certificate(), nullptr );
-+        cert_identities_.clear();
++        _delegate->CertificateSelected( _certIdentities[0]->certificate(), nullptr );
++        _certIdentities.clear();
 +    }
 +#endif // GOSTSSL
 +
-   sec_identities_.reset([[NSMutableArray alloc] init]);
-   for (const auto& cert : cert_identities_) {
-     DCHECK(cert->sec_identity_ref());
+     _secIdentities.reset([[NSMutableArray alloc] init]);
+     for (const auto& cert : _certIdentities) {
+       DCHECK(cert->sec_identity_ref());
 diff --git a/chrome/installer/linux/common/chromium-browser/chromium-browser.info b/chrome/installer/linux/common/chromium-browser/chromium-browser.info
 index 3593c9e797ef..9826523e0f36 100644
 --- a/chrome/installer/linux/common/chromium-browser/chromium-browser.info
@@ -164,10 +164,10 @@ index 55a35677b9c4..abbc16d5f5f1 100644
  case $CHANNEL in
    stable )
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
-index c05ce85a2327..1b9d7a7fd7d0 100644
+index 5283293ac557..d88da3c9d2a9 100644
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
-@@ -94,6 +94,10 @@
+@@ -101,6 +101,10 @@
  #include "content/browser/host_zoom_map_impl.h"
  #endif  // defined(OS_ANDROID)
  
@@ -178,7 +178,7 @@ index c05ce85a2327..1b9d7a7fd7d0 100644
  #if BUILDFLAG(ENABLE_PLUGINS)
  #include "content/browser/plugin_private_storage_helper.h"
  #endif  // BUILDFLAG(ENABLE_PLUGINS)
-@@ -761,6 +765,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
+@@ -849,6 +853,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
        scoped_refptr<net::X509Certificate> cert,
        scoped_refptr<net::SSLPrivateKey> private_key) override {
      DCHECK_CURRENTLY_ON(BrowserThread::UI);
@@ -191,10 +191,10 @@ index c05ce85a2327..1b9d7a7fd7d0 100644
  
      if (cert && private_key) {
 diff --git a/content/common/user_agent.cc b/content/common/user_agent.cc
-index 37e72394997a..ba5d873ec0ab 100644
+index e7d9a7c8ec97..19f784cd9c76 100644
 --- a/content/common/user_agent.cc
 +++ b/content/common/user_agent.cc
-@@ -193,7 +193,7 @@ std::string BuildUserAgentFromOSAndProduct(const std::string& os_info,
+@@ -215,7 +215,7 @@ std::string BuildUserAgentFromOSAndProduct(const std::string& os_info,
    std::string user_agent;
    base::StringAppendF(
        &user_agent,
@@ -204,7 +204,7 @@ index 37e72394997a..ba5d873ec0ab 100644
        WEBKIT_VERSION_MAJOR,
        WEBKIT_VERSION_MINOR,
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
-index ac7254c31e3a..c4d820829093 100644
+index e5f2ae4668c0..21198cb8c463 100644
 --- a/net/base/net_error_list.h
 +++ b/net/base/net_error_list.h
 @@ -22,6 +22,11 @@
@@ -261,10 +261,10 @@ index a2e8cae7b43e..dd93bfe95491 100644
    // in the chain. Also fills in the has_* booleans for the digest algorithms
    // present in the chain.
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index eeae0da29d6f..2d9e58357282 100644
+index 00d47f19fa76..378de51c8e98 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
-@@ -1497,6 +1497,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
+@@ -1499,6 +1499,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
        }
      }
    }
@@ -323,7 +323,7 @@ index 705281a95978..1f925e386655 100644
    void NotifySSLConfigChanged(bool is_cert_database_change);
    void NotifySSLConfigForServerChanged(const HostPortPair& server);
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 173e0ad8cc55..8490b2dab420 100644
+index 428c93bb9013..99754cc38d76 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
 @@ -450,6 +450,14 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
@@ -435,7 +435,7 @@ index 173e0ad8cc55..8490b2dab420 100644
    const uint8_t* ocsp_response_raw;
    size_t ocsp_response_len;
    SSL_get0_ocsp_response(ssl_.get(), &ocsp_response_raw, &ocsp_response_len);
-@@ -1649,6 +1737,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1664,6 +1752,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
@@ -455,10 +455,10 @@ index 173e0ad8cc55..8490b2dab420 100644
    if (client_cert_.get()) {
      if (!client_private_key_) {
 diff --git a/net/spdy/spdy_session.cc b/net/spdy/spdy_session.cc
-index 4716724c7b4f..9c76065b4020 100644
+index 2b6da76c4028..e47a60095ba2 100644
 --- a/net/spdy/spdy_session.cc
 +++ b/net/spdy/spdy_session.cc
-@@ -1508,6 +1508,18 @@ bool SpdySession::HasAcceptableTransportSecurity() const {
+@@ -1510,6 +1510,21 @@ bool SpdySession::HasAcceptableTransportSecurity() const {
    SSLInfo ssl_info;
    CHECK(GetSSLInfo(&ssl_info));
  
@@ -468,6 +468,9 @@ index 4716724c7b4f..9c76065b4020 100644
 +  {
 +  case 0xff85: // GOST2012-GOST8912-GOST8912
 +  case 0x0081: // GOST2001-GOST89-GOST89
++  case 0xc100: // TLS_GOSTR341112_256_WITH_KUZNYECHIK_CTR_OMAC
++  case 0xc101: // TLS_GOSTR341112_256_WITH_MAGMA_CTR_OMAC
++  case 0xc102: // TLS_GOSTR341112_256_WITH_28147_CNT_IMIT
 +      return true;
 +  default:
 +      break;
@@ -625,7 +628,7 @@ index f4d3e893c231..e5703217e647 100644
  }
  
 diff --git a/net/ssl/openssl_ssl_util.cc b/net/ssl/openssl_ssl_util.cc
-index f5185218e4ee..008e15d9f007 100644
+index 77fa36a277d3..0e340f484079 100644
 --- a/net/ssl/openssl_ssl_util.cc
 +++ b/net/ssl/openssl_ssl_util.cc
 @@ -84,6 +84,10 @@ int MapOpenSSLErrorSSL(uint32_t error_code) {
@@ -640,10 +643,10 @@ index f5185218e4ee..008e15d9f007 100644
      case SSL_R_SSLV3_ALERT_UNSUPPORTED_CERTIFICATE:
      case SSL_R_SSLV3_ALERT_CERTIFICATE_REVOKED:
 diff --git a/net/ssl/ssl_cipher_suite_names.cc b/net/ssl/ssl_cipher_suite_names.cc
-index 1156ff1774b5..7e90ebe3d660 100644
+index 1156ff1774b5..e1c1d7b15c11 100644
 --- a/net/ssl/ssl_cipher_suite_names.cc
 +++ b/net/ssl/ssl_cipher_suite_names.cc
-@@ -66,6 +66,27 @@ void SSLCipherSuiteToStrings(const char** key_exchange_str,
+@@ -66,6 +66,34 @@ void SSLCipherSuiteToStrings(const char** key_exchange_str,
    *is_aead = false;
    *is_tls13 = false;
  
@@ -651,32 +654,42 @@ index 1156ff1774b5..7e90ebe3d660 100644
 +  switch( cipher_suite )
 +  {
 +  case 0x0081: // GOST2001-GOST89-GOST89
-+      *key_exchange_str = "GOSTR341001";
-+      *cipher_str = "GOST28147CNT";
-+      *mac_str = "GOST28147IMIT";
++  case 0xff85: // GOST2012-GOST8912-GOST8912
++  case 0xc102: // TLS_GOSTR341112_256_WITH_28147_CNT_IMIT
++      *key_exchange_str = "GOST_R_3410_2001";
++      *cipher_str = "GOST_28147_CNT";
++      *mac_str = "GOST_28147_IMIT";
 +      return;
 +
-+  case 0xff85: // GOST2012-GOST8912-GOST8912
-+      *key_exchange_str = "GOSTR341012";
-+      *cipher_str = "GOST28147CNT";
-+      *mac_str = "GOST28147IMIT";
++  case 0xc100: // TLS_GOSTR341112_256_WITH_KUZNYECHIK_CTR_OMAC
++      *key_exchange_str = "GOST_R_3410_2012_512";
++      *cipher_str = "GOST_KUZNYECHIK_CTR";
++      *mac_str = "GOST_KUZNYECHIK_OMAC";
++      return;
++
++  case 0xc101: // TLS_GOSTR341112_256_WITH_MAGMA_CTR_OMAC
++      *key_exchange_str = "GOST_R_3410_2001";
++      *cipher_str = "GOST_MAGMA_CTR";
++      *mac_str = "GOST_MAGMA_OMAC";
 +      return;
 +
 +  default:
 +      break;
-+
 +  }
 +#endif // GOSTSSL
 +
    const SSL_CIPHER* cipher = SSL_get_cipher_by_value(cipher_suite);
    if (!cipher)
      return;
-@@ -179,6 +200,11 @@ int ObsoleteSSLStatus(int connection_status, uint16_t signature_algorithm) {
+@@ -179,6 +207,14 @@ int ObsoleteSSLStatus(int connection_status, uint16_t signature_algorithm) {
    obsolete_ssl |= ObsoleteSSLStatusForProtocol(ssl_version);
  
    uint16_t cipher_suite = SSLConnectionStatusToCipherSuite(connection_status);
 +#ifndef NO_GOSTSSL
-+  if( cipher_suite == 0x0081 /* GOST2001-GOST89-GOST89 */ || 
++  if( cipher_suite == 0xc102 /* TLS_GOSTR341112_256_WITH_28147_CNT_IMIT */ ||
++      cipher_suite == 0xc101 /* TLS_GOSTR341112_256_WITH_MAGMA_CTR_OMAC */ ||
++      cipher_suite == 0xc100 /* TLS_GOSTR341112_256_WITH_KUZNYECHIK_CTR_OMAC */ ||
++      cipher_suite == 0x0081 /* GOST2001-GOST89-GOST89 */ ||
 +      cipher_suite == 0xff85 /* GOST2012-GOST8912-GOST8912 */ )
 +    return OBSOLETE_SSL_NONE;
 +#endif // GOSTSSL
@@ -777,7 +790,7 @@ index e4c6838f96f8..6b0792b4c927 100644
  
    // Enable image load policies.
 diff --git a/services/service_manager/sandbox/mac/common.sb b/services/service_manager/sandbox/mac/common.sb
-index af8ff04678e9..6acb4d4bb5cc 100644
+index 7378211e1776..5e3981fcc7d0 100644
 --- a/services/service_manager/sandbox/mac/common.sb
 +++ b/services/service_manager/sandbox/mac/common.sb
 @@ -124,6 +124,21 @@
@@ -803,7 +816,7 @@ index af8ff04678e9..6acb4d4bb5cc 100644
  ; This is read by CFPrefs calling getpwuid in a loop. libinfo then fails to
  ; contact any of the opendirectoryd mach services, and falls back to
 diff --git a/third_party/boringssl/BUILD.generated.gni b/third_party/boringssl/BUILD.generated.gni
-index f9da44466668..4d0dbfdabd93 100644
+index e399985d965d..5f46548e3ca1 100644
 --- a/third_party/boringssl/BUILD.generated.gni
 +++ b/third_party/boringssl/BUILD.generated.gni
 @@ -5,6 +5,8 @@
