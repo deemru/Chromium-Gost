@@ -21,7 +21,8 @@ git checkout -f $GOST_BRANCH
 gclient sync --with_branch_heads -D
 git am --3way --ignore-space-change < $CHROMIUM_GOST_REPO/patch/chromium.patch || exit
 
-cp -f $CHROMIUM_GOST_REPO/extra/chromium_strings.grd chrome/app/chromium_strings.grd
+perl -pi -e "s/Chromium/Chromium GOST/g" chrome/app/chromium_strings.grd
+perl -pi -e "s/Chromium/Chromium GOST/g" chrome/app/resources/chromium_strings*.xtb
 cp -f $CHROMIUM_GOST_REPO/extra/exit_0.sh chrome/installer/linux/common/repo.cron
 cp -f $CHROMIUM_GOST_REPO/extra/exit_0.sh chrome/installer/linux/common/rpmrepo.cron
 
