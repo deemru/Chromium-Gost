@@ -55,11 +55,11 @@ void gostssl_isgostcerthook( void * cert, int size, int * is_gost );
 
 #include "msspi.h"
 
-#define TLS_GOST_CIPHER_2001 0x0081
-#define TLS_GOST_CIPHER_2012 0xFF85
-
-static const SSL_CIPHER * tlsgost2001 = NULL;
-static const SSL_CIPHER * tlsgost2012 = NULL;
+static const SSL_CIPHER * tls_0081 = NULL;
+static const SSL_CIPHER * tls_C100 = NULL;
+static const SSL_CIPHER * tls_C101 = NULL;
+static const SSL_CIPHER * tls_C102 = NULL;
+static const SSL_CIPHER * tls_FF85 = NULL;
 
 int gostssl_init()
 {
@@ -76,10 +76,11 @@ int gostssl_init()
 
     CryptReleaseContext( hProv, 0 );
 
-    tlsgost2001 = boring_SSL_get_cipher_by_value( TLS_GOST_CIPHER_2001 );
-    tlsgost2012 = boring_SSL_get_cipher_by_value( TLS_GOST_CIPHER_2012 );
-    
-    if( !tlsgost2001 || !tlsgost2012 )
+    if( NULL == ( tls_0081 = boring_SSL_get_cipher_by_value( 0x0081 ) ) ||
+        NULL == ( tls_C100 = boring_SSL_get_cipher_by_value( 0xC100 ) ) ||
+        NULL == ( tls_C101 = boring_SSL_get_cipher_by_value( 0xC101 ) ) ||
+        NULL == ( tls_C102 = boring_SSL_get_cipher_by_value( 0xC102 ) ) ||
+        NULL == ( tls_FF85 = boring_SSL_get_cipher_by_value( 0xFF85 ) ) )
         return 0;
 
     return 1;
@@ -349,7 +350,11 @@ int gostssl_tls_gost_required( SSL * s )
     GostSSL_Worker * w = workers_api( s, WDB_SEARCH );
 
     if( w && 
-        ( s->s3->hs->new_cipher == tlsgost2001 || s->s3->hs->new_cipher == tlsgost2012 ) )
+        ( s->s3->hs->new_cipher == tls_0081 ||
+          s->s3->hs->new_cipher == tls_C100 ||
+          s->s3->hs->new_cipher == tls_C101 ||
+          s->s3->hs->new_cipher == tls_C102 ||
+          s->s3->hs->new_cipher == tls_FF85 ) )
     {
         boring_ERR_clear_error();
         boring_ERR_put_error( ERR_LIB_SSL, 0, SSL_R_TLS_GOST_REQUIRED, __FILE__, __LINE__ );
@@ -538,7 +543,11 @@ int gostssl_connect( SSL * s, int * is_gost )
         }
 
         // force GOST for broken clients and IIS (regsvr32 -u cpcng.dll)
-        if( cipher_id != TLS_GOST_CIPHER_2001 && cipher_id != TLS_GOST_CIPHER_2012 )
+        if( cipher_id != 0x0081 &&
+            cipher_id != 0xC100 &&
+            cipher_id != 0xC101 &&
+            cipher_id != 0xC102 &&
+            cipher_id != 0xFF85 )
         {
             PCCERT_CONTEXT certcheck = CertCreateCertificateContext( X509_ASN_ENCODING, (BYTE *)servercerts_bufs[0], (DWORD)servercerts_lens[0] );
 
@@ -546,10 +555,10 @@ int gostssl_connect( SSL * s, int * is_gost )
                 return 0;
 
             if( 0 == strcmp( certcheck->pCertInfo->SubjectPublicKeyInfo.Algorithm.pszObjId, szOID_CP_GOST_R3410EL ) )
-                cipher_id = TLS_GOST_CIPHER_2001;
+                cipher_id = 0x0081;
             else if( 0 == strcmp( certcheck->pCertInfo->SubjectPublicKeyInfo.Algorithm.pszObjId, szOID_CP_GOST_R3410_12_256 ) ||
                 0 == strcmp( certcheck->pCertInfo->SubjectPublicKeyInfo.Algorithm.pszObjId, szOID_CP_GOST_R3410_12_512 ) )
-                cipher_id = TLS_GOST_CIPHER_2012;
+                cipher_id = 0xC102;
 
             CertFreeCertificateContext( certcheck );
         }
