@@ -931,6 +931,10 @@ DECLARE_RDRSUPX_FUNCTION( int, WideCharToMultiByte,
     ( UINT CodePage, DWORD dwFlags, LPCWSTR lpWideCharStr, int cchWideChar, LPSTR lpMultiByteStr, int cbMultiByte, LPCSTR lpDefaultChar, LPBOOL lpUsedDefaultChar ),
     ( CodePage, dwFlags, lpWideCharStr, cchWideChar, lpMultiByteStr, cbMultiByte, lpDefaultChar, lpUsedDefaultChar ), 0 )
 
+DECLARE_CAPI20X_FUNCTION( DWORD, CertNameToStrW,
+    ( DWORD dwCertEncodingType, PCERT_NAME_BLOB pName, DWORD dwStrType, LPWSTR psz, DWORD csz ),
+    ( dwCertEncodingType, pName, dwStrType, psz, csz ), 0 )
+
 } // extern "C"
 
 #endif // not _WIN32
