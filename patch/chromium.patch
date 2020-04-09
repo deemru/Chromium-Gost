@@ -1,4 +1,4 @@
-From 6a80f7c7fee9567327b7cd0517080c4306f70ab8 Mon Sep 17 00:00:00 2001
+From 06d044c8a19b04685a4a424f53194daca6fd5d99 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 8 Apr 2020 13:31:28 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -6,6 +6,9 @@ Subject: [PATCH] chromium GOSTSSL
 ---
  chrome/app/app-entitlements.plist             |  10 +-
  chrome/browser/devtools/devtools_window.cc    |  16 +++
+ .../resources/local_ntp/local_ntp.html        |   4 +-
+ .../browser/resources/local_ntp/local_ntp.js  |   2 +-
+ chrome/browser/search/local_ntp_source.cc     |   7 ++
  .../ssl_client_certificate_selector_mac.mm    |   8 ++
  .../chromium-browser/chromium-browser.info    |  10 +-
  .../installer/linux/rpm/chrome.spec.template  |   4 +
@@ -27,7 +30,7 @@ Subject: [PATCH] chromium GOSTSSL
  sandbox/win/src/process_mitigations.cc        |   4 +
  .../service_manager/sandbox/mac/common.sb     |  15 +++
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 23 files changed, 410 insertions(+), 14 deletions(-)
+ 26 files changed, 420 insertions(+), 17 deletions(-)
 
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
 index 4a1d735cfe35..310d9aab7d47 100644
@@ -90,6 +93,53 @@ index 7e8ec5030218..379c07c5de96 100644
      decoded.push_back(std::move(temp));
    }
  
+diff --git a/chrome/browser/resources/local_ntp/local_ntp.html b/chrome/browser/resources/local_ntp/local_ntp.html
+index e09bb54fdc96..83e981f965d3 100644
+--- a/chrome/browser/resources/local_ntp/local_ntp.html
++++ b/chrome/browser/resources/local_ntp/local_ntp.html
+@@ -41,9 +41,9 @@
+   <div id="ntp-contents">
+     <div id="logo">
+       <!-- The logo that is displayed in the absence of a doodle. -->
+-      <div id="logo-default" title="Google"></div>
++      <div id="logo-default" title="Chromium GOST"></div>
+       <!-- Logo displayed when theme prevents doodles. Doesn't fade. -->
+-      <div id="logo-non-white" title="Google"></div>
++      <div id="logo-non-white" title="Chromium GOST"></div>
+       <!-- A doodle, if any: its link and image. -->
+       <div id="logo-doodle">
+         <div id="logo-doodle-container">
+diff --git a/chrome/browser/resources/local_ntp/local_ntp.js b/chrome/browser/resources/local_ntp/local_ntp.js
+index 0e9acb05f131..c9d659812fa7 100644
+--- a/chrome/browser/resources/local_ntp/local_ntp.js
++++ b/chrome/browser/resources/local_ntp/local_ntp.js
+@@ -1874,7 +1874,7 @@ function renderTheme() {
+   // Dark mode uses a white Google logo.
+   const useWhiteLogo =
+       theme.alternateLogo || (theme.usingDefaultTheme && isDarkModeEnabled);
+-  document.body.classList.toggle(CLASSES.ALTERNATE_LOGO, useWhiteLogo);
++  document.body.classList.toggle(CLASSES.ALTERNATE_LOGO, false);
+ 
+   if (theme.logoColor) {
+     document.body.style.setProperty(
+diff --git a/chrome/browser/search/local_ntp_source.cc b/chrome/browser/search/local_ntp_source.cc
+index b1e4a73c95f0..bbd52f70e326 100644
+--- a/chrome/browser/search/local_ntp_source.cc
++++ b/chrome/browser/search/local_ntp_source.cc
+@@ -834,6 +834,13 @@ void LocalNtpSource::StartDataRequest(
+     return;
+   }
+ 
++#ifndef NO_GOSTSSL
++  if( stripped_path == kPromoScriptFilename || stripped_path == kDoodleScriptFilename ) {
++    std::move(callback).Run(nullptr);
++    return;
++  }
++#endif /* NO_GOSTSSL */
++
+   if (stripped_path == chrome::kChromeSearchLocalNtpBackgroundFilename) {
+     base::PostTaskAndReplyWithResult(
+         FROM_HERE,
 diff --git a/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm b/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm
 index 0657ad49380b..1407f9bc5ee9 100644
 --- a/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm

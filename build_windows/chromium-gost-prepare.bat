@@ -26,6 +26,11 @@ for %%f in (chrome\app\resources\chromium_strings*.xtb) do perl -pi -e "s/Chromi
 copy /y %CHROMIUM_GOST_REPO%\extra\chromium-gost.ico chrome\app\theme\chromium\win\chromium.ico
 copy /y %CHROMIUM_GOST_REPO%\extra\chromium-gost.ico chrome\installer\mini_installer\mini_installer.ico
 
+copy /y %CHROMIUM_GOST_REPO%\extra\colored_header.svg chrome\browser\resources\local_ntp\icons\colored_header.svg
+copy /y %CHROMIUM_GOST_REPO%\extra\header.svg chrome\browser\resources\local_ntp\icons\header.svg
+copy /y %CHROMIUM_GOST_REPO%\extra\header.svg chrome\browser\resources\new_tab_page\icons\header.svg
+copy /y %CHROMIUM_GOST_REPO%\extra\google_logo.svg ui\webui\resources\images\google_logo.svg
+
 copy /y %CHROMIUM_GOST_REPO%\extra\product_logo\*.png chrome\app\theme\chromium\
 copy /y %CHROMIUM_GOST_REPO%\extra\product_logo\product_logo_16.png chrome\app\theme\default_100_percent\chromium\product_logo_16.png
 copy /y %CHROMIUM_GOST_REPO%\extra\product_logo\product_logo_32.png chrome\app\theme\default_100_percent\chromium\product_logo_32.png
