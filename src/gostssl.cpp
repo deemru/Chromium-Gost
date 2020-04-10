@@ -11,13 +11,19 @@
 #pragma warning( pop )
 #endif
 
+#if defined( COMPONENT_BUILD ) && defined( _WIN32 )
+#pragma comment( lib, "crypt32.lib" )
+#define DLLEXPORT __declspec(dllexport)
+#else
+#define DLLEXPORT
+#endif
+
 extern "C" {
 
 // Initialize
 int gostssl_init();
 
 // Functionality
-void gostssl_cachestring( SSL * s, void * cachestring, size_t len );
 int gostssl_connect( SSL * s, int * is_gost );
 int gostssl_read( SSL * s, void * buf, int len, int * is_gost );
 int gostssl_peek( SSL * s, void * buf, int len, int * is_gost );
@@ -25,13 +31,14 @@ int gostssl_write( SSL * s, const void * buf, int len, int * is_gost );
 void gostssl_free( SSL * s );
 
 // Markers
-int gostssl_tls_gost_required( SSL * s );
+int gostssl_tls_gost_required( SSL * s, const SSL_CIPHER * cipher );
 
 // Hooks
-void gostssl_certhook( void * cert, int size );
-void gostssl_verifyhook( void * s, unsigned * is_gost );
-void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost );
-void gostssl_isgostcerthook( void * cert, int size, int * is_gost );
+DLLEXPORT void gostssl_certhook( void * cert, int size );
+DLLEXPORT void gostssl_verifyhook( void * s, unsigned * is_gost );
+DLLEXPORT void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost );
+DLLEXPORT void gostssl_isgostcerthook( void * cert, int size, int * is_gost );
+DLLEXPORT void gostssl_cachestring( SSL * s, void * cachestring, size_t len );
 
 }
 
@@ -345,16 +352,16 @@ static GostSSL_Worker * workers_api( SSL * s, WORKER_DB_ACTION action, const cha
     return w;
 }
 
-int gostssl_tls_gost_required( SSL * s )
+int gostssl_tls_gost_required( SSL * s, const SSL_CIPHER * cipher )
 {
     GostSSL_Worker * w = workers_api( s, WDB_SEARCH );
 
     if( w && 
-        ( s->s3->hs->new_cipher == tls_0081 ||
-          s->s3->hs->new_cipher == tls_C100 ||
-          s->s3->hs->new_cipher == tls_C101 ||
-          s->s3->hs->new_cipher == tls_C102 ||
-          s->s3->hs->new_cipher == tls_FF85 ) )
+        ( cipher == tls_0081 ||
+          cipher == tls_C100 ||
+          cipher == tls_C101 ||
+          cipher == tls_C102 ||
+          cipher == tls_FF85 ) )
     {
         boring_ERR_clear_error();
         boring_ERR_put_error( ERR_LIB_SSL, 0, SSL_R_TLS_GOST_REQUIRED, __FILE__, __LINE__ );
@@ -472,7 +479,7 @@ void gostssl_cachestring( SSL * s, void * cachestring, size_t len )
     BYTE * bb = (BYTE *)cachestring;
     std::vector<BYTE> cc;
     cc.resize( len * 2 + 1 );
-    for( int i = 0; i < 8; i++ )
+    for( int i = 0; i < len; i++ )
     {
         BYTE xF = ( bb[i] ) >> 4;
         BYTE Fx = ( bb[i] ) & 0xF;

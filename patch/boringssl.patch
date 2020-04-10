@@ -1,15 +1,15 @@
-From 8a887ea6ab61fc35b9a344bfc9f12945840ad457 Mon Sep 17 00:00:00 2001
+From 24e6631d3564383e8774c87d00f791e59f303bf3 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 30 Jan 2019 15:04:56 +0300
 Subject: [PATCH] boringssl GOSTSSL
 
 ---
  include/openssl/ssl.h   |   4 +
- ssl/handshake_client.cc |  11 +++
+ ssl/handshake_client.cc |   9 ++
  ssl/internal.h          |  33 +++++++
  ssl/ssl_cipher.cc       |  90 ++++++++++++++++++
  ssl/ssl_lib.cc          | 204 ++++++++++++++++++++++++++++++++++++++++
- 5 files changed, 342 insertions(+)
+ 5 files changed, 340 insertions(+)
 
 diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
 index da7731138..d88546596 100644
@@ -27,29 +27,27 @@ index da7731138..d88546596 100644
  #define SSL_R_ATTEMPT_TO_REUSE_SESSION_IN_DIFFERENT_CONTEXT 101
  #define SSL_R_BAD_ALERT 102
 diff --git a/ssl/handshake_client.cc b/ssl/handshake_client.cc
-index 4041fe991..412a17bda 100644
+index 4041fe991..869c9e18f 100644
 --- a/ssl/handshake_client.cc
 +++ b/ssl/handshake_client.cc
-@@ -719,6 +719,17 @@ static enum ssl_hs_wait_t do_read_server_hello(SSL_HANDSHAKE *hs) {
+@@ -684,6 +684,15 @@ static enum ssl_hs_wait_t do_read_server_hello(SSL_HANDSHAKE *hs) {
+     return ssl_hs_error;
    }
-   hs->new_cipher = cipher;
  
 +#ifndef NO_GOSTSSL
-+  if( gostssl() )
-+  {
-+      if( gostssl_tls_gost_required( ssl ) )
-+      {
-+          ssl_send_alert( ssl, SSL3_AL_FATAL, SSL_AD_ILLEGAL_PARAMETER );
-+          return ssl_hs_error;
-+      }
++  if (gostssl()) {
++    if (gostssl_tls_gost_required(ssl, cipher)) {
++      ssl_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_ILLEGAL_PARAMETER);
++      return ssl_hs_error;
++    }
 +  }
 +#endif // GOSTSSL
 +
-   // Now that the cipher is known, initialize the handshake hash and hash the
-   // ServerHello.
-   if (!hs->transcript.InitHash(ssl_protocol_version(ssl), hs->new_cipher) ||
+   // The cipher must be allowed in the selected version and enabled.
+   uint32_t mask_a, mask_k;
+   ssl_get_client_disabled(hs, &mask_a, &mask_k);
 diff --git a/ssl/internal.h b/ssl/internal.h
-index bf4dd2f05..3fdc9fa5a 100644
+index bf4dd2f05..1d4575495 100644
 --- a/ssl/internal.h
 +++ b/ssl/internal.h
 @@ -526,6 +526,13 @@ BSSL_NAMESPACE_BEGIN
@@ -92,7 +90,7 @@ index bf4dd2f05..3fdc9fa5a 100644
 +int gostssl_peek( SSL * s, void * buf, int len, int * is_gost );
 +int gostssl_write( SSL * s, const void * buf, int len, int * is_gost );
 +void gostssl_free( SSL * s );
-+int gostssl_tls_gost_required( SSL * s );
++int gostssl_tls_gost_required( SSL * s, const SSL_CIPHER * cipher );
 +//
 +}
 +#endif // GOSTSSL
