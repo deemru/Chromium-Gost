@@ -28,6 +28,8 @@ int gostssl_connect( SSL * s, int * is_gost );
 int gostssl_read( SSL * s, void * buf, int len, int * is_gost );
 int gostssl_peek( SSL * s, void * buf, int len, int * is_gost );
 int gostssl_write( SSL * s, const void * buf, int len, int * is_gost );
+int gostssl_shutdown( SSL * s, int mode, int * is_gost );
+int gostssl_get_shutdown( const SSL * s, int * is_gost );
 void gostssl_free( SSL * s );
 
 // Markers
@@ -277,7 +279,7 @@ typedef enum
 }
 WORKER_DB_ACTION;
 
-static GostSSL_Worker * workers_api( SSL * s, WORKER_DB_ACTION action, const char * cachestring = NULL )
+static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, const char * cachestring = NULL )
 {
     GostSSL_Worker * w = NULL;
 
@@ -293,7 +295,7 @@ static GostSSL_Worker * workers_api( SSL * s, WORKER_DB_ACTION action, const cha
         }
 
         msspi_set_cert_cb( w->h, (msspi_cert_cb)gostssl_cert_cb );
-        w->s = s;
+        w->s = (SSL *)s;
 
         if( s->hostname.get() )
             msspi_set_hostname( w->h, s->hostname.get() );
@@ -311,9 +313,9 @@ static GostSSL_Worker * workers_api( SSL * s, WORKER_DB_ACTION action, const cha
 
     std::unique_lock<std::recursive_mutex> lck( gmutex );
 
-    WORKERS_DB::iterator lb = workers_db.lower_bound( s );
+    WORKERS_DB::iterator lb = workers_db.lower_bound( (void *)s );
 
-    if( lb != workers_db.end() && !( workers_db.key_comp()( s, lb->first ) ) )
+    if( lb != workers_db.end() && !( workers_db.key_comp()( (void *)s, lb->first ) ) )
     {
         GostSSL_Worker * w_found = lb->second;
 
@@ -347,7 +349,7 @@ static GostSSL_Worker * workers_api( SSL * s, WORKER_DB_ACTION action, const cha
     }
 
     if( action == WDB_NEW )
-        workers_db.insert( lb, WORKERS_DB::value_type( s, w ) );
+        workers_db.insert( lb, WORKERS_DB::value_type( (void *)s, w ) );
 
     return w;
 }
@@ -421,55 +423,80 @@ static int msspi_to_ssl_state_ret( int state, SSL * s, int ret )
     return ret;
 }
 
-int gostssl_read( SSL * s, void * buf, int len, int * is_gost )
+static MSSPI_HANDLE get_msspi( const SSL * s, int * is_gost )
 {
     GostSSL_Worker * w = workers_api( s, WDB_SEARCH );
 
-    // fallback
     if( !w || w->host_status != GOSTSSL_HOST_YES )
     {
         *is_gost = FALSE;
-        return 1;
+        return NULL;
     }
 
     *is_gost = TRUE;
+    return w->h;
+}
 
-    int ret = msspi_read( w->h, buf, len );
-    return msspi_to_ssl_state_ret( msspi_state( w->h ), s, ret );
+int gostssl_read( SSL * s, void * buf, int len, int * is_gost )
+{
+    MSSPI_HANDLE h = get_msspi( s, is_gost );
+    if( !h )
+        return 0;
+
+    int ret = msspi_read( h, buf, len );
+    return msspi_to_ssl_state_ret( msspi_state( h ), s, ret );
 }
 
 int gostssl_peek( SSL * s, void * buf, int len, int * is_gost )
 {
-    GostSSL_Worker * w = workers_api( s, WDB_SEARCH );
+    MSSPI_HANDLE h = get_msspi( s, is_gost );
+    if( !h )
+        return 0;
 
-    // fallback
-    if( !w || w->host_status != GOSTSSL_HOST_YES )
-    {
-        *is_gost = FALSE;
-        return 1;
-    }
-
-    *is_gost = TRUE;
-
-    int ret = msspi_peek( w->h, buf, len );
-    return msspi_to_ssl_state_ret( msspi_state( w->h ), s, ret );
+    int ret = msspi_peek( h, buf, len );
+    return msspi_to_ssl_state_ret( msspi_state( h ), s, ret );
 }
 
 int gostssl_write( SSL * s, const void * buf, int len, int * is_gost )
 {
-    GostSSL_Worker * w = workers_api( s, WDB_SEARCH );
+    MSSPI_HANDLE h = get_msspi( s, is_gost );
+    if( !h )
+        return 0;
 
-    // fallback
-    if( !w || w->host_status != GOSTSSL_HOST_YES )
-    {
-        *is_gost = FALSE;
-        return 1;
-    }
+    int ret = msspi_write( h, buf, len );
+    return msspi_to_ssl_state_ret( msspi_state( h ), s, ret );
+}
 
-    *is_gost = TRUE;
+int gostssl_shutdown( SSL * s, int mode, int * is_gost )
+{
+    MSSPI_HANDLE h = get_msspi( s, is_gost );
+    if( !h )
+        return 0;
 
-    int ret = msspi_write( w->h, buf, len );
-    return msspi_to_ssl_state_ret( msspi_state( w->h ), s, ret );
+    int ret = 0;
+
+    if( mode & SSL_SENT_SHUTDOWN )
+        ret = msspi_shutdown( h );
+
+    return msspi_to_ssl_state_ret( msspi_state( h ), s, ret );
+}
+
+int gostssl_get_shutdown( const SSL * s, int * is_gost )
+{
+    MSSPI_HANDLE h = get_msspi( s, is_gost );
+    if( !h )
+        return 0;
+
+    int ret = 0;
+    int state = msspi_state( h );
+
+    if( state & MSSPI_SENT_SHUTDOWN )
+        ret |= SSL_SENT_SHUTDOWN;
+
+    if( state & MSSPI_RECEIVED_SHUTDOWN )
+        ret |= SSL_RECEIVED_SHUTDOWN;
+
+    return ret;
 }
 
 #define B2C(x) ( x < 0xA ? x + '0' : x + 'A' - 10 )

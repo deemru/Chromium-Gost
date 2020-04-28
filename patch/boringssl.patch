@@ -1,4 +1,4 @@
-From 24e6631d3564383e8774c87d00f791e59f303bf3 Mon Sep 17 00:00:00 2001
+From 39df05936fd66302258fc622daa40c27ca8bd3f4 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 30 Jan 2019 15:04:56 +0300
 Subject: [PATCH] boringssl GOSTSSL
@@ -6,10 +6,10 @@ Subject: [PATCH] boringssl GOSTSSL
 ---
  include/openssl/ssl.h   |   4 +
  ssl/handshake_client.cc |   9 ++
- ssl/internal.h          |  33 +++++++
- ssl/ssl_cipher.cc       |  90 ++++++++++++++++++
- ssl/ssl_lib.cc          | 204 ++++++++++++++++++++++++++++++++++++++++
- 5 files changed, 340 insertions(+)
+ ssl/internal.h          |  35 +++++++
+ ssl/ssl_cipher.cc       |  90 ++++++++++++++++
+ ssl/ssl_lib.cc          | 226 ++++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 364 insertions(+)
 
 diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
 index da7731138..d88546596 100644
@@ -47,7 +47,7 @@ index 4041fe991..869c9e18f 100644
    uint32_t mask_a, mask_k;
    ssl_get_client_disabled(hs, &mask_a, &mask_k);
 diff --git a/ssl/internal.h b/ssl/internal.h
-index bf4dd2f05..1d4575495 100644
+index bf4dd2f05..f13d081a4 100644
 --- a/ssl/internal.h
 +++ b/ssl/internal.h
 @@ -526,6 +526,13 @@ BSSL_NAMESPACE_BEGIN
@@ -64,7 +64,7 @@ index bf4dd2f05..1d4575495 100644
  // Bits for |algorithm_auth| (server authentication).
  #define SSL_aRSA 0x00000001u
  #define SSL_aECDSA 0x00000002u
-@@ -3016,6 +3023,32 @@ void ssl_set_read_error(SSL *ssl);
+@@ -3016,6 +3023,34 @@ void ssl_set_read_error(SSL *ssl);
  
  BSSL_NAMESPACE_END
  
@@ -89,6 +89,8 @@ index bf4dd2f05..1d4575495 100644
 +int gostssl_read( SSL * s, void * buf, int len, int * is_gost );
 +int gostssl_peek( SSL * s, void * buf, int len, int * is_gost );
 +int gostssl_write( SSL * s, const void * buf, int len, int * is_gost );
++int gostssl_shutdown( SSL * s, int mode, int * is_gost );
++int gostssl_get_shutdown( const SSL * s, int * is_gost );
 +void gostssl_free( SSL * s );
 +int gostssl_tls_gost_required( SSL * s, const SSL_CIPHER * cipher );
 +//
@@ -241,7 +243,7 @@ index c4212926c..ad9546f26 100644
        alg_bits = 256;
        strength_bits = 256;
 diff --git a/ssl/ssl_lib.cc b/ssl/ssl_lib.cc
-index 4764000c1..440a22efb 100644
+index 4764000c1..27cfcfa9c 100644
 --- a/ssl/ssl_lib.cc
 +++ b/ssl/ssl_lib.cc
 @@ -554,6 +554,161 @@ static int ssl_session_cmp(const SSL_SESSION *a, const SSL_SESSION *b) {
@@ -418,7 +420,7 @@ index 4764000c1..440a22efb 100644
    Delete(ssl);
  }
  
-@@ -872,6 +1032,16 @@ int SSL_provide_quic_data(SSL *ssl, enum ssl_encryption_level_t level,
+@@ -872,6 +1032,15 @@ int SSL_provide_quic_data(SSL *ssl, enum ssl_encryption_level_t level,
  }
  
  int SSL_do_handshake(SSL *ssl) {
@@ -426,7 +428,6 @@ index 4764000c1..440a22efb 100644
 +  if (gostssl()) {
 +    int is_gost;
 +    int ret_gost;
-+
 +    ret_gost = gostssl_connect(ssl, &is_gost);
 +    if (is_gost)
 +      return ret_gost;
@@ -435,7 +436,7 @@ index 4764000c1..440a22efb 100644
    ssl_reset_error_state(ssl);
  
    if (ssl->do_handshake == NULL) {
-@@ -1055,6 +1225,16 @@ static int ssl_read_impl(SSL *ssl) {
+@@ -1055,6 +1224,15 @@ static int ssl_read_impl(SSL *ssl) {
  }
  
  int SSL_read(SSL *ssl, void *buf, int num) {
@@ -443,7 +444,6 @@ index 4764000c1..440a22efb 100644
 +  if (gostssl()) {
 +    int is_gost;
 +    int ret_gost;
-+
 +    ret_gost = gostssl_read(ssl, buf, num, &is_gost);
 +    if (is_gost)
 +      return ret_gost;
@@ -452,7 +452,7 @@ index 4764000c1..440a22efb 100644
    int ret = SSL_peek(ssl, buf, num);
    if (ret <= 0) {
      return ret;
-@@ -1070,6 +1250,16 @@ int SSL_read(SSL *ssl, void *buf, int num) {
+@@ -1070,6 +1248,15 @@ int SSL_read(SSL *ssl, void *buf, int num) {
  }
  
  int SSL_peek(SSL *ssl, void *buf, int num) {
@@ -460,7 +460,6 @@ index 4764000c1..440a22efb 100644
 +  if (gostssl()) {
 +    int is_gost;
 +    int ret_gost;
-+
 +    ret_gost = gostssl_peek(ssl, buf, num, &is_gost);
 +    if (is_gost)
 +      return ret_gost;
@@ -469,7 +468,7 @@ index 4764000c1..440a22efb 100644
    if (ssl->quic_method != nullptr) {
      OPENSSL_PUT_ERROR(SSL, ERR_R_SHOULD_NOT_HAVE_BEEN_CALLED);
      return 0;
-@@ -1089,6 +1279,16 @@ int SSL_peek(SSL *ssl, void *buf, int num) {
+@@ -1089,6 +1276,15 @@ int SSL_peek(SSL *ssl, void *buf, int num) {
  }
  
  int SSL_write(SSL *ssl, const void *buf, int num) {
@@ -477,7 +476,6 @@ index 4764000c1..440a22efb 100644
 +  if (gostssl()) {
 +    int is_gost;
 +    int ret_gost;
-+
 +    ret_gost = gostssl_write(ssl, buf, num, &is_gost);
 +    if (is_gost)
 +      return ret_gost;
@@ -486,7 +484,23 @@ index 4764000c1..440a22efb 100644
    ssl_reset_error_state(ssl);
  
    if (ssl->quic_method != nullptr) {
-@@ -2376,6 +2576,10 @@ EVP_PKEY *SSL_CTX_get0_privatekey(const SSL_CTX *ctx) {
+@@ -1159,6 +1355,15 @@ int SSL_key_update(SSL *ssl, int request_type) {
+ }
+ 
+ int SSL_shutdown(SSL *ssl) {
++#ifndef NO_GOSTSSL
++  if (gostssl()) {
++    int is_gost;
++    int ret_gost;
++    ret_gost = gostssl_shutdown(ssl, SSL_SENT_SHUTDOWN, &is_gost);
++    if (is_gost)
++      return ret_gost;
++  }
++#endif // GOSTSSL
+   ssl_reset_error_state(ssl);
+ 
+   if (ssl->do_handshake == NULL) {
+@@ -2376,6 +2581,10 @@ EVP_PKEY *SSL_CTX_get0_privatekey(const SSL_CTX *ctx) {
  }
  
  const SSL_CIPHER *SSL_get_current_cipher(const SSL *ssl) {
@@ -497,6 +511,37 @@ index 4764000c1..440a22efb 100644
    const SSL_SESSION *session = SSL_get_session(ssl);
    return session == nullptr ? nullptr : session->cipher;
  }
+@@ -2405,6 +2614,14 @@ void SSL_set_quiet_shutdown(SSL *ssl, int mode) {
+ int SSL_get_quiet_shutdown(const SSL *ssl) { return ssl->quiet_shutdown; }
+ 
+ void SSL_set_shutdown(SSL *ssl, int mode) {
++#ifndef NO_GOSTSSL
++  if (gostssl()) {
++    int is_gost;
++    gostssl_shutdown(ssl, mode, &is_gost);
++    if (is_gost)
++      return;
++  }
++#endif // GOSTSSL
+   // It is an error to clear any bits that have already been set. (We can't try
+   // to get a second close_notify or send two.)
+   assert((SSL_get_shutdown(ssl) & mode) == SSL_get_shutdown(ssl));
+@@ -2421,6 +2638,15 @@ void SSL_set_shutdown(SSL *ssl, int mode) {
+ }
+ 
+ int SSL_get_shutdown(const SSL *ssl) {
++#ifndef NO_GOSTSSL
++  if (gostssl()) {
++    int is_gost;
++    int ret_gost;
++    ret_gost = gostssl_get_shutdown(ssl, &is_gost);
++    if (is_gost)
++      return ret_gost;
++  }
++#endif // GOSTSSL
+   int ret = 0;
+   if (ssl->s3->read_shutdown != ssl_shutdown_none) {
+     // Historically, OpenSSL set |SSL_RECEIVED_SHUTDOWN| on both close_notify
 -- 
 2.17.0.windows.1
 
