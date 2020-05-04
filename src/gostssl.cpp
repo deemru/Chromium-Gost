@@ -646,7 +646,8 @@ static std::vector<std::string> & g_certbufs = *( new std::vector<std::string>()
 static std::vector<wchar_t *> & g_certnames = *( new std::vector<wchar_t *>() );
 static std::vector<std::wstring> & g_certnamebufs = *( new std::vector<std::wstring>() );
 
-bool is_tls_client_certificate( PCCERT_CONTEXT pcert ) {
+static BOOL CertHasOid( PCCERT_CONTEXT pcert, const char * oid )
+{
     DWORD ekuLength = 0;
     BOOL result = CertGetEnhancedKeyUsage( pcert, 0, NULL, &ekuLength );
     if( result && ekuLength > 0 )
@@ -655,7 +656,7 @@ bool is_tls_client_certificate( PCCERT_CONTEXT pcert ) {
         PCERT_ENHKEY_USAGE ekuList = (PCERT_ENHKEY_USAGE) &ekuListBuffer[0];
         if( CertGetEnhancedKeyUsage( pcert, 0, ekuList, &ekuLength ) )
             for( DWORD i = 0; i < ekuList->cUsageIdentifier; i++ )
-                if( 0 == strcmp( ekuList->rgpszUsageIdentifier[i], szOID_PKIX_KP_CLIENT_AUTH ) )
+                if( 0 == strcmp( ekuList->rgpszUsageIdentifier[i], oid ) )
                     return true;
     }
     return false;
@@ -689,7 +690,7 @@ void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, in
             ( bUsage & CERT_DIGITAL_SIGNATURE_KEY_USAGE ) &&
             ( CertVerifyTimeValidity( NULL, pcert->pCertInfo ) == 0 ) &&
             ( CertGetCertificateContextProperty( pcert, CERT_KEY_PROV_INFO_PROP_ID, NULL, &dw ) ) &&
-            ( is_tls_client_certificate( pcert ) ) )
+            ( CertHasOid( pcert, szOID_PKIX_KP_CLIENT_AUTH ) ) )
         {
             g_certbufs.push_back( std::string( (char *)pcert->pbCertEncoded, pcert->cbCertEncoded ) );
             g_certlens.push_back( (int)g_certbufs[i].size() );
