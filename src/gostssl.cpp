@@ -657,9 +657,9 @@ static BOOL CertHasOid( PCCERT_CONTEXT pcert, const char * oid )
         if( CertGetEnhancedKeyUsage( pcert, 0, ekuList, &ekuLength ) )
             for( DWORD i = 0; i < ekuList->cUsageIdentifier; i++ )
                 if( 0 == strcmp( ekuList->rgpszUsageIdentifier[i], oid ) )
-                    return true;
+                    return TRUE;
     }
-    return false;
+    return FALSE;
 }
 
 void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost )
