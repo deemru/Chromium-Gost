@@ -11,12 +11,16 @@
 #pragma warning( pop )
 #endif
 
-#if defined( COMPONENT_BUILD ) && defined( _WIN32 )
+#ifdef COMPONENT_BUILD
+#ifdef _WIN32
 #pragma comment( lib, "crypt32.lib" )
 #define DLLEXPORT __declspec(dllexport)
-#else
+#else /* _WIN32 */
 #define DLLEXPORT __attribute__( ( visibility( "default" ) ) )
-#endif
+#endif /* _WIN32 */
+#else /* COMPONENT_BUILD */
+#define DLLEXPORT
+#endif /* COMPONENT_BUILD */
 
 extern "C" {
 
