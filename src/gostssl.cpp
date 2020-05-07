@@ -15,7 +15,7 @@
 #pragma comment( lib, "crypt32.lib" )
 #define DLLEXPORT __declspec(dllexport)
 #else
-#define DLLEXPORT
+#define DLLEXPORT __attribute__( ( visibility( "default" ) ) )
 #endif
 
 extern "C" {
@@ -685,12 +685,10 @@ void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, in
     {
         BYTE bUsage;
         DWORD dw = 0;
-        // basic cert validation
-        if( ( CertGetIntendedKeyUsage( X509_ASN_ENCODING, pcert->pCertInfo, &bUsage, 1 ) ) &&
-            ( bUsage & CERT_DIGITAL_SIGNATURE_KEY_USAGE ) &&
-            ( CertVerifyTimeValidity( NULL, pcert->pCertInfo ) == 0 ) &&
-            ( CertGetCertificateContextProperty( pcert, CERT_KEY_PROV_INFO_PROP_ID, NULL, &dw ) ) &&
-            ( CertHasOid( pcert, szOID_PKIX_KP_CLIENT_AUTH ) ) )
+        // basic TLS client cert filtering
+        if(    CertVerifyTimeValidity( NULL, pcert->pCertInfo ) == 0
+            && CertGetCertificateContextProperty( pcert, CERT_KEY_PROV_INFO_PROP_ID, NULL, &dw ) 
+            && CertHasOid( pcert, szOID_PKIX_KP_CLIENT_AUTH ) )
         {
             g_certbufs.push_back( std::string( (char *)pcert->pbCertEncoded, pcert->cbCertEncoded ) );
             g_certlens.push_back( (int)g_certbufs[i].size() );
