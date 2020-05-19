@@ -68,7 +68,7 @@ DLLEXPORT void gostssl_cachestring( SSL * s, void * cachestring, size_t len );
 
 #include "msspi.h"
 #ifndef _WIN32
-#include "capix.h"
+#include "capix.hpp"
 #endif
 
 static const SSL_CIPHER * tls_0081 = NULL;

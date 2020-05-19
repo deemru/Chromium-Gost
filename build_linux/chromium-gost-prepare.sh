@@ -41,6 +41,7 @@ cp -f $CHROMIUM_GOST_REPO/extra/chromium-gost.svg ui/webui/resources/images/goog
 cp -f $CHROMIUM_GOST_REPO/src/gostssl.cpp third_party/boringssl/gostssl.cpp
 cp -f $CHROMIUM_GOST_REPO/src/msspi/src/msspi.cpp third_party/boringssl/msspi.cpp
 cp -f $CHROMIUM_GOST_REPO/src/msspi/src/msspi.h third_party/boringssl/msspi.h
+cp -f $CHROMIUM_GOST_REPO/src/msspi/src/capix.hpp third_party/boringssl/capix.hpp
 
 cp -f $CHROMIUM_GOST_REPO/src/msspi/third_party/cprocsp/include/CSP_SChannel.h third_party/boringssl/src/include/CSP_SChannel.h
 cp -f $CHROMIUM_GOST_REPO/src/msspi/third_party/cprocsp/include/CSP_Sspi.h third_party/boringssl/src/include/CSP_Sspi.h
