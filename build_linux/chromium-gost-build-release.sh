@@ -5,7 +5,7 @@ cd $(dirname $0)
 export PATH=$DEPOT_TOOLS_PATH:$PATH
 
 cd $CHROMIUM_PATH
-gn gen out/RELEASE --args="is_debug=false symbol_level=0 strip_debug_info=true is_official_build=true enable_linux_installer=true ffmpeg_branding=\"Chrome\" proprietary_codecs=true $CHROMIUM_PRIVATE_ARGS clang_use_chrome_plugins=false closure_compile=false enable_hangout_services_extension=false enable_mdns=false enable_mse_mpeg2ts_stream_parser=true enable_nacl=false enable_nacl_nonsfi=false enable_reporting=false enable_service_discovery=false enable_widevine=true"
+gn gen out/RELEASE --args="is_debug=false symbol_level=0 strip_debug_info=true is_official_build=true enable_linux_installer=true $CHROMIUM_FLAGS $CHROMIUM_PRIVATE_ARGS"
 ninja -C out/RELEASE "chrome/installer/linux:stable_deb"
 ninja -C out/RELEASE "chrome/installer/linux:stable_rpm"
 

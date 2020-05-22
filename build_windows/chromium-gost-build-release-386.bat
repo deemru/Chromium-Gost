@@ -5,7 +5,7 @@ set DEPOT_TOOLS_WIN_TOOLCHAIN=0
 set GYP_MSVS_VERSION=2017
 
 cd %CHROMIUM_PATH%
-call gn gen out\RELEASE32 --args="is_debug=false is_official_build=true ffmpeg_branding=\"Chrome\" proprietary_codecs=true target_cpu=\"x86\" %CHROMIUM_PRIVATE_ARGS% clang_use_chrome_plugins=false closure_compile=false enable_hangout_services_extension=false enable_mdns=false enable_mse_mpeg2ts_stream_parser=true enable_nacl=false enable_nacl_nonsfi=false enable_reporting=false enable_service_discovery=false enable_widevine=true"
+call gn gen out\RELEASE32 --args="is_debug=false is_official_build=true target_cpu=\"x86\" %CHROMIUM_FLAGS% %CHROMIUM_PRIVATE_ARGS%"
 del %CHROMIUM_PATH%\out\RELEASE32\chrome.7z
 del %CHROMIUM_PATH%\out\RELEASE32\*.manifest
 call ninja -C out\RELEASE32 mini_installer
