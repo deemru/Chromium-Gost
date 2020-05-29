@@ -242,19 +242,6 @@ index 66a4f7c28b4f..1573a285e5db 100644
      DCHECK((cert && private_key) || (!cert && !private_key));
  
      if (cert && private_key) {
-diff --git a/content/common/user_agent.cc b/content/common/user_agent.cc
-index 954209bd8cc8..3dbe88e05ec6 100644
---- a/content/common/user_agent.cc
-+++ b/content/common/user_agent.cc
-@@ -239,7 +239,7 @@ std::string BuildUserAgentFromOSAndProduct(const std::string& os_info,
-   std::string user_agent;
-   base::StringAppendF(
-       &user_agent,
--      "Mozilla/5.0 (%s) AppleWebKit/%d.%d (KHTML, like Gecko) %s Safari/%d.%d",
-+      "Mozilla/5.0 (%s) AppleWebKit/%d.%d (KHTML, like Gecko) %s (Chromium GOST) Safari/%d.%d",
-       os_info.c_str(),
-       WEBKIT_VERSION_MAJOR,
-       WEBKIT_VERSION_MINOR,
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
 index 758c9b18350c..9695484304bc 100644
 --- a/net/base/net_error_list.h
