@@ -1,4 +1,4 @@
-From 5953fc5d357e66c5700c000a03f50337dcf94d71 Mon Sep 17 00:00:00 2001
+From 0895d2832edb981f3eae8777e59abbf7ed8cce6a Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 8 Apr 2020 13:31:28 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -12,6 +12,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../ssl_client_certificate_selector_mac.mm    |   8 ++
  .../chromium-browser/chromium-browser.info    |  10 +-
  .../installer/linux/rpm/chrome.spec.template  |   4 +
+ content/browser/BUILD.gn                      |   6 ++
  content/browser/storage_partition_impl.cc     |   9 ++
  content/common/user_agent.cc                  |   2 +-
  net/base/net_error_list.h                     |   5 +
@@ -30,7 +31,7 @@ Subject: [PATCH] chromium GOSTSSL
  sandbox/win/src/process_mitigations.cc        |   4 +
  .../service_manager/sandbox/mac/common.sb     |  15 +++
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 26 files changed, 427 insertions(+), 17 deletions(-)
+ 27 files changed, 433 insertions(+), 17 deletions(-)
 
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
 index 4a1d735cfe35..310d9aab7d47 100644
@@ -215,6 +216,23 @@ index 55a35677b9c4..abbc16d5f5f1 100644
  CHANNEL=@@CHANNEL@@
  case $CHANNEL in
    stable )
+diff --git a/content/browser/BUILD.gn b/content/browser/BUILD.gn
+index a5c2729a6c0e..1eee7ec8e714 100644
+--- a/content/browser/BUILD.gn
++++ b/content/browser/BUILD.gn
+@@ -2659,6 +2659,12 @@ jumbo_source_set("browser") {
+       "net/reporting_service_proxy.h",
+     ]
+   }
++  else {
++    sources += [
++      "net/cross_origin_embedder_policy_reporter.cc",
++      "net/cross_origin_embedder_policy_reporter.h",
++    ]
++  }
+ 
+   if (use_viz_devtools) {
+     sources += [
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
 index 66a4f7c28b4f..1573a285e5db 100644
 --- a/content/browser/storage_partition_impl.cc
