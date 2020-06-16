@@ -51,6 +51,7 @@ DLLEXPORT void gostssl_cachestring( SSL * s, void * cachestring, size_t len );
 #ifdef _WIN32
 #include <windows.h>
 #else
+#define LEGACY_FORMAT_MESSAGE_IMPL
 #include "CSP_WinDef.h"
 #include "CSP_WinCrypt.h"
 #define UNIX
