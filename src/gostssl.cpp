@@ -310,7 +310,7 @@ static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, con
         if( cachestring )
             msspi_set_cachestring( w->h, cachestring );
         if( s->config->alpn_client_proto_list.size() )
-            msspi_set_alpn( w->h, s->config->alpn_client_proto_list.data(), (unsigned)s->config->alpn_client_proto_list.size() );
+            msspi_set_alpn( w->h, (const char *)s->config->alpn_client_proto_list.data(), (unsigned)s->config->alpn_client_proto_list.size() );
 
         w->host_string = s->hostname.get() ? s->hostname.get() : "*";
         w->host_string += ":";
