@@ -32,8 +32,7 @@ int gostssl_connect( SSL * s, int * is_gost );
 int gostssl_read( SSL * s, void * buf, int len, int * is_gost );
 int gostssl_peek( SSL * s, void * buf, int len, int * is_gost );
 int gostssl_write( SSL * s, const void * buf, int len, int * is_gost );
-int gostssl_shutdown( SSL * s, int mode, int * is_gost );
-int gostssl_get_shutdown( const SSL * s, int * is_gost );
+int gostssl_shutdown( SSL * s, int * is_gost );
 void gostssl_free( SSL * s );
 
 // Markers
@@ -428,6 +427,19 @@ static int msspi_to_ssl_state_ret( int state, SSL * s, int ret )
     else
         s->s3->rwstate = SSL_NOTHING;
 
+    if( state & MSSPI_ERROR )
+    {
+        s->s3->write_shutdown = bssl::ssl_shutdown_close_notify;
+        s->s3->read_shutdown = bssl::ssl_shutdown_close_notify;
+    }
+    else
+    {
+        if( state & MSSPI_SENT_SHUTDOWN )
+            s->s3->write_shutdown = bssl::ssl_shutdown_close_notify;
+        if( state & MSSPI_RECEIVED_SHUTDOWN )
+            s->s3->read_shutdown = bssl::ssl_shutdown_close_notify;
+    }
+
     return ret;
 }
 
@@ -475,36 +487,23 @@ int gostssl_write( SSL * s, const void * buf, int len, int * is_gost )
     return msspi_to_ssl_state_ret( msspi_state( h ), s, ret );
 }
 
-int gostssl_shutdown( SSL * s, int mode, int * is_gost )
+int gostssl_shutdown( SSL * s, int * is_gost )
 {
     MSSPI_HANDLE h = get_msspi( s, is_gost );
     if( !h )
         return 0;
 
-    int ret = 0;
-
-    if( mode & SSL_SENT_SHUTDOWN )
-        ret = msspi_shutdown( h );
-
-    return msspi_to_ssl_state_ret( msspi_state( h ), s, ret );
-}
-
-int gostssl_get_shutdown( const SSL * s, int * is_gost )
-{
-    MSSPI_HANDLE h = get_msspi( s, is_gost );
-    if( !h )
-        return 0;
-
-    int ret = 0;
+    int ret = msspi_shutdown( h );
     int state = msspi_state( h );
+    msspi_to_ssl_state_ret( state, s, ret );
 
-    if( state & MSSPI_SENT_SHUTDOWN )
-        ret |= SSL_SENT_SHUTDOWN;
-
-    if( state & MSSPI_RECEIVED_SHUTDOWN )
-        ret |= SSL_RECEIVED_SHUTDOWN;
-
-    return ret;
+    if( ret < 0 )
+        return -1;
+    if( state & MSSPI_ERROR )
+        return 1;
+    if( state & MSSPI_SENT_SHUTDOWN && state & MSSPI_RECEIVED_SHUTDOWN )
+        return 1;
+    return 0;
 }
 
 #define B2C(x) ( x < 0xA ? x + '0' : x + 'A' - 10 )
