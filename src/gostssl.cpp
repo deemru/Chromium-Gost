@@ -43,7 +43,8 @@ DLLEXPORT void gostssl_certhook( void * cert, int size );
 DLLEXPORT void gostssl_verifyhook( void * s, unsigned * is_gost );
 DLLEXPORT void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost );
 DLLEXPORT void gostssl_isgostcerthook( void * cert, int size, int * is_gost );
-DLLEXPORT void gostssl_cachestring( SSL * s, void * cachestring, size_t len );
+DLLEXPORT void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size );
+DLLEXPORT int gostssl_is_msspi( SSL * s );
 
 }
 
@@ -286,7 +287,7 @@ typedef enum
 }
 WORKER_DB_ACTION;
 
-static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, const char * cachestring = NULL )
+static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, const char * cachestring = NULL, const void * cert = NULL, int size = 0 )
 {
     GostSSL_Worker * w = NULL;
 
@@ -310,6 +311,8 @@ static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, con
             msspi_set_cachestring( w->h, cachestring );
         if( s->config->alpn_client_proto_list.size() )
             msspi_set_alpn( w->h, (const char *)s->config->alpn_client_proto_list.data(), (unsigned)s->config->alpn_client_proto_list.size() );
+        if( cert && size )
+            msspi_set_mycert( w->h, (const char *)cert, size );
 
         w->host_string = s->hostname.get() ? s->hostname.get() : "*";
         w->host_string += ":";
@@ -508,7 +511,7 @@ int gostssl_shutdown( SSL * s, int * is_gost )
 
 #define B2C(x) ( x < 0xA ? x + '0' : x + 'A' - 10 )
 
-void gostssl_cachestring( SSL * s, void * cachestring, size_t len )
+void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size )
 {
     BYTE * bb = (BYTE *)cachestring;
     std::vector<BYTE> cc;
@@ -521,7 +524,7 @@ void gostssl_cachestring( SSL * s, void * cachestring, size_t len )
         cc[i * 2 + 1] = B2C( Fx );
     }
     cc[len * 2] = 0;
-    workers_api( s, WDB_NEW, (char *)&cc[0] );
+    workers_api( s, WDB_NEW, (char *)&cc[0], cert, size );
 }
 
 int gostssl_connect( SSL * s, int * is_gost )
@@ -734,4 +737,12 @@ void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, in
     }
 
     CertCloseStore( hStore, 0 );
+}
+
+int gostssl_is_msspi( SSL * s )
+{
+    GostSSL_Worker * w = workers_api( s, WDB_SEARCH );
+    if( !w || w->host_status != GOSTSSL_HOST_YES )
+        return 0;
+    return 1;
 }
