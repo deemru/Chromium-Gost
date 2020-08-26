@@ -4,7 +4,6 @@ call git submodule update
 call chromium-gost-env.bat
 set PATH=%DEPOT_TOOLS_PATH%;%PATH%
 set DEPOT_TOOLS_WIN_TOOLCHAIN=0
-set GYP_MSVS_VERSION=2017
 set GOST_BRANCH=GOSTSSL-%CHROMIUM_TAG%
 
 cd %CHROMIUM_PATH%\.git || goto :finish

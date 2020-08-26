@@ -9,3 +9,4 @@ set CHROMIUM_PRIVATE_ARGS=
 if exist chromium-gost-env-private.bat call chromium-gost-env-private.bat
 if exist %USERPROFILE%\chromium-gost-env-private.bat call %USERPROFILE%\chromium-gost-env-private.bat
 set GCLIENT_PY3=0
+set GYP_MSVS_VERSION=2019

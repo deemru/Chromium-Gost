@@ -2,7 +2,6 @@ cd /d %~dp0
 call chromium-gost-env.bat
 set PATH=%DEPOT_TOOLS_PATH%;%PATH%
 set DEPOT_TOOLS_WIN_TOOLCHAIN=0
-set GYP_MSVS_VERSION=2017
 
 cd %CHROMIUM_PATH%
 call gn gen out\RELEASE32 --args="is_debug=false is_official_build=true target_cpu=\"x86\" %CHROMIUM_FLAGS% %CHROMIUM_PRIVATE_ARGS%"
