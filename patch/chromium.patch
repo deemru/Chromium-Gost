@@ -1,4 +1,4 @@
-From 27800b785532143da233c32c9324d991c2da1c30 Mon Sep 17 00:00:00 2001
+From 637be25c61df88dae2d9502827ff7b6e8861bd84 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 8 Apr 2020 13:31:28 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -12,7 +12,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../ssl_client_certificate_selector_mac.mm    |   8 ++
  .../chromium-browser/chromium-browser.info    |  10 +-
  .../installer/linux/rpm/chrome.spec.template  |   4 +
- content/browser/BUILD.gn                      |   6 +
+ content/browser/BUILD.gn                      |   8 ++
  content/browser/storage_partition_impl.cc     |   9 ++
  content/common/user_agent.cc                  |   2 +-
  net/base/net_error_list.h                     |   5 +
@@ -33,7 +33,7 @@ Subject: [PATCH] chromium GOSTSSL
  sandbox/win/src/process_mitigations.cc        |   4 +
  .../service_manager/sandbox/mac/common.sb     |  15 +++
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 29 files changed, 441 insertions(+), 17 deletions(-)
+ 29 files changed, 443 insertions(+), 17 deletions(-)
 
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
 index 4a1d735cfe35..310d9aab7d47 100644
@@ -63,10 +63,10 @@ index 4a1d735cfe35..310d9aab7d47 100644
  </dict>
  </plist>
 diff --git a/chrome/browser/devtools/devtools_window.cc b/chrome/browser/devtools/devtools_window.cc
-index 817fd22ff314..01e91ca5229d 100644
+index f85ed2311652..b52604e5f390 100644
 --- a/chrome/browser/devtools/devtools_window.cc
 +++ b/chrome/browser/devtools/devtools_window.cc
-@@ -1455,6 +1455,12 @@ void DevToolsWindow::RenderProcessGone(bool crashed) {
+@@ -1452,6 +1452,12 @@ void DevToolsWindow::RenderProcessGone(bool crashed) {
    }
  }
  
@@ -79,7 +79,7 @@ index 817fd22ff314..01e91ca5229d 100644
  void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
    base::Optional<base::Value> value = base::JSONReader::Read(cert_chain);
    CHECK(value && value->is_list());
-@@ -1463,6 +1469,16 @@ void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
+@@ -1460,6 +1466,16 @@ void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
      CHECK(item.is_string());
      std::string temp;
      CHECK(base::Base64Decode(item.GetString(), &temp));
@@ -113,10 +113,10 @@ index 1608f7574403..52498d5b36d1 100644
        <div id="logo-doodle">
          <div id="logo-doodle-container">
 diff --git a/chrome/browser/resources/local_ntp/local_ntp.js b/chrome/browser/resources/local_ntp/local_ntp.js
-index 159506358049..7191d5e6b586 100644
+index d9d58e1ddef9..1e7e6f26f029 100644
 --- a/chrome/browser/resources/local_ntp/local_ntp.js
 +++ b/chrome/browser/resources/local_ntp/local_ntp.js
-@@ -1953,7 +1953,7 @@ function renderTheme() {
+@@ -1949,7 +1949,7 @@ function renderTheme() {
    // Dark mode uses a white Google logo.
    const useWhiteLogo =
        theme.alternateLogo || (theme.usingDefaultTheme && isDarkModeEnabled);
@@ -126,10 +126,10 @@ index 159506358049..7191d5e6b586 100644
    if (theme.logoColor) {
      document.body.style.setProperty(
 diff --git a/chrome/browser/search/local_ntp_source.cc b/chrome/browser/search/local_ntp_source.cc
-index da8115e40df4..013eb07d6859 100644
+index d7816343d504..97df3ad77a31 100644
 --- a/chrome/browser/search/local_ntp_source.cc
 +++ b/chrome/browser/search/local_ntp_source.cc
-@@ -851,6 +851,13 @@ void LocalNtpSource::StartDataRequest(
+@@ -848,6 +848,13 @@ void LocalNtpSource::StartDataRequest(
      return;
    }
  
@@ -219,10 +219,10 @@ index 55a35677b9c4..abbc16d5f5f1 100644
  case $CHANNEL in
    stable )
 diff --git a/content/browser/BUILD.gn b/content/browser/BUILD.gn
-index 908a247e1176..03481c256777 100644
+index 1ebd6a50636c..c5e11368115b 100644
 --- a/content/browser/BUILD.gn
 +++ b/content/browser/BUILD.gn
-@@ -2700,6 +2700,12 @@ jumbo_source_set("browser") {
+@@ -2718,6 +2718,14 @@ jumbo_source_set("browser") {
        "net/reporting_service_proxy.h",
      ]
    }
@@ -230,16 +230,18 @@ index 908a247e1176..03481c256777 100644
 +    sources += [
 +      "net/cross_origin_embedder_policy_reporter.cc",
 +      "net/cross_origin_embedder_policy_reporter.h",
++      "net/cross_origin_opener_policy_reporter.cc",
++      "net/cross_origin_opener_policy_reporter.h",
 +    ]
 +  }
  
    if (use_viz_devtools) {
      sources += [
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
-index f06c5b512342..4cfc7ca3f71c 100644
+index a0034ad3a21d..dd14d7a3ca5c 100644
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
-@@ -117,6 +117,10 @@
+@@ -120,6 +120,10 @@
  #include "content/browser/host_zoom_map_impl.h"
  #endif  // defined(OS_ANDROID)
  
@@ -276,7 +278,7 @@ index 80d658a19062..2d5deb684e1b 100644
        WEBKIT_VERSION_MAJOR,
        WEBKIT_VERSION_MINOR,
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
-index 758c9b18350c..9695484304bc 100644
+index 7682241352a3..6b915d72873d 100644
 --- a/net/base/net_error_list.h
 +++ b/net/base/net_error_list.h
 @@ -22,6 +22,11 @@
@@ -292,7 +294,7 @@ index 758c9b18350c..9695484304bc 100644
  // indicate a fatal error.  Typically this error will be generated as a
  // notification to wait for some external notification that the IO operation
 diff --git a/net/cert/cert_verify_proc.cc b/net/cert/cert_verify_proc.cc
-index b65026641747..674fdcdb6081 100644
+index 0b7e5f9d1a48..eab0e44ee12e 100644
 --- a/net/cert/cert_verify_proc.cc
 +++ b/net/cert/cert_verify_proc.cc
 @@ -525,6 +525,12 @@ scoped_refptr<CertVerifyProc> CertVerifyProc::CreateBuiltinVerifyProc(
@@ -333,10 +335,10 @@ index b65026641747..674fdcdb6081 100644
    // in the chain. Also fills in the has_* booleans for the digest algorithms
    // present in the chain.
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index 22a18a358710..e43234891a57 100644
+index 64b249b6b72d..48db13fafcf0 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
-@@ -1491,6 +1491,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
+@@ -1476,6 +1476,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
        }
      }
    }
@@ -409,7 +411,7 @@ index 680c94890667..9adb6346bb6a 100644
    void NotifySSLConfigChanged(bool is_cert_database_change);
    void NotifySSLConfigForServerChanged(const HostPortPair& server);
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 12fb37570a5e..cefb7dc13c91 100644
+index fcada6e34206..24321a802fa9 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
 @@ -453,6 +453,18 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
@@ -450,7 +452,7 @@ index 12fb37570a5e..cefb7dc13c91 100644
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -1188,6 +1212,82 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
+@@ -1189,6 +1213,82 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
  
    start_cert_verification_time_ = base::TimeTicks::Now();
  
@@ -533,7 +535,7 @@ index 12fb37570a5e..cefb7dc13c91 100644
    const uint8_t* ocsp_response_raw;
    size_t ocsp_response_len;
    SSL_get0_ocsp_response(ssl_.get(), &ocsp_response_raw, &ocsp_response_len);
-@@ -1699,6 +1799,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1701,6 +1801,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
@@ -567,10 +569,10 @@ index 7388274b5b62..723daa419e06 100644
    // The given hostname will be compared with the name(s) in the server's
    // certificate during the SSL handshake.  |ssl_config| specifies the SSL
 diff --git a/net/spdy/spdy_session.cc b/net/spdy/spdy_session.cc
-index b61963f67162..5606194ce870 100644
+index eef09df91edb..07344c3f5e6d 100644
 --- a/net/spdy/spdy_session.cc
 +++ b/net/spdy/spdy_session.cc
-@@ -1566,6 +1566,11 @@ void SpdySession::RemovePooledAlias(const SpdySessionKey& alias_key) {
+@@ -1569,6 +1569,11 @@ void SpdySession::RemovePooledAlias(const SpdySessionKey& alias_key) {
  }
  
  bool SpdySession::HasAcceptableTransportSecurity() const {
@@ -737,10 +739,10 @@ index 0e5d02c625cb..ed9b20c357b3 100644
  }
  
 diff --git a/net/ssl/openssl_ssl_util.cc b/net/ssl/openssl_ssl_util.cc
-index 77fa36a277d3..0e340f484079 100644
+index b03c9b32ed0c..94e8fa5a50d2 100644
 --- a/net/ssl/openssl_ssl_util.cc
 +++ b/net/ssl/openssl_ssl_util.cc
-@@ -84,6 +84,10 @@ int MapOpenSSLErrorSSL(uint32_t error_code) {
+@@ -85,6 +85,10 @@ int MapOpenSSLErrorSSL(uint32_t error_code) {
      case SSL_R_TLSV1_ALERT_PROTOCOL_VERSION:
      case SSL_R_UNSUPPORTED_PROTOCOL:
        return ERR_SSL_VERSION_OR_CIPHER_MISMATCH;
