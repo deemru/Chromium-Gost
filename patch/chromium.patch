@@ -1,4 +1,4 @@
-From 637be25c61df88dae2d9502827ff7b6e8861bd84 Mon Sep 17 00:00:00 2001
+From f3c18c744080ebc858498b702e8eb25923bd00e5 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 8 Apr 2020 13:31:28 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -6,6 +6,7 @@ Subject: [PATCH] chromium GOSTSSL
 ---
  chrome/app/app-entitlements.plist             |  10 +-
  chrome/browser/devtools/devtools_window.cc    |  16 +++
+ .../native_process_launcher_posix.cc          |  12 ++
  .../resources/local_ntp/local_ntp.html        |   4 +-
  .../browser/resources/local_ntp/local_ntp.js  |   2 +-
  chrome/browser/search/local_ntp_source.cc     |   7 ++
@@ -33,7 +34,7 @@ Subject: [PATCH] chromium GOSTSSL
  sandbox/win/src/process_mitigations.cc        |   4 +
  .../service_manager/sandbox/mac/common.sb     |  15 +++
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 29 files changed, 443 insertions(+), 17 deletions(-)
+ 30 files changed, 455 insertions(+), 17 deletions(-)
 
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
 index 4a1d735cfe35..310d9aab7d47 100644
@@ -96,6 +97,29 @@ index f85ed2311652..b52604e5f390 100644
      decoded.push_back(std::move(temp));
    }
  
+diff --git a/chrome/browser/extensions/api/messaging/native_process_launcher_posix.cc b/chrome/browser/extensions/api/messaging/native_process_launcher_posix.cc
+index 09c46dd9b7a3..fb9ef12517ad 100644
+--- a/chrome/browser/extensions/api/messaging/native_process_launcher_posix.cc
++++ b/chrome/browser/extensions/api/messaging/native_process_launcher_posix.cc
+@@ -42,6 +42,18 @@ base::FilePath NativeProcessLauncher::FindManifest(
+     result = FindManifestInDir(chrome::DIR_USER_NATIVE_MESSAGING, host_name);
+   if (result.empty())
+     result = FindManifestInDir(chrome::DIR_NATIVE_MESSAGING, host_name);
++#ifndef NO_GOSTSSL
++  if (result.empty()) {
++#if defined(OS_MAC)
++    base::FilePath base_path = base::FilePath(FILE_PATH_LITERAL("/Library/Google/Chrome/NativeMessagingHosts"));
++#else
++    base::FilePath base_path = base::FilePath(FILE_PATH_LITERAL("/etc/opt/chrome/native-messaging-hosts"));
++#endif
++    base::FilePath path = base_path.Append(host_name + ".json");
++    if (base::PathExists(path))
++      result = path;
++  }
++#endif // GOSTSSL
+ 
+   if (result.empty())
+     *error_message = "Can't find native messaging host " + host_name;
 diff --git a/chrome/browser/resources/local_ntp/local_ntp.html b/chrome/browser/resources/local_ntp/local_ntp.html
 index 1608f7574403..52498d5b36d1 100644
 --- a/chrome/browser/resources/local_ntp/local_ntp.html
