@@ -107,7 +107,7 @@ index 09c46dd9b7a3..fb9ef12517ad 100644
      result = FindManifestInDir(chrome::DIR_NATIVE_MESSAGING, host_name);
 +#ifndef NO_GOSTSSL
 +  if (result.empty()) {
-+#if defined(OS_MAC)
++#if defined(__APPLE__)
 +    base::FilePath base_path = base::FilePath(FILE_PATH_LITERAL("/Library/Google/Chrome/NativeMessagingHosts"));
 +#else
 +    base::FilePath base_path = base::FilePath(FILE_PATH_LITERAL("/etc/opt/chrome/native-messaging-hosts"));
