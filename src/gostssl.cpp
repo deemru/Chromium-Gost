@@ -302,6 +302,11 @@ static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, con
             return NULL;
         }
 
+        w->host_string = s->hostname.get() ? s->hostname.get() : "*";
+        w->host_string += ":";
+        w->host_string += cachestring ? cachestring : "*";
+        w->host_status = host_status_get( w->host_string );
+
         msspi_set_cert_cb( w->h, (msspi_cert_cb)gostssl_cert_cb );
         w->s = (SSL *)s;
 
@@ -313,12 +318,6 @@ static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, con
             msspi_set_alpn( w->h, (const char *)s->config->alpn_client_proto_list.data(), (unsigned)s->config->alpn_client_proto_list.size() );
         if( cert && size )
             msspi_set_mycert( w->h, (const char *)cert, size );
-
-        w->host_string = s->hostname.get() ? s->hostname.get() : "*";
-        w->host_string += ":";
-        w->host_string += cachestring ? cachestring : "*";
-
-        w->host_status = host_status_get( w->host_string );
     }
 
     std::unique_lock<std::recursive_mutex> lck( gmutex );
