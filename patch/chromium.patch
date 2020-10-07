@@ -1,16 +1,15 @@
-From f3c18c744080ebc858498b702e8eb25923bd00e5 Mon Sep 17 00:00:00 2001
+From 3cf1b730eae6021c1eac535a1f38e71ceb9bf7d1 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
-Date: Wed, 8 Apr 2020 13:31:28 +0300
+Date: Wed, 7 Oct 2020 18:35:41 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
- chrome/app/app-entitlements.plist             |  10 +-
+ chrome/app/app-entitlements.plist             |   2 +
  chrome/browser/devtools/devtools_window.cc    |  16 +++
  .../native_process_launcher_posix.cc          |  12 ++
  .../resources/local_ntp/local_ntp.html        |   4 +-
  .../browser/resources/local_ntp/local_ntp.js  |   2 +-
  chrome/browser/search/local_ntp_source.cc     |   7 ++
- .../ssl_client_certificate_selector_mac.mm    |   8 ++
  .../chromium-browser/chromium-browser.info    |  10 +-
  .../installer/linux/rpm/chrome.spec.template  |   4 +
  content/browser/BUILD.gn                      |   8 ++
@@ -31,31 +30,16 @@ Subject: [PATCH] chromium GOSTSSL
  net/ssl/ssl_cipher_suite_names.cc             |  36 ++++++
  net/ssl/ssl_platform_key_util.cc              |  21 ++++
  net/ssl/ssl_platform_key_util.h               |   7 ++
+ sandbox/policy/mac/common.sb                  |  15 +++
  sandbox/win/src/process_mitigations.cc        |   4 +
- .../service_manager/sandbox/mac/common.sb     |  15 +++
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 30 files changed, 455 insertions(+), 17 deletions(-)
+ 29 files changed, 447 insertions(+), 9 deletions(-)
 
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
-index 4a1d735cfe35..310d9aab7d47 100644
+index 1a37d509bfce..310d9aab7d47 100644
 --- a/chrome/app/app-entitlements.plist
 +++ b/chrome/app/app-entitlements.plist
-@@ -2,14 +2,6 @@
- <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
- <plist version="1.0">
- <dict>
--	<key>com.apple.application-identifier</key>
--	<string>${CHROMIUM_TEAM_ID}.${CHROMIUM_BUNDLE_ID}</string>
--	<key>keychain-access-groups</key>
--	<array>
--		<string>${CHROMIUM_TEAM_ID}.${CHROMIUM_BUNDLE_ID}.webauthn</string>
--	</array>
--	<key>com.apple.developer.associated-domains.applinks.read-write</key>
--	<true/>
- 	<key>com.apple.security.device.audio-input</key>
- 	<true/>
- 	<key>com.apple.security.device.bluetooth</key>
-@@ -20,5 +12,7 @@
+@@ -12,5 +12,7 @@
  	<true/>
  	<key>com.apple.security.device.usb</key>
  	<true/>
@@ -64,10 +48,10 @@ index 4a1d735cfe35..310d9aab7d47 100644
  </dict>
  </plist>
 diff --git a/chrome/browser/devtools/devtools_window.cc b/chrome/browser/devtools/devtools_window.cc
-index f85ed2311652..b52604e5f390 100644
+index ec271f2f898b..13cefdf17ab1 100644
 --- a/chrome/browser/devtools/devtools_window.cc
 +++ b/chrome/browser/devtools/devtools_window.cc
-@@ -1452,6 +1452,12 @@ void DevToolsWindow::RenderProcessGone(bool crashed) {
+@@ -1488,6 +1488,12 @@ void DevToolsWindow::RenderProcessGone(bool crashed) {
    }
  }
  
@@ -80,7 +64,7 @@ index f85ed2311652..b52604e5f390 100644
  void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
    base::Optional<base::Value> value = base::JSONReader::Read(cert_chain);
    CHECK(value && value->is_list());
-@@ -1460,6 +1466,16 @@ void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
+@@ -1496,6 +1502,16 @@ void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
      CHECK(item.is_string());
      std::string temp;
      CHECK(base::Base64Decode(item.GetString(), &temp));
@@ -98,7 +82,7 @@ index f85ed2311652..b52604e5f390 100644
    }
  
 diff --git a/chrome/browser/extensions/api/messaging/native_process_launcher_posix.cc b/chrome/browser/extensions/api/messaging/native_process_launcher_posix.cc
-index 09c46dd9b7a3..fb9ef12517ad 100644
+index 7afd31723d52..62b628bbb7bf 100644
 --- a/chrome/browser/extensions/api/messaging/native_process_launcher_posix.cc
 +++ b/chrome/browser/extensions/api/messaging/native_process_launcher_posix.cc
 @@ -42,6 +42,18 @@ base::FilePath NativeProcessLauncher::FindManifest(
@@ -167,25 +151,6 @@ index d7816343d504..97df3ad77a31 100644
    if (stripped_path == chrome::kChromeSearchLocalNtpBackgroundFilename) {
      base::ThreadPool::PostTaskAndReplyWithResult(
          FROM_HERE, {base::TaskPriority::USER_VISIBLE, base::MayBlock()},
-diff --git a/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm b/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm
-index 0657ad49380b..1407f9bc5ee9 100644
---- a/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm
-+++ b/chrome/browser/ui/views/ssl_client_certificate_selector_mac.mm
-@@ -273,6 +273,14 @@ class SSLClientCertificateSelectorDelegate
-     _delegate = delegate;
-     _certIdentities = std::move(clientCerts);
- 
-+#ifndef NO_GOSTSSL
-+    if( _certIdentities.size() == 1 && _certIdentities[0]->sec_identity_ref() == nullptr )
-+    {
-+        _delegate->CertificateSelected( _certIdentities[0]->certificate(), nullptr );
-+        _certIdentities.clear();
-+    }
-+#endif // GOSTSSL
-+
-     _secIdentities.reset([[NSMutableArray alloc] init]);
-     for (const auto& cert : _certIdentities) {
-       DCHECK(cert->sec_identity_ref());
 diff --git a/chrome/installer/linux/common/chromium-browser/chromium-browser.info b/chrome/installer/linux/common/chromium-browser/chromium-browser.info
 index 6f67b06166f0..997d45b6af45 100644
 --- a/chrome/installer/linux/common/chromium-browser/chromium-browser.info
@@ -243,10 +208,10 @@ index 55a35677b9c4..abbc16d5f5f1 100644
  case $CHANNEL in
    stable )
 diff --git a/content/browser/BUILD.gn b/content/browser/BUILD.gn
-index 1ebd6a50636c..c5e11368115b 100644
+index 1b474da31816..7487cf9e7397 100644
 --- a/content/browser/BUILD.gn
 +++ b/content/browser/BUILD.gn
-@@ -2718,6 +2718,14 @@ jumbo_source_set("browser") {
+@@ -2766,6 +2766,14 @@ source_set("browser") {
        "net/reporting_service_proxy.h",
      ]
    }
@@ -262,7 +227,7 @@ index 1ebd6a50636c..c5e11368115b 100644
    if (use_viz_devtools) {
      sources += [
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
-index a0034ad3a21d..dd14d7a3ca5c 100644
+index 6996fe8d1be3..759762fd4b52 100644
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
 @@ -120,6 +120,10 @@
@@ -276,7 +241,7 @@ index a0034ad3a21d..dd14d7a3ca5c 100644
  #if BUILDFLAG(ENABLE_PLUGINS)
  #include "content/browser/plugin_private_storage_helper.h"
  #endif  // BUILDFLAG(ENABLE_PLUGINS)
-@@ -669,6 +673,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
+@@ -666,6 +670,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
        scoped_refptr<net::X509Certificate> cert,
        scoped_refptr<net::SSLPrivateKey> private_key) override {
      DCHECK_CURRENTLY_ON(BrowserThread::UI);
@@ -289,10 +254,10 @@ index a0034ad3a21d..dd14d7a3ca5c 100644
  
      if (cert && private_key) {
 diff --git a/content/common/user_agent.cc b/content/common/user_agent.cc
-index 80d658a19062..2d5deb684e1b 100644
+index 1968595853d5..0b3a0a3b0d16 100644
 --- a/content/common/user_agent.cc
 +++ b/content/common/user_agent.cc
-@@ -283,7 +283,7 @@ std::string BuildUserAgentFromOSAndProduct(const std::string& os_info,
+@@ -287,7 +287,7 @@ std::string BuildUserAgentFromOSAndProduct(const std::string& os_info,
    std::string user_agent;
    base::StringAppendF(
        &user_agent,
@@ -302,7 +267,7 @@ index 80d658a19062..2d5deb684e1b 100644
        WEBKIT_VERSION_MAJOR,
        WEBKIT_VERSION_MINOR,
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
-index 7682241352a3..6b915d72873d 100644
+index b4b111e3ac38..8670287eebf9 100644
 --- a/net/base/net_error_list.h
 +++ b/net/base/net_error_list.h
 @@ -22,6 +22,11 @@
@@ -318,10 +283,10 @@ index 7682241352a3..6b915d72873d 100644
  // indicate a fatal error.  Typically this error will be generated as a
  // notification to wait for some external notification that the IO operation
 diff --git a/net/cert/cert_verify_proc.cc b/net/cert/cert_verify_proc.cc
-index 0b7e5f9d1a48..eab0e44ee12e 100644
+index 6135c24fe81b..45504adba63e 100644
 --- a/net/cert/cert_verify_proc.cc
 +++ b/net/cert/cert_verify_proc.cc
-@@ -525,6 +525,12 @@ scoped_refptr<CertVerifyProc> CertVerifyProc::CreateBuiltinVerifyProc(
+@@ -523,6 +523,12 @@ scoped_refptr<CertVerifyProc> CertVerifyProc::CreateBuiltinVerifyProc(
  
  CertVerifyProc::CertVerifyProc() {}
  
@@ -334,7 +299,7 @@ index 0b7e5f9d1a48..eab0e44ee12e 100644
  CertVerifyProc::~CertVerifyProc() = default;
  
  int CertVerifyProc::Verify(X509Certificate* cert,
-@@ -557,6 +563,23 @@ int CertVerifyProc::Verify(X509Certificate* cert,
+@@ -555,6 +561,23 @@ int CertVerifyProc::Verify(X509Certificate* cert,
        VerifyInternal(cert, hostname, ocsp_response, sct_list, flags, crl_set,
                       additional_trust_anchors, verify_result, net_log);
  
@@ -359,10 +324,10 @@ index 0b7e5f9d1a48..eab0e44ee12e 100644
    // in the chain. Also fills in the has_* booleans for the digest algorithms
    // present in the chain.
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index 64b249b6b72d..48db13fafcf0 100644
+index 69b55e23808c..69d98aae8009 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
-@@ -1476,6 +1476,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
+@@ -1495,6 +1495,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
        }
      }
    }
@@ -393,7 +358,7 @@ index d0b91b754498..8edc5d0c393e 100644
  
    // Reads data, up to |buf_len| bytes, from the socket.  The number of bytes
 diff --git a/net/socket/ssl_client_socket.cc b/net/socket/ssl_client_socket.cc
-index 9f905ddecd9e..926f2b1712e2 100644
+index 4d136f7d736b..27092b10e9ab 100644
 --- a/net/socket/ssl_client_socket.cc
 +++ b/net/socket/ssl_client_socket.cc
 @@ -12,6 +12,10 @@
@@ -407,7 +372,7 @@ index 9f905ddecd9e..926f2b1712e2 100644
  namespace net {
  
  SSLClientSocket::SSLClientSocket()
-@@ -69,6 +73,11 @@ SSLClientContext::SSLClientContext(
+@@ -71,6 +75,11 @@ SSLClientContext::SSLClientContext(
      ssl_config_service_->AddObserver(this);
    }
    CertDatabase::GetInstance()->AddObserver(this);
@@ -420,10 +385,10 @@ index 9f905ddecd9e..926f2b1712e2 100644
  
  SSLClientContext::~SSLClientContext() {
 diff --git a/net/socket/ssl_client_socket.h b/net/socket/ssl_client_socket.h
-index 680c94890667..9adb6346bb6a 100644
+index 6b9aeb32f02a..07f6e8699883 100644
 --- a/net/socket/ssl_client_socket.h
 +++ b/net/socket/ssl_client_socket.h
-@@ -172,6 +172,10 @@ class NET_EXPORT SSLClientContext : public SSLConfigService::Observer,
+@@ -177,6 +177,10 @@ class NET_EXPORT SSLClientContext : public SSLConfigService::Observer,
    // CertDatabase::Observer:
    void OnCertDBChanged() override;
  
@@ -435,10 +400,10 @@ index 680c94890667..9adb6346bb6a 100644
    void NotifySSLConfigChanged(bool is_cert_database_change);
    void NotifySSLConfigForServerChanged(const HostPortPair& server);
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index fcada6e34206..24321a802fa9 100644
+index cf4e52b8190c..415196932702 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
-@@ -453,6 +453,18 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
+@@ -454,6 +454,18 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
    return OK;
  }
  
@@ -457,7 +422,7 @@ index fcada6e34206..24321a802fa9 100644
  int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
    // this has never worked for layered sockets. CHECK to detect any consumers
-@@ -471,6 +483,18 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
+@@ -472,6 +484,18 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
      return rv;
    }
  
@@ -476,7 +441,7 @@ index fcada6e34206..24321a802fa9 100644
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -1189,6 +1213,82 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
+@@ -1127,6 +1151,82 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
  
    start_cert_verification_time_ = base::TimeTicks::Now();
  
@@ -559,7 +524,7 @@ index fcada6e34206..24321a802fa9 100644
    const uint8_t* ocsp_response_raw;
    size_t ocsp_response_len;
    SSL_get0_ocsp_response(ssl_.get(), &ocsp_response_raw, &ocsp_response_len);
-@@ -1701,6 +1801,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1646,6 +1746,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
@@ -593,10 +558,10 @@ index 7388274b5b62..723daa419e06 100644
    // The given hostname will be compared with the name(s) in the server's
    // certificate during the SSL handshake.  |ssl_config| specifies the SSL
 diff --git a/net/spdy/spdy_session.cc b/net/spdy/spdy_session.cc
-index eef09df91edb..07344c3f5e6d 100644
+index f7b2b6e69bcb..7ef3e1acbca3 100644
 --- a/net/spdy/spdy_session.cc
 +++ b/net/spdy/spdy_session.cc
-@@ -1569,6 +1569,11 @@ void SpdySession::RemovePooledAlias(const SpdySessionKey& alias_key) {
+@@ -1591,6 +1591,11 @@ void SpdySession::RemovePooledAlias(const SpdySessionKey& alias_key) {
  }
  
  bool SpdySession::HasAcceptableTransportSecurity() const {
@@ -888,6 +853,32 @@ index 02729fecba76..a586e0c5e237 100644
  // Returns the public key of |certificate| as an |EVP_PKEY| or nullptr on error.
  bssl::UniquePtr<EVP_PKEY> GetClientCertPublicKey(
      const X509Certificate* certificate);
+diff --git a/sandbox/policy/mac/common.sb b/sandbox/policy/mac/common.sb
+index 27b5a183d0eb..1a8dd3aafc3f 100644
+--- a/sandbox/policy/mac/common.sb
++++ b/sandbox/policy/mac/common.sb
+@@ -124,6 +124,21 @@
+   (subpath "/usr/lib")
+ )
+ 
++(allow file*
++  (subpath "/opt/cprocsp")
++  (subpath "/etc/opt/cprocsp")
++  (subpath "/var/opt/cprocsp")
++  (subpath "/private/etc/opt/cprocsp")
++  (subpath "/private/var/opt/cprocsp")
++  (subpath "/Applications/CryptoPro")
++)
++
++(allow mach-lookup
++  (global-name "com.apple.windowserver.active")
++  (global-name "com.apple.UNCUserNotification")
++  (global-name "com.apple.ctkpcscd")
++)
++
+ ; Reads from /etc.
+ ; This is read by CFPrefs calling getpwuid in a loop. libinfo then fails to
+ ; contact any of the opendirectoryd mach services, and falls back to
 diff --git a/sandbox/win/src/process_mitigations.cc b/sandbox/win/src/process_mitigations.cc
 index 5e4e7fd604f5..56e347c9a158 100644
 --- a/sandbox/win/src/process_mitigations.cc
@@ -924,34 +915,8 @@ index 5e4e7fd604f5..56e347c9a158 100644
    }
  
    // Enable image load policies.
-diff --git a/services/service_manager/sandbox/mac/common.sb b/services/service_manager/sandbox/mac/common.sb
-index e15e9d97c52a..e1ae60cb9261 100644
---- a/services/service_manager/sandbox/mac/common.sb
-+++ b/services/service_manager/sandbox/mac/common.sb
-@@ -124,6 +124,21 @@
-   (subpath "/usr/lib")
- )
- 
-+(allow file*
-+  (subpath "/opt/cprocsp")
-+  (subpath "/etc/opt/cprocsp")
-+  (subpath "/var/opt/cprocsp")
-+  (subpath "/private/etc/opt/cprocsp")
-+  (subpath "/private/var/opt/cprocsp")
-+  (subpath "/Applications/CryptoPro")
-+)
-+
-+(allow mach-lookup
-+  (global-name "com.apple.windowserver.active")
-+  (global-name "com.apple.UNCUserNotification")
-+  (global-name "com.apple.ctkpcscd")
-+)
-+
- ; Reads from /etc.
- ; This is read by CFPrefs calling getpwuid in a loop. libinfo then fails to
- ; contact any of the opendirectoryd mach services, and falls back to
 diff --git a/third_party/boringssl/BUILD.generated.gni b/third_party/boringssl/BUILD.generated.gni
-index 461499f7649b..49fddee02946 100644
+index 018cebb098f7..30bdde9733d2 100644
 --- a/third_party/boringssl/BUILD.generated.gni
 +++ b/third_party/boringssl/BUILD.generated.gni
 @@ -5,6 +5,8 @@
@@ -964,5 +929,5 @@ index 461499f7649b..49fddee02946 100644
    "src/crypto/asn1/a_bitstr.c",
    "src/crypto/asn1/a_bool.c",
 -- 
-2.17.0.windows.1
+2.28.0.windows.1
 

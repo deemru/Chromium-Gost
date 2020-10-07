@@ -1,4 +1,4 @@
-From 5b4d189ff7829c2542cfff0beb6b456f738a40cc Mon Sep 17 00:00:00 2001
+From dbd5cdf486b3bb53667c32a4c6ac81166948a4dd Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 30 Jan 2019 15:04:56 +0300
 Subject: [PATCH] boringssl GOSTSSL
@@ -12,10 +12,10 @@ Subject: [PATCH] boringssl GOSTSSL
  5 files changed, 346 insertions(+)
 
 diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
-index 613ab0a9a..66a972fc4 100644
+index 07a39d28c..7e5e2401c 100644
 --- a/include/openssl/ssl.h
 +++ b/include/openssl/ssl.h
-@@ -4957,6 +4957,10 @@ BSSL_NAMESPACE_END
+@@ -4991,6 +4991,10 @@ BSSL_NAMESPACE_END
  
  #endif
  
@@ -27,7 +27,7 @@ index 613ab0a9a..66a972fc4 100644
  #define SSL_R_ATTEMPT_TO_REUSE_SESSION_IN_DIFFERENT_CONTEXT 101
  #define SSL_R_BAD_ALERT 102
 diff --git a/ssl/handshake_client.cc b/ssl/handshake_client.cc
-index 9625b8e8d..5612ecff5 100644
+index 670e47643..5854cf6e6 100644
 --- a/ssl/handshake_client.cc
 +++ b/ssl/handshake_client.cc
 @@ -685,6 +685,15 @@ static enum ssl_hs_wait_t do_read_server_hello(SSL_HANDSHAKE *hs) {
@@ -47,7 +47,7 @@ index 9625b8e8d..5612ecff5 100644
    uint32_t mask_a, mask_k;
    ssl_get_client_disabled(hs, &mask_a, &mask_k);
 diff --git a/ssl/internal.h b/ssl/internal.h
-index e1b0925b4..c1bf17cdd 100644
+index 2000409bf..e38d06375 100644
 --- a/ssl/internal.h
 +++ b/ssl/internal.h
 @@ -526,6 +526,13 @@ BSSL_NAMESPACE_BEGIN
@@ -64,7 +64,7 @@ index e1b0925b4..c1bf17cdd 100644
  // Bits for |algorithm_auth| (server authentication).
  #define SSL_aRSA 0x00000001u
  #define SSL_aECDSA 0x00000002u
-@@ -3029,6 +3036,33 @@ void ssl_set_read_error(SSL *ssl);
+@@ -3032,6 +3039,33 @@ void ssl_set_read_error(SSL *ssl);
  
  BSSL_NAMESPACE_END
  
@@ -242,7 +242,7 @@ index c4212926c..ad9546f26 100644
        alg_bits = 256;
        strength_bits = 256;
 diff --git a/ssl/ssl_lib.cc b/ssl/ssl_lib.cc
-index 625f73363..b8ba868f6 100644
+index 90c265e71..d053b087b 100644
 --- a/ssl/ssl_lib.cc
 +++ b/ssl/ssl_lib.cc
 @@ -554,6 +554,161 @@ static int ssl_session_cmp(const SSL_SESSION *a, const SSL_SESSION *b) {
@@ -511,5 +511,5 @@ index 625f73363..b8ba868f6 100644
    return session == nullptr ? nullptr : session->cipher;
  }
 -- 
-2.17.0.windows.1
+2.28.0.windows.1
 
