@@ -1,4 +1,4 @@
-From 3cf1b730eae6021c1eac535a1f38e71ceb9bf7d1 Mon Sep 17 00:00:00 2001
+From f8f73238eb1a45dcd5400f4f921ffa9f204ac1cf Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 7 Oct 2020 18:35:41 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -24,8 +24,8 @@ Subject: [PATCH] chromium GOSTSSL
  net/socket/ssl_client_socket_impl.cc          | 112 ++++++++++++++++++
  net/socket/ssl_client_socket_impl.h           |   3 +
  net/spdy/spdy_session.cc                      |   5 +
- net/ssl/client_cert_store_mac.cc              |  82 +++++++++++++
- net/ssl/client_cert_store_nss.cc              |  36 ++++++
+ net/ssl/client_cert_store_mac.cc              |  31 +++++
+ net/ssl/client_cert_store_nss.cc              |  33 ++++++
  net/ssl/openssl_ssl_util.cc                   |   4 +
  net/ssl/ssl_cipher_suite_names.cc             |  36 ++++++
  net/ssl/ssl_platform_key_util.cc              |  21 ++++
@@ -33,7 +33,7 @@ Subject: [PATCH] chromium GOSTSSL
  sandbox/policy/mac/common.sb                  |  15 +++
  sandbox/win/src/process_mitigations.cc        |   4 +
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 29 files changed, 447 insertions(+), 9 deletions(-)
+ 29 files changed, 393 insertions(+), 9 deletions(-)
 
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
 index 1a37d509bfce..310d9aab7d47 100644
@@ -574,7 +574,7 @@ index f7b2b6e69bcb..7ef3e1acbca3 100644
    CHECK(GetSSLInfo(&ssl_info));
  
 diff --git a/net/ssl/client_cert_store_mac.cc b/net/ssl/client_cert_store_mac.cc
-index fc448f463329..f7e7e2271734 100644
+index fc448f463329..1b051006544b 100644
 --- a/net/ssl/client_cert_store_mac.cc
 +++ b/net/ssl/client_cert_store_mac.cc
 @@ -295,6 +295,12 @@ void AddIdentity(ScopedCFTypeRef<SecIdentityRef> sec_identity,
@@ -590,91 +590,40 @@ index fc448f463329..f7e7e2271734 100644
  ClientCertIdentityList GetClientCertsOnBackgroundThread(
      const SSLCertRequestInfo& request) {
    std::string server_domain = request.host_and_port.host();
-@@ -385,6 +391,82 @@ ClientCertIdentityList GetClientCertsOnBackgroundThread(
+@@ -385,6 +391,31 @@ ClientCertIdentityList GetClientCertsOnBackgroundThread(
    GetClientCertsImpl(std::move(preferred_identity),
                       std::move(regular_identities), request, true,
                       &selected_identities);
 +
 +#ifndef NO_GOSTSSL
++  {
++    char ** certs;
++    int * lens;
++    int count;
++    int is_gost;
++
++    gostssl_clientcertshook( &certs, &lens, NULL, &count, &is_gost );
++
++    if( is_gost )
 +    {
-+        {
-+            char ** certs;
-+            int * lens;
-+            wchar_t ** names;
-+            int count;
-+            int is_gost;
-+
-+            gostssl_clientcertshook( &certs, &lens, &names, &count, &is_gost );
-+
-+            if( is_gost )
-+                selected_identities.clear();
-+
-+            if( count )
-+            {
-+                CFMutableArrayRef certsValues = CFArrayCreateMutable( NULL, 0, &kCFTypeArrayCallBacks);
-+
-+                for( int i = 0; i < count; i++ )
-+                {
-+                    CFStringEncoding encoding = ( CFByteOrderLittleEndian == CFByteOrderGetCurrent() ) ? kCFStringEncodingUTF32LE : kCFStringEncodingUTF32BE;
-+                    CFStringRef string = CFStringCreateWithBytes( NULL, (uint8_t *)names[i], wcslen( names[i] ) * sizeof( wchar_t ), encoding, false );
-+                    CFArrayAppendValue( certsValues, string );
-+                    CFRelease( string );
-+                }
-+
-+                std::string authhost = request.host_and_port.host();
-+                CFStringRef choose;
-+                if( !authhost.empty() )
-+                    choose = base::SysUTF8ToCFStringRef( "Выберите сертификат для аутентификации на https://" + authhost );
-+                else
-+                    choose = CFSTR( "Выберите сертификат для аутентификации" );
-+
-+                const void * keys[] = {
-+                    kCFUserNotificationAlertHeaderKey,
-+                    kCFUserNotificationAlertMessageKey,
-+                    kCFUserNotificationDefaultButtonTitleKey,
-+                    kCFUserNotificationAlternateButtonTitleKey,
-+                    kCFUserNotificationCheckBoxTitlesKey
-+                };
-+                const void * values[] = {
-+                    CFSTR( "Выбор сертификата" ),
-+                    choose,
-+                    CFSTR( "ОК" ),
-+                    CFSTR( "Отмена" ),
-+                    certsValues
-+                };
-+                CFDictionaryRef parameters = CFDictionaryCreate( NULL, keys, values, 5, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks );
-+
-+                SInt32 err = 0;
-+                CFUserNotificationRef dialog = CFUserNotificationCreate( NULL, 0, kCFUserNotificationUseRadioButtonsFlag | kCFUserNotificationNoteAlertLevel | CFUserNotificationCheckBoxChecked( 0 ), &err, parameters );
-+                CFOptionFlags responseFlags = 0;
-+                CFUserNotificationReceiveResponse( dialog, 0, &responseFlags );
-+                CFRelease( choose );
-+                CFRelease( certsValues );
-+                CFRelease( parameters );
-+                CFRelease( dialog );
-+                if( !( responseFlags & kCFUserNotificationCancelResponse ) )
-+                {
-+                    for( int i = 0; i < count; i++ )
-+                        if( responseFlags & CFUserNotificationCheckBoxChecked( i ) )
-+                        {
-+                            scoped_refptr<X509Certificate> cert = X509Certificate::CreateFromBytes( certs[i], lens[i] );
-+                            if( !cert.get() )
-+                                continue;
-+                            ScopedCFTypeRef<SecIdentityRef> sec_identity;
-+                            selected_identities.push_back( std::make_unique<ClientCertIdentityMac>( cert, std::move( sec_identity ) ) );
-+                            break;
-+                        }
-+                }
-+            }
-+        }
++      selected_identities.clear();
++      for( int i = 0; i < count; i++ )
++      {
++        scoped_refptr<X509Certificate> cert = X509Certificate::CreateFromBytes( certs[i], lens[i] );
++        if( !cert.get() )
++          continue;
++        ScopedCFTypeRef<SecIdentityRef> sec_identity;
++        selected_identities.push_back( std::make_unique<ClientCertIdentityMac>( cert, std::move( sec_identity ) ) );
++      }
 +    }
++  }
 +#endif // GOSTSSL
 +
    return selected_identities;
  }
  
 diff --git a/net/ssl/client_cert_store_nss.cc b/net/ssl/client_cert_store_nss.cc
-index 0e5d02c625cb..ed9b20c357b3 100644
+index 0e5d02c625cb..73e477d17366 100644
 --- a/net/ssl/client_cert_store_nss.cc
 +++ b/net/ssl/client_cert_store_nss.cc
 @@ -145,6 +145,12 @@ void ClientCertStoreNSS::FilterCertsOnWorkerThread(
@@ -690,38 +639,35 @@ index 0e5d02c625cb..ed9b20c357b3 100644
  ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
      scoped_refptr<crypto::CryptoModuleBlockingPasswordDelegate>
          password_delegate,
-@@ -159,6 +165,36 @@ ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
+@@ -159,6 +165,33 @@ ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
    GetPlatformCertsOnWorkerThread(std::move(password_delegate), CertFilter(),
                                   &selected_identities);
    FilterCertsOnWorkerThread(&selected_identities, *request);
 +
 +#ifndef NO_GOSTSSL
++  {
++    char ** certs;
++    int * lens;
++    int count;
++    int is_gost;
++
++    gostssl_clientcertshook( &certs, &lens, NULL, &count, &is_gost );
++
++    if( is_gost )
 +    {
-+        {
-+            char ** certs;
-+            int * lens;
-+            int count;
-+            int is_gost;
-+
-+            gostssl_clientcertshook( &certs, &lens, NULL, &count, &is_gost );
-+
-+            if( is_gost )
-+            {
-+                selected_identities.clear();
-+                for( int i = 0; i < count; i++ )
-+                {
-+                    scoped_refptr<X509Certificate> cert = X509Certificate::CreateFromBytes( certs[i], lens[i] );
-+                    if( !cert.get() )
-+                        continue;
-+                    ScopedCERTCertificate nss_cert = x509_util::CreateCERTCertificateFromBytes( (uint8_t *)certs[i], lens[i] );
-+                    if( !nss_cert.get() )
-+                        continue;
-+                    selected_identities.push_back( std::make_unique<ClientCertIdentityNSS>( cert, x509_util::DupCERTCertificate( nss_cert.get() ), password_delegate ) );
-+                }
-+                std::sort( selected_identities.begin(), selected_identities.end(), ClientCertIdentitySorter() );
-+            }
-+        }
++      selected_identities.clear();
++      for( int i = 0; i < count; i++ )
++      {
++        scoped_refptr<X509Certificate> cert = X509Certificate::CreateFromBytes( certs[i], lens[i] );
++        if( !cert.get() )
++          continue;
++        ScopedCERTCertificate nss_cert = x509_util::CreateCERTCertificateFromBytes( (uint8_t *)certs[i], lens[i] );
++        if( !nss_cert.get() )
++          continue;
++        selected_identities.push_back( std::make_unique<ClientCertIdentityNSS>( cert, x509_util::DupCERTCertificate( nss_cert.get() ), password_delegate ) );
++      }
 +    }
++  }
 +#endif // GOSTSSL
 +
    return selected_identities;
