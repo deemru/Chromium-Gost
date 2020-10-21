@@ -22,4 +22,3 @@ echo "cd \"\${0%/*}\" && ./Chromium-Gost" >> Chromium.app/Contents/MacOS/Chromiu
 chmod 755 Chromium.app/Contents/MacOS/Chromium
 
 mv -f Chromium.app/ Chromium-Gost.app/
-tar -jcvf chromium-gost-$CHROMIUM_TAG-macos-amd64.tar.bz2 Chromium-Gost.app
