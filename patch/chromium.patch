@@ -1,10 +1,10 @@
-From f8f73238eb1a45dcd5400f4f921ffa9f204ac1cf Mon Sep 17 00:00:00 2001
+From 200b931b14b3c385ab7f03c10f37488c5e8dae3f Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 7 Oct 2020 18:35:41 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
- chrome/app/app-entitlements.plist             |   2 +
+ chrome/app/app-entitlements.plist             |   4 +
  chrome/browser/devtools/devtools_window.cc    |  16 +++
  .../native_process_launcher_posix.cc          |  12 ++
  .../resources/local_ntp/local_ntp.html        |   4 +-
@@ -33,17 +33,19 @@ Subject: [PATCH] chromium GOSTSSL
  sandbox/policy/mac/common.sb                  |  15 +++
  sandbox/win/src/process_mitigations.cc        |   4 +
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 29 files changed, 393 insertions(+), 9 deletions(-)
+ 29 files changed, 395 insertions(+), 9 deletions(-)
 
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
-index 1a37d509bfce..310d9aab7d47 100644
+index 1a37d509bfce..79384a1262e9 100644
 --- a/chrome/app/app-entitlements.plist
 +++ b/chrome/app/app-entitlements.plist
-@@ -12,5 +12,7 @@
+@@ -12,5 +12,9 @@
  	<true/>
  	<key>com.apple.security.device.usb</key>
  	<true/>
 +	<key>com.apple.security.smartcard</key>
++	<true/>
++	<key>com.apple.security.cs.allow-unsigned-executable-memory</key>
 +	<true/>
  </dict>
  </plist>
