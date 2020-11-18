@@ -1,6 +1,6 @@
-From 200b931b14b3c385ab7f03c10f37488c5e8dae3f Mon Sep 17 00:00:00 2001
+From 3f5426a0459497e6f421f1a4f7e3d920105809ba Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
-Date: Wed, 7 Oct 2020 18:35:41 +0300
+Date: Wed, 18 Nov 2020 14:39:28 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
@@ -36,12 +36,12 @@ Subject: [PATCH] chromium GOSTSSL
  29 files changed, 395 insertions(+), 9 deletions(-)
 
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
-index 1a37d509bfce..79384a1262e9 100644
+index 522375410823..2b11e5c13005 100644
 --- a/chrome/app/app-entitlements.plist
 +++ b/chrome/app/app-entitlements.plist
-@@ -12,5 +12,9 @@
+@@ -14,5 +14,9 @@
  	<true/>
- 	<key>com.apple.security.device.usb</key>
+ 	<key>com.apple.security.personal-information.location</key>
  	<true/>
 +	<key>com.apple.security.smartcard</key>
 +	<true/>
@@ -50,10 +50,10 @@ index 1a37d509bfce..79384a1262e9 100644
  </dict>
  </plist>
 diff --git a/chrome/browser/devtools/devtools_window.cc b/chrome/browser/devtools/devtools_window.cc
-index ec271f2f898b..13cefdf17ab1 100644
+index fc368fb9acb0..107b3bbc5afb 100644
 --- a/chrome/browser/devtools/devtools_window.cc
 +++ b/chrome/browser/devtools/devtools_window.cc
-@@ -1488,6 +1488,12 @@ void DevToolsWindow::RenderProcessGone(bool crashed) {
+@@ -1497,6 +1497,12 @@ void DevToolsWindow::RenderProcessGone(bool crashed) {
    }
  }
  
@@ -66,7 +66,7 @@ index ec271f2f898b..13cefdf17ab1 100644
  void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
    base::Optional<base::Value> value = base::JSONReader::Read(cert_chain);
    CHECK(value && value->is_list());
-@@ -1496,6 +1502,16 @@ void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
+@@ -1505,6 +1511,16 @@ void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
      CHECK(item.is_string());
      std::string temp;
      CHECK(base::Base64Decode(item.GetString(), &temp));
@@ -136,10 +136,10 @@ index d9d58e1ddef9..1e7e6f26f029 100644
    if (theme.logoColor) {
      document.body.style.setProperty(
 diff --git a/chrome/browser/search/local_ntp_source.cc b/chrome/browser/search/local_ntp_source.cc
-index d7816343d504..97df3ad77a31 100644
+index 78e588256493..e8fccac75388 100644
 --- a/chrome/browser/search/local_ntp_source.cc
 +++ b/chrome/browser/search/local_ntp_source.cc
-@@ -848,6 +848,13 @@ void LocalNtpSource::StartDataRequest(
+@@ -850,6 +850,13 @@ void LocalNtpSource::StartDataRequest(
      return;
    }
  
@@ -210,10 +210,10 @@ index 55a35677b9c4..abbc16d5f5f1 100644
  case $CHANNEL in
    stable )
 diff --git a/content/browser/BUILD.gn b/content/browser/BUILD.gn
-index 1b474da31816..7487cf9e7397 100644
+index b3115bab5c08..cef4c4f32c01 100644
 --- a/content/browser/BUILD.gn
 +++ b/content/browser/BUILD.gn
-@@ -2766,6 +2766,14 @@ source_set("browser") {
+@@ -2792,6 +2792,14 @@ source_set("browser") {
        "net/reporting_service_proxy.h",
      ]
    }
@@ -229,7 +229,7 @@ index 1b474da31816..7487cf9e7397 100644
    if (use_viz_devtools) {
      sources += [
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
-index 6996fe8d1be3..759762fd4b52 100644
+index 9b5a44b6dd99..6d2075b36f0b 100644
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
 @@ -120,6 +120,10 @@
@@ -256,10 +256,10 @@ index 6996fe8d1be3..759762fd4b52 100644
  
      if (cert && private_key) {
 diff --git a/content/common/user_agent.cc b/content/common/user_agent.cc
-index 1968595853d5..0b3a0a3b0d16 100644
+index a87ca565f8aa..1b047bdf12d5 100644
 --- a/content/common/user_agent.cc
 +++ b/content/common/user_agent.cc
-@@ -287,7 +287,7 @@ std::string BuildUserAgentFromOSAndProduct(const std::string& os_info,
+@@ -299,7 +299,7 @@ std::string BuildUserAgentFromOSAndProduct(const std::string& os_info,
    std::string user_agent;
    base::StringAppendF(
        &user_agent,
@@ -269,7 +269,7 @@ index 1968595853d5..0b3a0a3b0d16 100644
        WEBKIT_VERSION_MAJOR,
        WEBKIT_VERSION_MINOR,
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
-index b4b111e3ac38..8670287eebf9 100644
+index 4e129bc9c246..5e0385cd0b65 100644
 --- a/net/base/net_error_list.h
 +++ b/net/base/net_error_list.h
 @@ -22,6 +22,11 @@
@@ -326,7 +326,7 @@ index 6135c24fe81b..45504adba63e 100644
    // in the chain. Also fills in the has_* booleans for the digest algorithms
    // present in the chain.
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index 69b55e23808c..69d98aae8009 100644
+index 44104427ace5..be7e97ad440f 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
 @@ -1495,6 +1495,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
@@ -402,7 +402,7 @@ index 6b9aeb32f02a..07f6e8699883 100644
    void NotifySSLConfigChanged(bool is_cert_database_change);
    void NotifySSLConfigForServerChanged(const HostPortPair& server);
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index cf4e52b8190c..415196932702 100644
+index 4381f3ec63ac..e9d3bb477da2 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
 @@ -454,6 +454,18 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
@@ -526,7 +526,7 @@ index cf4e52b8190c..415196932702 100644
    const uint8_t* ocsp_response_raw;
    size_t ocsp_response_len;
    SSL_get0_ocsp_response(ssl_.get(), &ocsp_response_raw, &ocsp_response_len);
-@@ -1646,6 +1746,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1647,6 +1747,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
@@ -560,10 +560,10 @@ index 7388274b5b62..723daa419e06 100644
    // The given hostname will be compared with the name(s) in the server's
    // certificate during the SSL handshake.  |ssl_config| specifies the SSL
 diff --git a/net/spdy/spdy_session.cc b/net/spdy/spdy_session.cc
-index f7b2b6e69bcb..7ef3e1acbca3 100644
+index c197413eb88b..01e99c177886 100644
 --- a/net/spdy/spdy_session.cc
 +++ b/net/spdy/spdy_session.cc
-@@ -1591,6 +1591,11 @@ void SpdySession::RemovePooledAlias(const SpdySessionKey& alias_key) {
+@@ -1592,6 +1592,11 @@ void SpdySession::RemovePooledAlias(const SpdySessionKey& alias_key) {
  }
  
  bool SpdySession::HasAcceptableTransportSecurity() const {
@@ -802,7 +802,7 @@ index 02729fecba76..a586e0c5e237 100644
  bssl::UniquePtr<EVP_PKEY> GetClientCertPublicKey(
      const X509Certificate* certificate);
 diff --git a/sandbox/policy/mac/common.sb b/sandbox/policy/mac/common.sb
-index 27b5a183d0eb..1a8dd3aafc3f 100644
+index 349fc080221b..94a7184a9e37 100644
 --- a/sandbox/policy/mac/common.sb
 +++ b/sandbox/policy/mac/common.sb
 @@ -124,6 +124,21 @@
@@ -864,7 +864,7 @@ index 5e4e7fd604f5..56e347c9a158 100644
  
    // Enable image load policies.
 diff --git a/third_party/boringssl/BUILD.generated.gni b/third_party/boringssl/BUILD.generated.gni
-index 018cebb098f7..30bdde9733d2 100644
+index a136d0598bac..2a91d500c8fd 100644
 --- a/third_party/boringssl/BUILD.generated.gni
 +++ b/third_party/boringssl/BUILD.generated.gni
 @@ -5,6 +5,8 @@
@@ -877,5 +877,5 @@ index 018cebb098f7..30bdde9733d2 100644
    "src/crypto/asn1/a_bitstr.c",
    "src/crypto/asn1/a_bool.c",
 -- 
-2.28.0.windows.1
+2.17.0.windows.1
 
