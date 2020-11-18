@@ -1,11 +1,10 @@
-From 3f5426a0459497e6f421f1a4f7e3d920105809ba Mon Sep 17 00:00:00 2001
+From 856457e6a829ad2c094b284e51c7040d5f66ed63 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 18 Nov 2020 14:39:28 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
  chrome/app/app-entitlements.plist             |   4 +
- chrome/browser/devtools/devtools_window.cc    |  16 +++
  .../native_process_launcher_posix.cc          |  12 ++
  .../resources/local_ntp/local_ntp.html        |   4 +-
  .../browser/resources/local_ntp/local_ntp.js  |   2 +-
@@ -33,7 +32,7 @@ Subject: [PATCH] chromium GOSTSSL
  sandbox/policy/mac/common.sb                  |  15 +++
  sandbox/win/src/process_mitigations.cc        |   4 +
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 29 files changed, 395 insertions(+), 9 deletions(-)
+ 28 files changed, 379 insertions(+), 9 deletions(-)
 
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
 index 522375410823..2b11e5c13005 100644
@@ -49,40 +48,6 @@ index 522375410823..2b11e5c13005 100644
 +	<true/>
  </dict>
  </plist>
-diff --git a/chrome/browser/devtools/devtools_window.cc b/chrome/browser/devtools/devtools_window.cc
-index fc368fb9acb0..107b3bbc5afb 100644
---- a/chrome/browser/devtools/devtools_window.cc
-+++ b/chrome/browser/devtools/devtools_window.cc
-@@ -1497,6 +1497,12 @@ void DevToolsWindow::RenderProcessGone(bool crashed) {
-   }
- }
- 
-+#ifndef NO_GOSTSSL
-+extern "C" {
-+void gostssl_isgostcerthook( void * cert, int size, int * is_gost );
-+}
-+#endif // GOSTSSL
-+
- void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
-   base::Optional<base::Value> value = base::JSONReader::Read(cert_chain);
-   CHECK(value && value->is_list());
-@@ -1505,6 +1511,16 @@ void DevToolsWindow::ShowCertificateViewer(const std::string& cert_chain) {
-     CHECK(item.is_string());
-     std::string temp;
-     CHECK(base::Base64Decode(item.GetString(), &temp));
-+#ifndef NO_GOSTSSL
-+    {
-+        {
-+            int is_gost = 0;
-+            gostssl_isgostcerthook( (void *)&temp[0], temp.size(), &is_gost );
-+            if( is_gost == 1 )
-+                return;
-+        }
-+    }
-+#endif // GOSTSSL
-     decoded.push_back(std::move(temp));
-   }
- 
 diff --git a/chrome/browser/extensions/api/messaging/native_process_launcher_posix.cc b/chrome/browser/extensions/api/messaging/native_process_launcher_posix.cc
 index 7afd31723d52..62b628bbb7bf 100644
 --- a/chrome/browser/extensions/api/messaging/native_process_launcher_posix.cc
