@@ -1,10 +1,10 @@
-From 856457e6a829ad2c094b284e51c7040d5f66ed63 Mon Sep 17 00:00:00 2001
+From 30591a69a18a4cdbaca01ea84a1211ab1d4f5549 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 18 Nov 2020 14:39:28 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
- chrome/app/app-entitlements.plist             |   4 +
+ chrome/app/app-entitlements.plist             |   6 +
  .../native_process_launcher_posix.cc          |  12 ++
  .../resources/local_ntp/local_ntp.html        |   4 +-
  .../browser/resources/local_ntp/local_ntp.js  |   2 +-
@@ -29,22 +29,24 @@ Subject: [PATCH] chromium GOSTSSL
  net/ssl/ssl_cipher_suite_names.cc             |  36 ++++++
  net/ssl/ssl_platform_key_util.cc              |  21 ++++
  net/ssl/ssl_platform_key_util.h               |   7 ++
- sandbox/policy/mac/common.sb                  |  15 +++
+ sandbox/policy/mac/common.sb                  |  16 +++
  sandbox/win/src/process_mitigations.cc        |   4 +
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 28 files changed, 379 insertions(+), 9 deletions(-)
+ 28 files changed, 382 insertions(+), 9 deletions(-)
 
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
-index 522375410823..2b11e5c13005 100644
+index 522375410823..aae9bd8eba5d 100644
 --- a/chrome/app/app-entitlements.plist
 +++ b/chrome/app/app-entitlements.plist
-@@ -14,5 +14,9 @@
+@@ -14,5 +14,11 @@
  	<true/>
  	<key>com.apple.security.personal-information.location</key>
  	<true/>
 +	<key>com.apple.security.smartcard</key>
 +	<true/>
 +	<key>com.apple.security.cs.allow-unsigned-executable-memory</key>
++	<true/>
++	<key>com.apple.security.cs.disable-library-validation</key>
 +	<true/>
  </dict>
  </plist>
@@ -767,10 +769,10 @@ index 02729fecba76..a586e0c5e237 100644
  bssl::UniquePtr<EVP_PKEY> GetClientCertPublicKey(
      const X509Certificate* certificate);
 diff --git a/sandbox/policy/mac/common.sb b/sandbox/policy/mac/common.sb
-index 349fc080221b..94a7184a9e37 100644
+index 349fc080221b..7984e9027d5b 100644
 --- a/sandbox/policy/mac/common.sb
 +++ b/sandbox/policy/mac/common.sb
-@@ -124,6 +124,21 @@
+@@ -124,6 +124,22 @@
    (subpath "/usr/lib")
  )
  
@@ -781,6 +783,7 @@ index 349fc080221b..94a7184a9e37 100644
 +  (subpath "/private/etc/opt/cprocsp")
 +  (subpath "/private/var/opt/cprocsp")
 +  (subpath "/Applications/CryptoPro")
++  (subpath "/Library")
 +)
 +
 +(allow mach-lookup
