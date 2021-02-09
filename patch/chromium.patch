@@ -264,7 +264,7 @@ index 8315350e3f66..12d57a98d7b4 100644
    base::StringAppendF(
        &user_agent,
 -      "Mozilla/5.0 (%s) AppleWebKit/%d.%d (KHTML, like Gecko) %s Safari/%d.%d",
-+      "Mozilla/5.0 (%s) AppleWebKit/%d.%d (KHTML, like Gecko) %s (Chromium GOST) Safari/%d.%d",
++      "Mozilla/5.0 (%s) AppleWebKit/%d.%d (KHTML, like Gecko) %s Safari/%d.%d (Chromium GOST)",
        os_info.c_str(),
        WEBKIT_VERSION_MAJOR,
        WEBKIT_VERSION_MINOR,
