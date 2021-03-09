@@ -45,6 +45,7 @@ DLLEXPORT void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t ***
 DLLEXPORT void gostssl_isgostcerthook( void * cert, int size, int * is_gost );
 DLLEXPORT void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size );
 DLLEXPORT int gostssl_is_msspi( SSL * s );
+DLLEXPORT char gostssl_certificate_info( const char * cert, size_t size, const char ** info, size_t * len );
 
 }
 
@@ -744,4 +745,130 @@ int gostssl_is_msspi( SSL * s )
     if( !w || w->host_status != GOSTSSL_HOST_YES )
         return 0;
     return 1;
+}
+
+char gostssl_certificate_info( const char * cert, size_t size, const char ** info, size_t * len )
+{
+    MSSPI_CERT_HANDLE ch = msspi_cert_open( cert, size );
+    if( !ch )
+        return 0;
+
+    char isOK = 0;
+    for( ;; )
+    {
+        const char * cstr;
+        size_t cstrlen;
+        static std::string certinfo;
+        certinfo.clear();
+
+        if( !msspi_cert_subject( ch, &cstr, &cstrlen ) )
+            break;
+        std::string subject = cstr;
+
+        if( !msspi_cert_issuer( ch, &cstr, &cstrlen ) )
+            break;
+        std::string issuer = cstr;
+
+        if( !msspi_cert_serial( ch, &cstr, &cstrlen ) )
+            break;
+        std::string serial = cstr;
+
+        if( !msspi_cert_keyid( ch, &cstr, &cstrlen ) )
+            break;
+        std::string keyid = cstr;
+
+        if( !msspi_cert_sha1( ch, &cstr, &cstrlen ) )
+            break;
+        std::string sha1 = cstr;
+
+        if( !msspi_cert_alg_sig( ch, &cstr, &cstrlen ) )
+            break;
+        std::string alg_sig = cstr;
+
+        if( !msspi_cert_alg_key( ch, &cstr, &cstrlen ) )
+            break;
+        std::string alg_key = cstr;
+
+        struct tm tt;
+        char buf[32];
+
+        if( !msspi_cert_time_issued( ch, &tt ) )
+            break;
+        if( 0 >= snprintf( buf, sizeof( buf ), "%d.%02d.%02d %02d:%02d:%02d", tt.tm_year, tt.tm_mon, tt.tm_mday, tt.tm_hour, tt.tm_min, tt.tm_sec ) )
+            break;
+        std::string issued = buf;
+
+        if( !msspi_cert_time_expired( ch, &tt ) )
+            break;
+        if( 0 >= snprintf( buf, sizeof( buf ), "%d.%02d.%02d %02d:%02d:%02d", tt.tm_year, tt.tm_mon, tt.tm_mday, tt.tm_hour, tt.tm_min, tt.tm_sec ) )
+            break;
+        std::string expired = buf;
+
+        certinfo = "<html><meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"><style>table { border-collapse: collapse; } tr, td { font-family: monospace, monospace; border: 0px solid #c0c0c0; } html, body { font-size: 14pt; font-family: monospace, monospace; }</style><body>";
+        certinfo += "<table cellpadding=2px>";
+        certinfo += "<tr><td width=25% valign=top align=right>Субъект:</td><td><b>" + subject + "</b></td></tr>";
+        certinfo += "<tr><td valign=top align=right>Издатель:</td><td>" + issuer + "</td></tr>";
+        certinfo += "<tr><td valign=top align=right>Ключ:</td><td><b>" + alg_key + "</b></td></tr>";
+        certinfo += "<tr><td valign=top align=right>Подпись:</td><td>" + alg_sig + "</td></tr>";
+        certinfo += "<tr><td valign=top align=right>Серийный номер:</td><td>" + serial + "</td></tr>";
+        certinfo += "<tr><td valign=top align=right>Идентификатор:</td><td>" + keyid + "</td></tr>";
+        certinfo += "<tr><td valign=top align=right>Отпечаток:</td><td>" + sha1 + "</td></tr>";
+        certinfo += "<tr><td valign=top align=right>Выдан:</td><td>" + issued + "</td></tr>";
+        certinfo += "<tr><td valign=top align=right>Истекает:</td><td>" + expired + "</td></tr>";
+        certinfo += "</table>";
+
+        for( ;; )
+        {
+            MSSPI_CERT_HANDLE ch_next = msspi_cert_next( ch );
+            msspi_cert_close( ch );
+            ch = ch_next;
+
+            if( !ch )
+                break;
+
+            if( !msspi_cert_subject( ch, &cstr, &cstrlen ) )
+                break;
+            subject = cstr;
+
+            if( !msspi_cert_issuer( ch, &cstr, &cstrlen ) )
+                break;
+            issuer = cstr;
+
+            if( !msspi_cert_sha1( ch, &cstr, &cstrlen ) )
+                break;
+            sha1 = cstr;
+
+            if( !msspi_cert_alg_key( ch, &cstr, &cstrlen ) )
+                break;
+            alg_key = cstr;
+
+            if( !msspi_cert_time_expired( ch, &tt ) )
+                break;
+            if( 0 >= snprintf( buf, sizeof( buf ), "%d.%02d.%02d %02d:%02d:%02d", tt.tm_year, tt.tm_mon, tt.tm_mday, tt.tm_hour, tt.tm_min, tt.tm_sec ) )
+                break;
+            expired = buf;
+
+            if( subject == issuer )
+                certinfo += "<br><b>Корневой сертификат:</b><br>";
+            else
+                certinfo += "<br><b>Промежуточный сертификат:</b><br>";
+            certinfo += "<br><table cellpadding=2px>";
+            certinfo += "<tr><td width=25% valign=top align=right>Субъект:</td><td><b>" + subject + "</b></td></tr>";
+            certinfo += "<tr><td valign=top align=right>Ключ</b>:</td><td><b>" + alg_key + "</b></td></tr>";
+            certinfo += "<tr><td valign=top align=right>Отпечаток:</td><td>" + sha1 + "</td></tr>";
+            certinfo += "<tr><td valign=top align=right>Истекает:</td><td>" + expired + "</td></tr>";
+            certinfo += "</table>";
+        }
+
+        certinfo += "</body></html>";
+        *info = certinfo.c_str();
+        *len = certinfo.length();
+        isOK = 1;
+        break;
+    }
+
+    if( ch )
+        msspi_cert_close( ch );
+
+    return isOK;
 }
