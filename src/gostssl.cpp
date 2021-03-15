@@ -761,11 +761,11 @@ char gostssl_certificate_info( const char * cert, size_t size, const char ** inf
         static std::string certinfo;
         certinfo.clear();
 
-        if( !msspi_cert_subject( ch, &cstr, &cstrlen ) )
+        if( !msspi_cert_subject( ch, &cstr, &cstrlen, 0 ) )
             break;
         std::string subject = cstr;
 
-        if( !msspi_cert_issuer( ch, &cstr, &cstrlen ) )
+        if( !msspi_cert_issuer( ch, &cstr, &cstrlen, 0 ) )
             break;
         std::string issuer = cstr;
 
@@ -804,17 +804,17 @@ char gostssl_certificate_info( const char * cert, size_t size, const char ** inf
             break;
         std::string expired = buf;
 
-        certinfo = "<html><meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"><style>table { border-collapse: collapse; } tr, td { font-family: monospace, monospace; border: 0px solid #c0c0c0; } html, body { font-size: 14pt; font-family: monospace, monospace; }</style><body>";
-        certinfo += "<table cellpadding=2px>";
-        certinfo += "<tr><td width=25% valign=top align=right>Субъект:</td><td><b>" + subject + "</b></td></tr>";
-        certinfo += "<tr><td valign=top align=right>Издатель:</td><td>" + issuer + "</td></tr>";
-        certinfo += "<tr><td valign=top align=right>Ключ:</td><td><b>" + alg_key + "</b></td></tr>";
-        certinfo += "<tr><td valign=top align=right>Подпись:</td><td>" + alg_sig + "</td></tr>";
-        certinfo += "<tr><td valign=top align=right>Серийный номер:</td><td>" + serial + "</td></tr>";
-        certinfo += "<tr><td valign=top align=right>Идентификатор:</td><td>" + keyid + "</td></tr>";
-        certinfo += "<tr><td valign=top align=right>Отпечаток:</td><td>" + sha1 + "</td></tr>";
-        certinfo += "<tr><td valign=top align=right>Выдан:</td><td>" + issued + "</td></tr>";
-        certinfo += "<tr><td valign=top align=right>Истекает:</td><td>" + expired + "</td></tr>";
+        certinfo = "<html><meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"><style>table { border-collapse: collapse; } body, td { font-family: monospace, monospace; padding-right: 4px; }</style><body>";
+        certinfo += "<table width=100%>";
+        certinfo += "<tr><td width=25% valign=top align=right><b>Субъект</b></td><td>" + subject + "</td></tr>";
+        certinfo += "<tr><td valign=top align=right><b>Издатель</b></td><td>" + issuer + "</td></tr>";
+        certinfo += "<tr><td valign=top align=right><b>Ключ</b></td><td>" + alg_key + "</td></tr>";
+        certinfo += "<tr><td valign=top align=right><b>Подпись</b></td><td>" + alg_sig + "</td></tr>";
+        certinfo += "<tr><td valign=top align=right><b>Серийный номер</b></td><td>" + serial + "</td></tr>";
+        certinfo += "<tr><td valign=top align=right><b>Идентификатор</b></td><td>" + keyid + "</td></tr>";
+        certinfo += "<tr><td valign=top align=right><b>Отпечаток SHA-1</b></td><td>" + sha1 + "</td></tr>";
+        certinfo += "<tr><td valign=top align=right><b>Выдан</b></td><td>" + issued + "</td></tr>";
+        certinfo += "<tr><td valign=top align=right><b>Истекает</b></td><td>" + expired + "</td></tr>";
         certinfo += "</table>";
 
         for( ;; )
@@ -826,11 +826,11 @@ char gostssl_certificate_info( const char * cert, size_t size, const char ** inf
             if( !ch )
                 break;
 
-            if( !msspi_cert_subject( ch, &cstr, &cstrlen ) )
+            if( !msspi_cert_subject( ch, &cstr, &cstrlen, 0 ) )
                 break;
             subject = cstr;
 
-            if( !msspi_cert_issuer( ch, &cstr, &cstrlen ) )
+            if( !msspi_cert_issuer( ch, &cstr, &cstrlen, 0 ) )
                 break;
             issuer = cstr;
 
@@ -848,15 +848,17 @@ char gostssl_certificate_info( const char * cert, size_t size, const char ** inf
                 break;
             expired = buf;
 
+            certinfo += "<table width=100%><tr><td style=\"border-bottom: 4px solid #c0c0c0;\"></td></tr></table>";
+
             if( subject == issuer )
-                certinfo += "<br><b>Корневой сертификат:</b><br>";
+                certinfo += "<br><b>Корневой сертификат</b><br>";
             else
-                certinfo += "<br><b>Промежуточный сертификат:</b><br>";
-            certinfo += "<br><table cellpadding=2px>";
-            certinfo += "<tr><td width=25% valign=top align=right>Субъект:</td><td><b>" + subject + "</b></td></tr>";
-            certinfo += "<tr><td valign=top align=right>Ключ</b>:</td><td><b>" + alg_key + "</b></td></tr>";
-            certinfo += "<tr><td valign=top align=right>Отпечаток:</td><td>" + sha1 + "</td></tr>";
-            certinfo += "<tr><td valign=top align=right>Истекает:</td><td>" + expired + "</td></tr>";
+                certinfo += "<br><b>Промежуточный сертификат</b><br>";
+            certinfo += "<br><table width=100%>";
+            certinfo += "<tr><td width=25% valign=top align=right><b>Субъект</b></td><td>" + subject + "</td></tr>";
+            certinfo += "<tr><td valign=top align=right><b>Ключ</b></td><td>" + alg_key + "</td></tr>";
+            certinfo += "<tr><td valign=top align=right><b>Отпечаток SHA-1</b></td><td>" + sha1 + "</td></tr>";
+            certinfo += "<tr><td valign=top align=right><b>Истекает</b></td><td>" + expired + "</td></tr>";
             certinfo += "</table>";
         }
 

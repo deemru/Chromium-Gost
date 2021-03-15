@@ -1,4 +1,4 @@
-From 60986d25b0ac38ea527b5ef25a2419695c696093 Mon Sep 17 00:00:00 2001
+From 70495c09bf40d327206ee63f919d2b26bd85b98e Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Fri, 5 Mar 2021 01:59:16 -0800
 Subject: [PATCH] chromium GOSTSSL
@@ -13,7 +13,7 @@ Subject: [PATCH] chromium GOSTSSL
  chrome/browser/search/local_ntp_source.cc     |   7 ++
  .../chromium-browser/chromium-browser.info    |  10 +-
  .../installer/linux/rpm/chrome.spec.template  |   4 +
- .../app_shim/certificate_viewer.mm            |  45 +++++++
+ .../app_shim/certificate_viewer.mm            |  46 +++++++
  content/browser/BUILD.gn                      |   8 ++
  .../direct_sockets_service_impl.cc            |   2 +
  content/browser/storage_partition_impl.cc     |   9 ++
@@ -40,7 +40,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.cc  |   9 ++
  .../renderer/core/frame/reporting_context.h   |   7 +-
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 36 files changed, 456 insertions(+), 20 deletions(-)
+ 36 files changed, 457 insertions(+), 20 deletions(-)
 
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
 index 522375410823..aae9bd8eba5d 100644
@@ -216,10 +216,10 @@ index c755e4cea220..e7cfec11ec84 100644
  case $CHANNEL in
    stable )
 diff --git a/components/remote_cocoa/app_shim/certificate_viewer.mm b/components/remote_cocoa/app_shim/certificate_viewer.mm
-index 0c12e8bda385..bbc63f9adae5 100644
+index 0c12e8bda385..c071d69f7a7b 100644
 --- a/components/remote_cocoa/app_shim/certificate_viewer.mm
 +++ b/components/remote_cocoa/app_shim/certificate_viewer.mm
-@@ -14,10 +14,55 @@
+@@ -14,10 +14,56 @@
  #include "net/cert/x509_util_ios_and_mac.h"
  #include "net/cert/x509_util_mac.h"
  
@@ -259,12 +259,13 @@ index 0c12e8bda385..bbc63f9adae5 100644
 +        return dispatch_async( dispatch_get_main_queue(), ^
 +        {
 +            NSAlert * alert = [[NSAlert alloc] init];
-+            NSTextView * accessory = [[NSTextView alloc] initWithFrame:NSMakeRect( 0, 0, 600, 15 )];
++            NSTextView * accessory = [[NSTextView alloc] initWithFrame:NSMakeRect( 0, 0, 600, 400 )];
 +            [accessory insertText:certinfo replacementRange:NSMakeRange( 0, 0 )];
 +            [accessory setEditable:NO];
 +            [accessory setDrawsBackground:NO];
-+            
-+            [alert setMessageText:@"Информация о сертификате сайта:"];
++            accessory.textColor = [NSColor controlTextColor];
++
++            [alert setMessageText:@"Информация о сертификате сайта"];
 +            [alert setAccessoryView:accessory];
 +            [alert setAlertStyle:NSAlertStyleInformational];
 +            [alert beginSheetModalForWindow:owning_window completionHandler:nil];
