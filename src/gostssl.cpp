@@ -40,7 +40,7 @@ int gostssl_tls_gost_required( SSL * s, const SSL_CIPHER * cipher );
 
 // Hooks
 DLLEXPORT void gostssl_certhook( void * cert, int size );
-DLLEXPORT void gostssl_verifyhook( void * s, unsigned * is_gost );
+DLLEXPORT void gostssl_verifyhook( void * s, const char * host, unsigned * is_gost );
 DLLEXPORT void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost );
 DLLEXPORT void gostssl_isgostcerthook( void * cert, int size, int * is_gost );
 DLLEXPORT void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size );
@@ -625,7 +625,7 @@ void gostssl_free( SSL * s )
     workers_api( s, WDB_FREE );
 }
 
-void gostssl_verifyhook( void * s, unsigned * gost_status )
+void gostssl_verifyhook( void * s, const char * host, unsigned * gost_status )
 {
     *gost_status = 0;
 
@@ -633,6 +633,8 @@ void gostssl_verifyhook( void * s, unsigned * gost_status )
 
     if( !w || w->host_status != GOSTSSL_HOST_YES )
         return;
+
+    msspi_set_hostname( w->h, host );
 
     unsigned verify_status = msspi_verify( w->h );
 

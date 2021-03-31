@@ -1,4 +1,4 @@
-From 70495c09bf40d327206ee63f919d2b26bd85b98e Mon Sep 17 00:00:00 2001
+From 99fbc68cc37b83c1e85498b15aed96d8dd2b67fe Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Fri, 5 Mar 2021 01:59:16 -0800
 Subject: [PATCH] chromium GOSTSSL
@@ -487,7 +487,7 @@ index 0f0fe9a36df1..5c89b9280901 100644
    void NotifySSLConfigChanged(bool is_cert_database_change);
    void NotifySSLConfigForServerChanged(const HostPortPair& server);
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 5c5c3e34c709..cc155c327115 100644
+index 5c5c3e34c709..1fbeea5ee3b5 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
 @@ -417,6 +417,18 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
@@ -498,7 +498,7 @@ index 5c5c3e34c709..cc155c327115 100644
 +extern "C" {
 +void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size );
 +void gostssl_certhook( void * cert, int size );
-+void gostssl_verifyhook( void * s, unsigned * is_gost );
++void gostssl_verifyhook( void * s, const char * host, unsigned * is_gost );
 +int gostssl_is_msspi( SSL * s );
 +}
 +int SSLClientSocketImpl::IsMSSPI() {
@@ -551,7 +551,7 @@ index 5c5c3e34c709..cc155c327115 100644
 +  {
 +    {
 +      unsigned gost_status;
-+      gostssl_verifyhook( (void*)ssl_.get(), &gost_status );
++      gostssl_verifyhook( (void*)ssl_.get(), host_and_port_.host().c_str(), &gost_status );
 +      if (gost_status) {
 +        int gost_rv = OK;
 +
