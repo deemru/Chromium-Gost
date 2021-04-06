@@ -679,7 +679,7 @@ void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, in
     *is_gost = 1;
     *count = 0;
 
-    HCERTSTORE hStore = CertOpenStore( CERT_STORE_PROV_SYSTEM_A, 0, 0, CERT_STORE_OPEN_EXISTING_FLAG | CERT_STORE_READONLY_FLAG, "MY" );
+    HCERTSTORE hStore = CertOpenStore( CERT_STORE_PROV_SYSTEM_A, 0, 0, CERT_STORE_OPEN_EXISTING_FLAG | CERT_STORE_READONLY_FLAG | CERT_SYSTEM_STORE_CURRENT_USER, "MY" );
 
     if( !hStore )
         return;
