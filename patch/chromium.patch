@@ -1,4 +1,4 @@
-From 99fbc68cc37b83c1e85498b15aed96d8dd2b67fe Mon Sep 17 00:00:00 2001
+From f52b6cd854513fcdf4145ccd40e3274f306211ec Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Fri, 5 Mar 2021 01:59:16 -0800
 Subject: [PATCH] chromium GOSTSSL
@@ -29,6 +29,7 @@ Subject: [PATCH] chromium GOSTSSL
  net/spdy/spdy_session.cc                      |   5 +
  net/ssl/client_cert_store_mac.cc              |  31 +++++
  net/ssl/client_cert_store_nss.cc              |  33 ++++++
+ net/ssl/client_cert_store_win.cc              |  32 +++++
  net/ssl/openssl_ssl_util.cc                   |   4 +
  net/ssl/ssl_cipher_suite_names.cc             |  36 ++++++
  net/ssl/ssl_platform_key_util.cc              |  21 ++++
@@ -40,7 +41,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.cc  |   9 ++
  .../renderer/core/frame/reporting_context.h   |   7 +-
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 36 files changed, 457 insertions(+), 20 deletions(-)
+ 37 files changed, 489 insertions(+), 20 deletions(-)
 
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
 index 522375410823..aae9bd8eba5d 100644
@@ -760,6 +761,56 @@ index 9ef425caaa56..2795c6d52efc 100644
    return selected_identities;
  }
  
+diff --git a/net/ssl/client_cert_store_win.cc b/net/ssl/client_cert_store_win.cc
+index 226d7efbbcc1..49befd45283e 100644
+--- a/net/ssl/client_cert_store_win.cc
++++ b/net/ssl/client_cert_store_win.cc
+@@ -107,6 +107,12 @@ static BOOL WINAPI ClientCertFindCallback(PCCERT_CONTEXT cert_context,
+   return TRUE;
+ }
+ 
++#ifndef NO_GOSTSSL
++extern "C" {
++void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost );
++}
++#endif // GOSTSSL
++
+ ClientCertIdentityList GetClientCertsImpl(HCERTSTORE cert_store,
+                                           const SSLCertRequestInfo& request) {
+   ClientCertIdentityList selected_identities;
+@@ -208,6 +214,32 @@ ClientCertIdentityList GetClientCertsImpl(HCERTSTORE cert_store,
+     }
+   }
+ 
++#ifndef NO_GOSTSSL
++  {
++    char ** certs;
++    int * lens;
++    int count;
++    int is_gost;
++
++    gostssl_clientcertshook( &certs, &lens, NULL, &count, &is_gost );
++
++    if( is_gost )
++    {
++      selected_identities.clear();
++      for( int i = 0; i < count; i++ )
++      {
++        scoped_refptr<X509Certificate> cert = X509Certificate::CreateFromBytes( certs[i], lens[i] );
++        if( !cert.get() )
++          continue;
++        ScopedPCCERT_CONTEXT scoped_certctx;
++        PCCERT_CONTEXT certctx = CertCreateCertificateContext( X509_ASN_ENCODING, (BYTE *)certs[i], (DWORD)lens[i] );
++        scoped_certctx.reset(certctx);
++        selected_identities.push_back( std::make_unique<ClientCertIdentityWin>( std::move( cert ), std::move( scoped_certctx ), current_thread ) );
++      }
++    }
++  }
++#endif // GOSTSSL
++
+   std::sort(selected_identities.begin(), selected_identities.end(),
+             ClientCertIdentitySorter());
+   return selected_identities;
 diff --git a/net/ssl/openssl_ssl_util.cc b/net/ssl/openssl_ssl_util.cc
 index 585338617635..77a560bb4c7c 100644
 --- a/net/ssl/openssl_ssl_util.cc
@@ -1137,5 +1188,4 @@ index 740267ac8c2e..34786c612501 100644
    "src/crypto/asn1/a_bitstr.c",
    "src/crypto/asn1/a_bool.c",
 -- 
-2.28.0.windows.1
 
