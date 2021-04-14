@@ -1,10 +1,11 @@
-From f52b6cd854513fcdf4145ccd40e3274f306211ec Mon Sep 17 00:00:00 2001
+From 77e422fc78a6dbc6fd0e96010e0df30f4d376e08 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Fri, 5 Mar 2021 01:59:16 -0800
 Subject: [PATCH] chromium GOSTSSL
 
 ---
  chrome/app/app-entitlements.plist             |   6 +
+ chrome/app/theme/chromium/BRANDING            |   2 +-
  .../native_process_launcher_posix.cc          |  12 ++
  .../resources/local_ntp/local_ntp.html        |   4 +-
  .../browser/resources/local_ntp/local_ntp.js  |   2 +-
@@ -41,7 +42,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.cc  |   9 ++
  .../renderer/core/frame/reporting_context.h   |   7 +-
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 37 files changed, 489 insertions(+), 20 deletions(-)
+ 38 files changed, 490 insertions(+), 21 deletions(-)
 
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
 index 522375410823..aae9bd8eba5d 100644
@@ -59,6 +60,18 @@ index 522375410823..aae9bd8eba5d 100644
 +	<true/>
  </dict>
  </plist>
+diff --git a/chrome/app/theme/chromium/BRANDING b/chrome/app/theme/chromium/BRANDING
+index a2020a0b6f92..1afa567fd346 100644
+--- a/chrome/app/theme/chromium/BRANDING
++++ b/chrome/app/theme/chromium/BRANDING
+@@ -5,6 +5,6 @@ PRODUCT_SHORTNAME=Chromium
+ PRODUCT_INSTALLER_FULLNAME=Chromium Installer
+ PRODUCT_INSTALLER_SHORTNAME=Chromium Installer
+ COPYRIGHT=Copyright 2020 The Chromium Authors. All rights reserved.
+-MAC_BUNDLE_ID=org.chromium.Chromium
++MAC_BUNDLE_ID=ru.cryptopro.chromium-gost
+ MAC_CREATOR_CODE=Cr24
+ MAC_TEAM_ID=
 diff --git a/chrome/browser/extensions/api/messaging/native_process_launcher_posix.cc b/chrome/browser/extensions/api/messaging/native_process_launcher_posix.cc
 index 27398beca002..ca11dc56aa78 100644
 --- a/chrome/browser/extensions/api/messaging/native_process_launcher_posix.cc
