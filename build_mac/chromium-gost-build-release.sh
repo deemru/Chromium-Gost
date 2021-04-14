@@ -12,13 +12,3 @@ if [ -d Chromium-Gost.app ]; then rm -rf Chromium-Gost.app; fi
 cd $CHROMIUM_PATH
 gn gen out/RELEASE --args="is_debug=false symbol_level=0 strip_debug_info=true is_official_build=true $CHROMIUM_FLAGS $CHROMIUM_PRIVATE_ARGS"
 ninja -C out/RELEASE chrome
-
-cd out/RELEASE
-
-mv -f Chromium.app/Contents/MacOS/Chromium Chromium.app/Contents/MacOS/Chromium-Gost
-
-echo "#!/bin/bash" > Chromium.app/Contents/MacOS/Chromium
-echo "cd \"\${0%/*}\" && ./Chromium-Gost" >> Chromium.app/Contents/MacOS/Chromium
-chmod 755 Chromium.app/Contents/MacOS/Chromium
-
-mv -f Chromium.app/ Chromium-Gost.app/

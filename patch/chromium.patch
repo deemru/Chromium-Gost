@@ -1,17 +1,18 @@
-From 77e422fc78a6dbc6fd0e96010e0df30f4d376e08 Mon Sep 17 00:00:00 2001
+From 365021286a0d26e63c3c68f9ebcffab9d5a85049 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Fri, 5 Mar 2021 01:59:16 -0800
 Subject: [PATCH] chromium GOSTSSL
 
 ---
  chrome/app/app-entitlements.plist             |   6 +
- chrome/app/theme/chromium/BRANDING            |   2 +-
+ chrome/app/theme/chromium/BRANDING            |  16 +--
  .../native_process_launcher_posix.cc          |  12 ++
  .../resources/local_ntp/local_ntp.html        |   4 +-
  .../browser/resources/local_ntp/local_ntp.js  |   2 +-
  chrome/browser/resources/new_tab_page/app.js  |   4 +-
  .../browser/resources/new_tab_page/logo.html  |   5 +-
  chrome/browser/search/local_ntp_source.cc     |   7 ++
+ chrome/common/chrome_constants.cc             |   4 +-
  .../chromium-browser/chromium-browser.info    |  10 +-
  .../installer/linux/rpm/chrome.spec.template  |   4 +
  .../app_shim/certificate_viewer.mm            |  46 +++++++
@@ -42,7 +43,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.cc  |   9 ++
  .../renderer/core/frame/reporting_context.h   |   7 +-
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 38 files changed, 490 insertions(+), 21 deletions(-)
+ 39 files changed, 499 insertions(+), 30 deletions(-)
 
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
 index 522375410823..aae9bd8eba5d 100644
@@ -61,14 +62,25 @@ index 522375410823..aae9bd8eba5d 100644
  </dict>
  </plist>
 diff --git a/chrome/app/theme/chromium/BRANDING b/chrome/app/theme/chromium/BRANDING
-index a2020a0b6f92..1afa567fd346 100644
+index a2020a0b6f92..25242d957e93 100644
 --- a/chrome/app/theme/chromium/BRANDING
 +++ b/chrome/app/theme/chromium/BRANDING
-@@ -5,6 +5,6 @@ PRODUCT_SHORTNAME=Chromium
- PRODUCT_INSTALLER_FULLNAME=Chromium Installer
- PRODUCT_INSTALLER_SHORTNAME=Chromium Installer
- COPYRIGHT=Copyright 2020 The Chromium Authors. All rights reserved.
+@@ -1,10 +1,10 @@
+-COMPANY_FULLNAME=The Chromium Authors
+-COMPANY_SHORTNAME=The Chromium Authors
+-PRODUCT_FULLNAME=Chromium
+-PRODUCT_SHORTNAME=Chromium
+-PRODUCT_INSTALLER_FULLNAME=Chromium Installer
+-PRODUCT_INSTALLER_SHORTNAME=Chromium Installer
+-COPYRIGHT=Copyright 2020 The Chromium Authors. All rights reserved.
 -MAC_BUNDLE_ID=org.chromium.Chromium
++COMPANY_FULLNAME=The Chromium-Gost Authors
++COMPANY_SHORTNAME=The Chromium-Gost Authors
++PRODUCT_FULLNAME=Chromium-Gost
++PRODUCT_SHORTNAME=Chromium-Gost
++PRODUCT_INSTALLER_FULLNAME=Chromium-Gost Installer
++PRODUCT_INSTALLER_SHORTNAME=Chromium-Gost Installer
++COPYRIGHT=Copyright 2020 The Chromium-Gost Authors. All rights reserved.
 +MAC_BUNDLE_ID=ru.cryptopro.chromium-gost
  MAC_CREATOR_CODE=Cr24
  MAC_TEAM_ID=
@@ -173,6 +185,24 @@ index 9b2ac5089845..3be010bed10d 100644
    if (stripped_path == chrome::kChromeSearchLocalNtpBackgroundFilename) {
      base::ThreadPool::PostTaskAndReplyWithResult(
          FROM_HERE, {base::TaskPriority::USER_VISIBLE, base::MayBlock()},
+diff --git a/chrome/common/chrome_constants.cc b/chrome/common/chrome_constants.cc
+index 51c872b09e82..2ac14ded930c 100644
+--- a/chrome/common/chrome_constants.cc
++++ b/chrome/common/chrome_constants.cc
+@@ -12,11 +12,11 @@
+ #define FPL FILE_PATH_LITERAL
+ 
+ #if defined(OS_MAC)
+-#define CHROMIUM_PRODUCT_STRING "Chromium"
++#define CHROMIUM_PRODUCT_STRING "Chromium-Gost"
+ #if BUILDFLAG(GOOGLE_CHROME_BRANDING)
+ #define PRODUCT_STRING "Google Chrome"
+ #elif BUILDFLAG(CHROMIUM_BRANDING)
+-#define PRODUCT_STRING "Chromium"
++#define PRODUCT_STRING "Chromium-Gost"
+ #else
+ #error Unknown branding
+ #endif
 diff --git a/chrome/installer/linux/common/chromium-browser/chromium-browser.info b/chrome/installer/linux/common/chromium-browser/chromium-browser.info
 index 6f67b06166f0..997d45b6af45 100644
 --- a/chrome/installer/linux/common/chromium-browser/chromium-browser.info

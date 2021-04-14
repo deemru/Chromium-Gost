@@ -20,8 +20,8 @@ call git checkout -f %GOST_BRANCH%
 call gclient sync --with_branch_heads -D
 call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\chromium.patch || goto :finish
 
-perl -pi -e "s/Chromium/Chromium GOST/g" chrome\app\chromium_strings.grd
-for %%f in (chrome\app\resources\chromium_strings*.xtb) do perl -pi -e "s/Chromium/Chromium GOST/g" %%f
+perl -pi -e "s/Chromium/Chromium-Gost/g" chrome\app\chromium_strings.grd
+for %%f in (chrome\app\resources\chromium_strings*.xtb) do perl -pi -e "s/Chromium/Chromium-Gost/g" %%f
 copy /y %CHROMIUM_GOST_REPO%\extra\chromium-gost.ico chrome\app\theme\chromium\win\chromium.ico
 copy /y %CHROMIUM_GOST_REPO%\extra\chromium-gost.ico chrome\installer\mini_installer\mini_installer.ico
 
