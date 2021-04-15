@@ -1,6 +1,6 @@
-From 365021286a0d26e63c3c68f9ebcffab9d5a85049 Mon Sep 17 00:00:00 2001
+From b606997b3b21c9a878951ff422bf96930e0ea15b Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
-Date: Fri, 5 Mar 2021 01:59:16 -0800
+Date: Thu, 15 Apr 2021 10:06:43 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
@@ -9,10 +9,10 @@ Subject: [PATCH] chromium GOSTSSL
  .../native_process_launcher_posix.cc          |  12 ++
  .../resources/local_ntp/local_ntp.html        |   4 +-
  .../browser/resources/local_ntp/local_ntp.js  |   2 +-
- chrome/browser/resources/new_tab_page/app.js  |   4 +-
+ chrome/browser/resources/new_tab_page/app.js  |   2 +-
  .../browser/resources/new_tab_page/logo.html  |   5 +-
  chrome/browser/search/local_ntp_source.cc     |   7 ++
- chrome/common/chrome_constants.cc             |   4 +-
+ chrome/common/chrome_constants.cc             |   3 +-
  .../chromium-browser/chromium-browser.info    |  10 +-
  .../installer/linux/rpm/chrome.spec.template  |   4 +
  .../app_shim/certificate_viewer.mm            |  46 +++++++
@@ -39,11 +39,11 @@ Subject: [PATCH] chromium GOSTSSL
  sandbox/policy/mac/common.sb                  |  16 +++
  sandbox/win/src/process_mitigations.cc        |   4 +
  .../blink/renderer/core/frame/local_frame.cc  |   5 +
- .../blink/renderer/core/frame/local_frame.h   |   7 +-
+ .../blink/renderer/core/frame/local_frame.h   |   6 +-
  .../renderer/core/frame/reporting_context.cc  |   9 ++
  .../renderer/core/frame/reporting_context.h   |   7 +-
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 39 files changed, 499 insertions(+), 30 deletions(-)
+ 39 files changed, 498 insertions(+), 27 deletions(-)
 
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
 index 522375410823..aae9bd8eba5d 100644
@@ -62,7 +62,7 @@ index 522375410823..aae9bd8eba5d 100644
  </dict>
  </plist>
 diff --git a/chrome/app/theme/chromium/BRANDING b/chrome/app/theme/chromium/BRANDING
-index a2020a0b6f92..25242d957e93 100644
+index 90c7f27d0603..479cb5794960 100644
 --- a/chrome/app/theme/chromium/BRANDING
 +++ b/chrome/app/theme/chromium/BRANDING
 @@ -1,10 +1,10 @@
@@ -72,7 +72,7 @@ index a2020a0b6f92..25242d957e93 100644
 -PRODUCT_SHORTNAME=Chromium
 -PRODUCT_INSTALLER_FULLNAME=Chromium Installer
 -PRODUCT_INSTALLER_SHORTNAME=Chromium Installer
--COPYRIGHT=Copyright 2020 The Chromium Authors. All rights reserved.
+-COPYRIGHT=Copyright 2021 The Chromium Authors. All rights reserved.
 -MAC_BUNDLE_ID=org.chromium.Chromium
 +COMPANY_FULLNAME=The Chromium-Gost Authors
 +COMPANY_SHORTNAME=The Chromium-Gost Authors
@@ -80,7 +80,7 @@ index a2020a0b6f92..25242d957e93 100644
 +PRODUCT_SHORTNAME=Chromium-Gost
 +PRODUCT_INSTALLER_FULLNAME=Chromium-Gost Installer
 +PRODUCT_INSTALLER_SHORTNAME=Chromium-Gost Installer
-+COPYRIGHT=Copyright 2020 The Chromium-Gost Authors. All rights reserved.
++COPYRIGHT=Copyright 2021 The Chromium-Gost Authors. All rights reserved.
 +MAC_BUNDLE_ID=ru.cryptopro.chromium-gost
  MAC_CREATOR_CODE=Cr24
  MAC_TEAM_ID=
@@ -124,10 +124,10 @@ index 1608f7574403..52498d5b36d1 100644
        <div id="logo-doodle">
          <div id="logo-doodle-container">
 diff --git a/chrome/browser/resources/local_ntp/local_ntp.js b/chrome/browser/resources/local_ntp/local_ntp.js
-index d9d58e1ddef9..1e7e6f26f029 100644
+index 518f03dfc10a..e7119b82654d 100644
 --- a/chrome/browser/resources/local_ntp/local_ntp.js
 +++ b/chrome/browser/resources/local_ntp/local_ntp.js
-@@ -1949,7 +1949,7 @@ function renderTheme() {
+@@ -1953,7 +1953,7 @@ function renderTheme() {
    // Dark mode uses a white Google logo.
    const useWhiteLogo =
        theme.alternateLogo || (theme.usingDefaultTheme && isDarkModeEnabled);
@@ -137,20 +137,18 @@ index d9d58e1ddef9..1e7e6f26f029 100644
    if (theme.logoColor) {
      document.body.style.setProperty(
 diff --git a/chrome/browser/resources/new_tab_page/app.js b/chrome/browser/resources/new_tab_page/app.js
-index dc2539582c27..1aa2e9e3c2d1 100644
+index 2863e7c0e999..1af2a7132480 100644
 --- a/chrome/browser/resources/new_tab_page/app.js
 +++ b/chrome/browser/resources/new_tab_page/app.js
-@@ -709,9 +709,7 @@ class AppElement extends PolymerElement {
-    * @private
-    */
-   computeDoodleAllowed_() {
--    return loadTimeData.getBoolean('themeModeDoodlesEnabled') ||
--        !this.showBackgroundImage_ && this.theme_ && this.theme_.isDefault &&
--        !this.theme_.isDark;
-+    return false;
-   }
+@@ -202,7 +202,7 @@ class AppElement extends PolymerElement {
+       /** @private */
+       middleSlotPromoEnabled_: {
+         type: Boolean,
+-        value: () => loadTimeData.getBoolean('middleSlotPromoEnabled'),
++        value: () => false,
+       },
  
-   /**
+       /** @private */
 diff --git a/chrome/browser/resources/new_tab_page/logo.html b/chrome/browser/resources/new_tab_page/logo.html
 index 02ab0a21c9da..10667422c1ee 100644
 --- a/chrome/browser/resources/new_tab_page/logo.html
@@ -186,14 +184,13 @@ index 9b2ac5089845..3be010bed10d 100644
      base::ThreadPool::PostTaskAndReplyWithResult(
          FROM_HERE, {base::TaskPriority::USER_VISIBLE, base::MayBlock()},
 diff --git a/chrome/common/chrome_constants.cc b/chrome/common/chrome_constants.cc
-index 51c872b09e82..2ac14ded930c 100644
+index 7796dcea7d89..efb6b279daf1 100644
 --- a/chrome/common/chrome_constants.cc
 +++ b/chrome/common/chrome_constants.cc
-@@ -12,11 +12,11 @@
+@@ -12,10 +12,11 @@
  #define FPL FILE_PATH_LITERAL
  
  #if defined(OS_MAC)
--#define CHROMIUM_PRODUCT_STRING "Chromium"
 +#define CHROMIUM_PRODUCT_STRING "Chromium-Gost"
  #if BUILDFLAG(GOOGLE_CHROME_BRANDING)
  #define PRODUCT_STRING "Google Chrome"
@@ -321,10 +318,10 @@ index 0c12e8bda385..c071d69f7a7b 100644
        net::x509_util::CreateSecCertificateArrayForX509Certificate(certificate));
    if (!cert_chain)
 diff --git a/content/browser/BUILD.gn b/content/browser/BUILD.gn
-index 266fd660ec0c..606921c2d7b9 100644
+index 84d3efba4e18..9bb65417adb2 100644
 --- a/content/browser/BUILD.gn
 +++ b/content/browser/BUILD.gn
-@@ -2804,6 +2804,14 @@ source_set("browser") {
+@@ -2837,6 +2837,14 @@ source_set("browser") {
        "net/reporting_service_proxy.h",
      ]
    }
@@ -340,10 +337,10 @@ index 266fd660ec0c..606921c2d7b9 100644
    if (use_viz_devtools) {
      sources += [
 diff --git a/content/browser/direct_sockets/direct_sockets_service_impl.cc b/content/browser/direct_sockets/direct_sockets_service_impl.cc
-index 5ef284bdf68f..01c6cfd822c0 100644
+index c6970c5bd54d..d18ca03d3c35 100644
 --- a/content/browser/direct_sockets/direct_sockets_service_impl.cc
 +++ b/content/browser/direct_sockets/direct_sockets_service_impl.cc
-@@ -53,10 +53,12 @@ base::Optional<net::IPEndPoint> GetLocalAddr(
+@@ -68,10 +68,12 @@ base::Optional<net::IPEndPoint> GetLocalAddr(
    return local_addr;
  }
  
@@ -354,10 +351,10 @@ index 5ef284bdf68f..01c6cfd822c0 100644
  }
 +#endif  // !BUILDFLAG(ENABLE_MDNS)
  
- }  // namespace
- 
+ bool ContainNonPubliclyRoutableAddress(const net::AddressList& addresses) {
+   DCHECK(!addresses.empty());
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
-index c28ce91036fb..4e192811c825 100644
+index a3e6d130d1fe..f3388a5c127e 100644
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
 @@ -124,6 +124,10 @@
@@ -384,10 +381,10 @@ index c28ce91036fb..4e192811c825 100644
  
      if (cert && private_key) {
 diff --git a/content/common/user_agent.cc b/content/common/user_agent.cc
-index cb27a7d6ef92..9f8c069869c3 100644
+index 104986360e1c..0a50d54a09a1 100644
 --- a/content/common/user_agent.cc
 +++ b/content/common/user_agent.cc
-@@ -298,7 +298,7 @@ std::string BuildUserAgentFromOSAndProduct(const std::string& os_info,
+@@ -310,7 +310,7 @@ std::string BuildUserAgentFromOSAndProduct(const std::string& os_info,
    std::string user_agent;
    base::StringAppendF(
        &user_agent,
@@ -454,10 +451,10 @@ index 6135c24fe81b..45504adba63e 100644
    // in the chain. Also fills in the has_* booleans for the digest algorithms
    // present in the chain.
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index 1a624bfe461f..39c4944407ae 100644
+index d9430bc23adb..52c3959e68b7 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
-@@ -1507,6 +1507,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
+@@ -1505,6 +1505,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
        }
      }
    }
@@ -531,10 +528,10 @@ index 0f0fe9a36df1..5c89b9280901 100644
    void NotifySSLConfigChanged(bool is_cert_database_change);
    void NotifySSLConfigForServerChanged(const HostPortPair& server);
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 5c5c3e34c709..1fbeea5ee3b5 100644
+index 882502e77b2f..3ac6be52b181 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
-@@ -417,6 +417,18 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
+@@ -418,6 +418,18 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
    return OK;
  }
  
@@ -553,7 +550,7 @@ index 5c5c3e34c709..1fbeea5ee3b5 100644
  int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
    // this has never worked for layered sockets. CHECK to detect any consumers
-@@ -435,6 +447,18 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
+@@ -436,6 +448,18 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
      return rv;
    }
  
@@ -572,7 +569,7 @@ index 5c5c3e34c709..1fbeea5ee3b5 100644
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -1091,6 +1115,82 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
+@@ -1114,6 +1138,82 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
  
    start_cert_verification_time_ = base::TimeTicks::Now();
  
@@ -655,7 +652,7 @@ index 5c5c3e34c709..1fbeea5ee3b5 100644
    const uint8_t* ocsp_response_raw;
    size_t ocsp_response_len;
    SSL_get0_ocsp_response(ssl_.get(), &ocsp_response_raw, &ocsp_response_len);
-@@ -1592,6 +1692,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1613,6 +1713,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
@@ -675,10 +672,10 @@ index 5c5c3e34c709..1fbeea5ee3b5 100644
    if (client_cert_.get()) {
      if (!client_private_key_) {
 diff --git a/net/socket/ssl_client_socket_impl.h b/net/socket/ssl_client_socket_impl.h
-index 31a2e664579d..628ae55d1c4b 100644
+index 1f8e63a60b60..f49657c81145 100644
 --- a/net/socket/ssl_client_socket_impl.h
 +++ b/net/socket/ssl_client_socket_impl.h
-@@ -50,6 +50,9 @@ class X509Certificate;
+@@ -51,6 +51,9 @@ class X509Certificate;
  class SSLClientSocketImpl : public SSLClientSocket,
                              public SocketBIOAdapter::Delegate {
   public:
@@ -1008,7 +1005,7 @@ index 84c7e99b329e..8fa5d3c06b47 100644
  ; This is read by CFPrefs calling getpwuid in a loop. libinfo then fails to
  ; contact any of the opendirectoryd mach services, and falls back to
 diff --git a/sandbox/win/src/process_mitigations.cc b/sandbox/win/src/process_mitigations.cc
-index d6a420a96988..546e63711853 100644
+index 69dc9255fe28..d119604b10d4 100644
 --- a/sandbox/win/src/process_mitigations.cc
 +++ b/sandbox/win/src/process_mitigations.cc
 @@ -223,6 +223,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
@@ -1044,7 +1041,7 @@ index d6a420a96988..546e63711853 100644
  
    // Enable image load policies.
 diff --git a/third_party/blink/renderer/core/frame/local_frame.cc b/third_party/blink/renderer/core/frame/local_frame.cc
-index 4ceaa30497d2..c3557524c86d 100644
+index 74d1e79e332c..52240c618999 100644
 --- a/third_party/blink/renderer/core/frame/local_frame.cc
 +++ b/third_party/blink/renderer/core/frame/local_frame.cc
 @@ -38,6 +38,7 @@
@@ -1055,7 +1052,7 @@ index 4ceaa30497d2..c3557524c86d 100644
  #include "services/data_decoder/public/mojom/resource_snapshot_for_web_bundle.mojom-blink.h"
  #include "services/network/public/cpp/features.h"
  #include "services/network/public/mojom/content_security_policy.mojom-blink.h"
-@@ -551,7 +552,9 @@ void LocalFrame::Trace(Visitor* visitor) const {
+@@ -545,7 +546,9 @@ void LocalFrame::Trace(Visitor* visitor) const {
    visitor->Trace(raw_system_clipboard_);
    visitor->Trace(virtual_keyboard_overlay_changed_observers_);
    visitor->Trace(pause_handle_receivers_);
@@ -1065,7 +1062,7 @@ index 4ceaa30497d2..c3557524c86d 100644
  #if defined(OS_MAC)
    visitor->Trace(text_input_host_);
  #endif
-@@ -2273,6 +2276,7 @@ const base::UnguessableToken& LocalFrame::GetAgentClusterId() const {
+@@ -2261,6 +2264,7 @@ const base::UnguessableToken& LocalFrame::GetAgentClusterId() const {
    return base::UnguessableToken::Null();
  }
  
@@ -1073,7 +1070,7 @@ index 4ceaa30497d2..c3557524c86d 100644
  mojom::blink::ReportingServiceProxy* LocalFrame::GetReportingService() {
    if (!reporting_service_.is_bound()) {
      GetBrowserInterfaceBroker().GetInterface(
-@@ -2281,6 +2285,7 @@ mojom::blink::ReportingServiceProxy* LocalFrame::GetReportingService() {
+@@ -2269,6 +2273,7 @@ mojom::blink::ReportingServiceProxy* LocalFrame::GetReportingService() {
    }
    return reporting_service_.get();
  }
@@ -1082,18 +1079,10 @@ index 4ceaa30497d2..c3557524c86d 100644
  // static
  void LocalFrame::NotifyUserActivation(
 diff --git a/third_party/blink/renderer/core/frame/local_frame.h b/third_party/blink/renderer/core/frame/local_frame.h
-index 7635e2c40c4a..bd974710f869 100644
+index 381533302518..4c795b205e0d 100644
 --- a/third_party/blink/renderer/core/frame/local_frame.h
 +++ b/third_party/blink/renderer/core/frame/local_frame.h
-@@ -38,6 +38,7 @@
- #include "mojo/public/cpp/bindings/pending_associated_receiver.h"
- #include "mojo/public/cpp/bindings/pending_receiver.h"
- #include "mojo/public/cpp/bindings/unique_receiver_set.h"
-+#include "net/net_buildflags.h"
- #include "third_party/blink/public/common/frame/transient_allow_fullscreen.h"
- #include "third_party/blink/public/mojom/blob/blob_url_store.mojom-blink.h"
- #include "third_party/blink/public/mojom/frame/back_forward_cache_controller.mojom-blink.h"
-@@ -521,9 +522,9 @@ class CORE_EXPORT LocalFrame final
+@@ -527,9 +527,9 @@ class CORE_EXPORT LocalFrame final
    }
  
    SmoothScrollSequencer& GetSmoothScrollSequencer();
@@ -1105,7 +1094,7 @@ index 7635e2c40c4a..bd974710f869 100644
    // Returns the frame host ptr. The interface returned is backed by an
    // associated interface with the legacy Chrome IPC channel.
    mojom::blink::LocalFrameHost& GetLocalFrameHostRemote() const;
-@@ -903,9 +904,11 @@ class CORE_EXPORT LocalFrame final
+@@ -926,9 +926,11 @@ class CORE_EXPORT LocalFrame final
    // const methods.
    //
    // LocalFrame can be reused by multiple ExecutionContext.
@@ -1218,7 +1207,7 @@ index 51bee8be0e3f..d575e88b9a36 100644
    HeapMojoReceiver<mojom::blink::ReportingObserver, ReportingContext> receiver_;
  };
 diff --git a/third_party/boringssl/BUILD.generated.gni b/third_party/boringssl/BUILD.generated.gni
-index 740267ac8c2e..34786c612501 100644
+index aee38c2ea0a3..03a8bfd4790f 100644
 --- a/third_party/boringssl/BUILD.generated.gni
 +++ b/third_party/boringssl/BUILD.generated.gni
 @@ -5,6 +5,8 @@
