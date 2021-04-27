@@ -4,7 +4,7 @@ set PATH=%DEPOT_TOOLS_PATH%;%PATH%
 set DEPOT_TOOLS_WIN_TOOLCHAIN=0
 
 cd %CHROMIUM_PATH%
-call gn gen out\RELEASE32 --args="is_debug=false is_official_build=true target_cpu=\"x86\" %CHROMIUM_FLAGS% %CHROMIUM_PRIVATE_ARGS%"
+call gn gen out\RELEASE32 --args="is_debug=false is_official_build=true enable_resource_allowlist_generation=false symbol_level=0 target_cpu=\"x86\" %CHROMIUM_FLAGS% %CHROMIUM_PRIVATE_ARGS%"
 del %CHROMIUM_PATH%\out\RELEASE32\chrome.7z
 del %CHROMIUM_PATH%\out\RELEASE32\*.manifest
 call ninja -C out\RELEASE32 mini_installer
