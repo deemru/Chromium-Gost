@@ -1,21 +1,18 @@
-From 60a66be51a392990d0d4d362b9cc134f462d16f1 Mon Sep 17 00:00:00 2001
+From 5eab49f5a4b9baeb87c59b55a48c32f033f54416 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
-Date: Thu, 15 Apr 2021 10:06:43 +0300
+Date: Wed, 26 May 2021 16:53:48 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
  chrome/app/app-entitlements.plist             |   6 +
  chrome/app/theme/chromium/BRANDING            |  16 +--
  .../native_process_launcher_posix.cc          |  12 ++
- .../resources/local_ntp/local_ntp.html        |   4 +-
- .../browser/resources/local_ntp/local_ntp.js  |   2 +-
- chrome/browser/resources/new_tab_page/app.js  |   2 +-
  .../browser/resources/new_tab_page/logo.html  |   5 +-
- chrome/browser/search/local_ntp_source.cc     |   7 ++
- chrome/common/chrome_constants.cc             |   3 +-
+ chrome/common/chrome_constants.cc             |   2 +-
  .../chromium-browser/chromium-browser.info    |  10 +-
  .../installer/linux/rpm/chrome.spec.template  |   4 +
  .../app_shim/certificate_viewer.mm            |  46 +++++++
+ components/search/ntp_features.cc             |   2 +-
  content/browser/BUILD.gn                      |   8 ++
  .../direct_sockets_service_impl.cc            |   2 +
  content/browser/storage_partition_impl.cc     |   9 ++
@@ -43,7 +40,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.cc  |   9 ++
  .../renderer/core/frame/reporting_context.h   |   7 +-
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 39 files changed, 499 insertions(+), 27 deletions(-)
+ 36 files changed, 488 insertions(+), 24 deletions(-)
 
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
 index 522375410823..aae9bd8eba5d 100644
@@ -107,48 +104,6 @@ index 27398beca002..ca11dc56aa78 100644
  
    if (result.empty())
      *error_message = "Can't find native messaging host " + host_name;
-diff --git a/chrome/browser/resources/local_ntp/local_ntp.html b/chrome/browser/resources/local_ntp/local_ntp.html
-index 1608f7574403..52498d5b36d1 100644
---- a/chrome/browser/resources/local_ntp/local_ntp.html
-+++ b/chrome/browser/resources/local_ntp/local_ntp.html
-@@ -41,9 +41,9 @@
-   <div id="ntp-contents">
-     <div id="logo">
-       <!-- The logo that is displayed in the absence of a doodle. -->
--      <div id="logo-default" title="Google"></div>
-+      <div id="logo-default" title="Chromium GOST"></div>
-       <!-- Logo displayed when theme prevents doodles. Doesn't fade. -->
--      <div id="logo-non-white" title="Google"></div>
-+      <div id="logo-non-white" title="Chromium GOST"></div>
-       <!-- A doodle, if any: its link and image. -->
-       <div id="logo-doodle">
-         <div id="logo-doodle-container">
-diff --git a/chrome/browser/resources/local_ntp/local_ntp.js b/chrome/browser/resources/local_ntp/local_ntp.js
-index 518f03dfc10a..e7119b82654d 100644
---- a/chrome/browser/resources/local_ntp/local_ntp.js
-+++ b/chrome/browser/resources/local_ntp/local_ntp.js
-@@ -1953,7 +1953,7 @@ function renderTheme() {
-   // Dark mode uses a white Google logo.
-   const useWhiteLogo =
-       theme.alternateLogo || (theme.usingDefaultTheme && isDarkModeEnabled);
--  document.body.classList.toggle(CLASSES.ALTERNATE_LOGO, useWhiteLogo);
-+  document.body.classList.toggle(CLASSES.ALTERNATE_LOGO, false);
- 
-   if (theme.logoColor) {
-     document.body.style.setProperty(
-diff --git a/chrome/browser/resources/new_tab_page/app.js b/chrome/browser/resources/new_tab_page/app.js
-index 2863e7c0e999..1af2a7132480 100644
---- a/chrome/browser/resources/new_tab_page/app.js
-+++ b/chrome/browser/resources/new_tab_page/app.js
-@@ -202,7 +202,7 @@ class AppElement extends PolymerElement {
-       /** @private */
-       middleSlotPromoEnabled_: {
-         type: Boolean,
--        value: () => loadTimeData.getBoolean('middleSlotPromoEnabled'),
-+        value: () => false,
-       },
- 
-       /** @private */
 diff --git a/chrome/browser/resources/new_tab_page/logo.html b/chrome/browser/resources/new_tab_page/logo.html
 index 02ab0a21c9da..10667422c1ee 100644
 --- a/chrome/browser/resources/new_tab_page/logo.html
@@ -165,33 +120,11 @@ index 02ab0a21c9da..10667422c1ee 100644
    }
  
    :host(:not([single-colored])) #logo {
-diff --git a/chrome/browser/search/local_ntp_source.cc b/chrome/browser/search/local_ntp_source.cc
-index 9b2ac5089845..3be010bed10d 100644
---- a/chrome/browser/search/local_ntp_source.cc
-+++ b/chrome/browser/search/local_ntp_source.cc
-@@ -849,6 +849,13 @@ void LocalNtpSource::StartDataRequest(
-     return;
-   }
- 
-+#ifndef NO_GOSTSSL
-+  if( stripped_path == kPromoScriptFilename || stripped_path == kDoodleScriptFilename ) {
-+    std::move(callback).Run(nullptr);
-+    return;
-+  }
-+#endif /* NO_GOSTSSL */
-+
-   if (stripped_path == chrome::kChromeSearchLocalNtpBackgroundFilename) {
-     base::ThreadPool::PostTaskAndReplyWithResult(
-         FROM_HERE, {base::TaskPriority::USER_VISIBLE, base::MayBlock()},
 diff --git a/chrome/common/chrome_constants.cc b/chrome/common/chrome_constants.cc
-index 7796dcea7d89..efb6b279daf1 100644
+index 481cc7e000f6..bc8f73403a08 100644
 --- a/chrome/common/chrome_constants.cc
 +++ b/chrome/common/chrome_constants.cc
-@@ -12,10 +12,11 @@
- #define FPL FILE_PATH_LITERAL
- 
- #if defined(OS_MAC)
-+#define CHROMIUM_PRODUCT_STRING "Chromium-Gost"
+@@ -15,7 +15,7 @@
  #if BUILDFLAG(GOOGLE_CHROME_BRANDING)
  #define PRODUCT_STRING "Google Chrome"
  #elif BUILDFLAG(CHROMIUM_BRANDING)
@@ -317,11 +250,24 @@ index 0c12e8bda385..c071d69f7a7b 100644
    base::ScopedCFTypeRef<CFArrayRef> cert_chain(
        net::x509_util::CreateSecCertificateArrayForX509Certificate(certificate));
    if (!cert_chain)
+diff --git a/components/search/ntp_features.cc b/components/search/ntp_features.cc
+index 4037ed95c5fd..657595144a57 100644
+--- a/components/search/ntp_features.cc
++++ b/components/search/ntp_features.cc
+@@ -76,7 +76,7 @@ const base::Feature kNtpShortcuts{"NtpShortcuts",
+ 
+ // If enabled, middle slot promo will be shown.
+ const base::Feature kNtpMiddleSlotPromo{"NtpMiddleSlotPromo",
+-                                        base::FEATURE_ENABLED_BY_DEFAULT};
++                                        base::FEATURE_DISABLED_BY_DEFAULT};
+ 
+ // If enabled, modules will be shown.
+ const base::Feature kModules{"NtpModules", base::FEATURE_DISABLED_BY_DEFAULT};
 diff --git a/content/browser/BUILD.gn b/content/browser/BUILD.gn
-index 84d3efba4e18..9bb65417adb2 100644
+index b63cf589be71..7e0fd208a107 100644
 --- a/content/browser/BUILD.gn
 +++ b/content/browser/BUILD.gn
-@@ -2837,6 +2837,14 @@ source_set("browser") {
+@@ -2886,6 +2886,14 @@ source_set("browser") {
        "net/reporting_service_proxy.h",
      ]
    }
@@ -354,10 +300,10 @@ index c6970c5bd54d..d18ca03d3c35 100644
  bool ContainNonPubliclyRoutableAddress(const net::AddressList& addresses) {
    DCHECK(!addresses.empty());
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
-index a3e6d130d1fe..f3388a5c127e 100644
+index 7ffcbd0ac221..4317bc3a9426 100644
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
-@@ -124,6 +124,10 @@
+@@ -125,6 +125,10 @@
  #include "content/browser/host_zoom_map_impl.h"
  #endif  // defined(OS_ANDROID)
  
@@ -368,7 +314,7 @@ index a3e6d130d1fe..f3388a5c127e 100644
  #if BUILDFLAG(ENABLE_PLUGINS)
  #include "content/browser/plugin_private_storage_helper.h"
  #endif  // BUILDFLAG(ENABLE_PLUGINS)
-@@ -613,6 +617,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
+@@ -608,6 +612,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
        scoped_refptr<net::X509Certificate> cert,
        scoped_refptr<net::SSLPrivateKey> private_key) override {
      DCHECK_CURRENTLY_ON(BrowserThread::UI);
@@ -451,10 +397,10 @@ index 6135c24fe81b..45504adba63e 100644
    // in the chain. Also fills in the has_* booleans for the digest algorithms
    // present in the chain.
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index d9430bc23adb..52c3959e68b7 100644
+index 544f194f964a..514300ded6b3 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
-@@ -1505,6 +1505,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
+@@ -1581,6 +1581,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
        }
      }
    }
@@ -528,10 +474,10 @@ index 0f0fe9a36df1..5c89b9280901 100644
    void NotifySSLConfigChanged(bool is_cert_database_change);
    void NotifySSLConfigForServerChanged(const HostPortPair& server);
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 882502e77b2f..3ac6be52b181 100644
+index 83701451333f..3f65100f5d87 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
-@@ -418,6 +418,18 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
+@@ -426,6 +426,18 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
    return OK;
  }
  
@@ -550,7 +496,7 @@ index 882502e77b2f..3ac6be52b181 100644
  int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
    // this has never worked for layered sockets. CHECK to detect any consumers
-@@ -436,6 +448,18 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
+@@ -444,6 +456,18 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
      return rv;
    }
  
@@ -569,7 +515,7 @@ index 882502e77b2f..3ac6be52b181 100644
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -1114,6 +1138,82 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
+@@ -1147,6 +1171,82 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
  
    start_cert_verification_time_ = base::TimeTicks::Now();
  
@@ -652,7 +598,7 @@ index 882502e77b2f..3ac6be52b181 100644
    const uint8_t* ocsp_response_raw;
    size_t ocsp_response_len;
    SSL_get0_ocsp_response(ssl_.get(), &ocsp_response_raw, &ocsp_response_len);
-@@ -1613,6 +1713,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1646,6 +1746,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
@@ -686,10 +632,10 @@ index 1f8e63a60b60..f49657c81145 100644
    // The given hostname will be compared with the name(s) in the server's
    // certificate during the SSL handshake.  |ssl_config| specifies the SSL
 diff --git a/net/spdy/spdy_session.cc b/net/spdy/spdy_session.cc
-index 61190919dada..33f065fed0ac 100644
+index fb5ae35bb90a..ddd2f9882a15 100644
 --- a/net/spdy/spdy_session.cc
 +++ b/net/spdy/spdy_session.cc
-@@ -1611,6 +1611,11 @@ void SpdySession::RemovePooledAlias(const SpdySessionKey& alias_key) {
+@@ -1706,6 +1706,11 @@ void SpdySession::RemovePooledAlias(const SpdySessionKey& alias_key) {
  }
  
  bool SpdySession::HasAcceptableTransportSecurity() const {
@@ -1041,7 +987,7 @@ index 69dc9255fe28..d119604b10d4 100644
  
    // Enable image load policies.
 diff --git a/third_party/blink/renderer/core/frame/local_frame.cc b/third_party/blink/renderer/core/frame/local_frame.cc
-index 74d1e79e332c..52240c618999 100644
+index a70c5d861a9a..4ec416db132f 100644
 --- a/third_party/blink/renderer/core/frame/local_frame.cc
 +++ b/third_party/blink/renderer/core/frame/local_frame.cc
 @@ -38,6 +38,7 @@
@@ -1052,7 +998,7 @@ index 74d1e79e332c..52240c618999 100644
  #include "services/data_decoder/public/mojom/resource_snapshot_for_web_bundle.mojom-blink.h"
  #include "services/network/public/cpp/features.h"
  #include "services/network/public/mojom/content_security_policy.mojom-blink.h"
-@@ -545,7 +546,9 @@ void LocalFrame::Trace(Visitor* visitor) const {
+@@ -553,7 +554,9 @@ void LocalFrame::Trace(Visitor* visitor) const {
    visitor->Trace(raw_system_clipboard_);
    visitor->Trace(virtual_keyboard_overlay_changed_observers_);
    visitor->Trace(pause_handle_receivers_);
@@ -1062,7 +1008,7 @@ index 74d1e79e332c..52240c618999 100644
  #if defined(OS_MAC)
    visitor->Trace(text_input_host_);
  #endif
-@@ -2261,6 +2264,7 @@ const base::UnguessableToken& LocalFrame::GetAgentClusterId() const {
+@@ -2364,6 +2367,7 @@ const base::UnguessableToken& LocalFrame::GetAgentClusterId() const {
    return base::UnguessableToken::Null();
  }
  
@@ -1070,7 +1016,7 @@ index 74d1e79e332c..52240c618999 100644
  mojom::blink::ReportingServiceProxy* LocalFrame::GetReportingService() {
    if (!reporting_service_.is_bound()) {
      GetBrowserInterfaceBroker().GetInterface(
-@@ -2269,6 +2273,7 @@ mojom::blink::ReportingServiceProxy* LocalFrame::GetReportingService() {
+@@ -2372,6 +2376,7 @@ mojom::blink::ReportingServiceProxy* LocalFrame::GetReportingService() {
    }
    return reporting_service_.get();
  }
@@ -1079,7 +1025,7 @@ index 74d1e79e332c..52240c618999 100644
  // static
  void LocalFrame::NotifyUserActivation(
 diff --git a/third_party/blink/renderer/core/frame/local_frame.h b/third_party/blink/renderer/core/frame/local_frame.h
-index 381533302518..1aa6e2dd2ea4 100644
+index 38ad1f729ffc..ebfb6543dd1e 100644
 --- a/third_party/blink/renderer/core/frame/local_frame.h
 +++ b/third_party/blink/renderer/core/frame/local_frame.h
 @@ -35,6 +35,7 @@
@@ -1090,7 +1036,7 @@ index 381533302518..1aa6e2dd2ea4 100644
  #include "mojo/public/cpp/bindings/pending_associated_receiver.h"
  #include "mojo/public/cpp/bindings/pending_receiver.h"
  #include "mojo/public/cpp/bindings/unique_receiver_set.h"
-@@ -527,9 +528,9 @@ class CORE_EXPORT LocalFrame final
+@@ -537,9 +538,9 @@ class CORE_EXPORT LocalFrame final
    }
  
    SmoothScrollSequencer& GetSmoothScrollSequencer();
@@ -1102,20 +1048,19 @@ index 381533302518..1aa6e2dd2ea4 100644
    // Returns the frame host ptr. The interface returned is backed by an
    // associated interface with the legacy Chrome IPC channel.
    mojom::blink::LocalFrameHost& GetLocalFrameHostRemote() const;
-@@ -926,9 +927,11 @@ class CORE_EXPORT LocalFrame final
+@@ -956,8 +957,10 @@ class CORE_EXPORT LocalFrame final
    // const methods.
    //
    // LocalFrame can be reused by multiple ExecutionContext.
 +#if BUILDFLAG(ENABLE_REPORTING)
-   mutable HeapMojoRemote<mojom::blink::ReportingServiceProxy,
-                          HeapMojoWrapperMode::kWithoutContextObserver>
+   mutable HeapMojoRemote<mojom::blink::ReportingServiceProxy>
        reporting_service_{nullptr};
 +#endif
  
  #if defined(OS_MAC)
    // LocalFrame can be reused by multiple ExecutionContext.
 diff --git a/third_party/blink/renderer/core/frame/reporting_context.cc b/third_party/blink/renderer/core/frame/reporting_context.cc
-index 83b93cc83e12..366bec41b98e 100644
+index c27fcf95bff0..63c170bfca53 100644
 --- a/third_party/blink/renderer/core/frame/reporting_context.cc
 +++ b/third_party/blink/renderer/core/frame/reporting_context.cc
 @@ -4,6 +4,7 @@
@@ -1169,10 +1114,10 @@ index 83b93cc83e12..366bec41b98e 100644
 +#if BUILDFLAG(ENABLE_REPORTING)
    const String& type = report->type();
    if (!(type == ReportType::kCSPViolation || type == ReportType::kDeprecation ||
-         type == ReportType::kFeaturePolicyViolation ||
-@@ -227,6 +235,7 @@ void ReportingContext::SendToReportingAPI(Report* report,
-         "Document policy violation", body->sourceFile(), line_number,
-         column_number);
+         type == ReportType::kPermissionsPolicyViolation ||
+@@ -226,6 +234,7 @@ void ReportingContext::SendToReportingAPI(Report* report,
+         url, endpoint, body->featureId(), body->disposition(), body->message(),
+         body->sourceFile(), line_number, column_number);
    }
 +#endif
  }
@@ -1215,7 +1160,7 @@ index 51bee8be0e3f..d575e88b9a36 100644
    HeapMojoReceiver<mojom::blink::ReportingObserver, ReportingContext> receiver_;
  };
 diff --git a/third_party/boringssl/BUILD.generated.gni b/third_party/boringssl/BUILD.generated.gni
-index aee38c2ea0a3..03a8bfd4790f 100644
+index 3e06cf26320a..368ac81bc3b7 100644
 --- a/third_party/boringssl/BUILD.generated.gni
 +++ b/third_party/boringssl/BUILD.generated.gni
 @@ -5,6 +5,8 @@
