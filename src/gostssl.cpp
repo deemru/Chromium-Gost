@@ -646,6 +646,10 @@ void gostssl_verifyhook( void * s, const char * host, unsigned * gost_status )
         case MSSPI_VERIFY_ERROR:
             *gost_status = (unsigned)CERT_E_CRITICAL;
             break;
+        case CRYPT_E_NO_REVOCATION_CHECK:
+            // Mask off CERT_STATUS_NO_REVOCATION_MECHANISM
+            *gost_status = 1;
+            break;
         default:
             *gost_status = verify_status;
     }
