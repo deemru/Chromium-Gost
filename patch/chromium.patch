@@ -1,4 +1,4 @@
-From 5eab49f5a4b9baeb87c59b55a48c32f033f54416 Mon Sep 17 00:00:00 2001
+From f291c91236372147a3597becf0424ecfbb24790a Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 26 May 2021 16:53:48 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -8,6 +8,8 @@ Subject: [PATCH] chromium GOSTSSL
  chrome/app/theme/chromium/BRANDING            |  16 +--
  .../native_process_launcher_posix.cc          |  12 ++
  .../browser/resources/new_tab_page/logo.html  |   5 +-
+ chrome/browser/shell_integration_linux.cc     |   2 +-
+ chrome/common/channel_info_posix.cc           |   2 +-
  chrome/common/chrome_constants.cc             |   2 +-
  .../chromium-browser/chromium-browser.info    |  10 +-
  .../installer/linux/rpm/chrome.spec.template  |   4 +
@@ -40,7 +42,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.cc  |   9 ++
  .../renderer/core/frame/reporting_context.h   |   7 +-
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 36 files changed, 488 insertions(+), 24 deletions(-)
+ 38 files changed, 490 insertions(+), 26 deletions(-)
 
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
 index 522375410823..aae9bd8eba5d 100644
@@ -120,6 +122,32 @@ index 02ab0a21c9da..10667422c1ee 100644
    }
  
    :host(:not([single-colored])) #logo {
+diff --git a/chrome/browser/shell_integration_linux.cc b/chrome/browser/shell_integration_linux.cc
+index c067dec52ae0..8530d157c106 100644
+--- a/chrome/browser/shell_integration_linux.cc
++++ b/chrome/browser/shell_integration_linux.cc
+@@ -415,7 +415,7 @@ std::string GetIconName() {
+ #if BUILDFLAG(GOOGLE_CHROME_BRANDING)
+   return "google-chrome";
+ #else  // BUILDFLAG(CHROMIUM_BRANDING)
+-  return "chromium-browser";
++  return "chromium-gost";
+ #endif
+ }
+ 
+diff --git a/chrome/common/channel_info_posix.cc b/chrome/common/channel_info_posix.cc
+index 62ff67422f3d..0e8c37180c2e 100644
+--- a/chrome/common/channel_info_posix.cc
++++ b/chrome/common/channel_info_posix.cc
+@@ -117,7 +117,7 @@ std::string GetDesktopName(base::Environment* env) {
+   std::string name;
+   if (env->GetVar("CHROME_DESKTOP", &name) && !name.empty())
+     return name;
+-  return "chromium-browser.desktop";
++  return "chromium-gost.desktop";
+ #endif
+ }
+ #endif  // defined(OS_LINUX) || BUILDFLAG(IS_CHROMEOS_LACROS)
 diff --git a/chrome/common/chrome_constants.cc b/chrome/common/chrome_constants.cc
 index 481cc7e000f6..bc8f73403a08 100644
 --- a/chrome/common/chrome_constants.cc
