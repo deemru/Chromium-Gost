@@ -1,0 +1,67 @@
+From 9316abe5efc7628bfd2d31b9ae68f5af560c4dca Mon Sep 17 00:00:00 2001
+From: Alexey Gladkov <legion@altlinux.org>
+Date: Fri, 14 Oct 2016 01:24:54 +0300
+Subject: [PATCH] ALT: Set appropriate desktop file name for default browser
+ check
+
+---
+ chrome/browser/shell_integration_linux.cc | 2 +-
+ chrome/common/channel_info_posix.cc       | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/chrome/browser/shell_integration_linux.cc b/chrome/browser/shell_integration_linux.cc
+index 55be2dc19fb..dde6f0e56c9 100644
+--- a/chrome/browser/shell_integration_linux.cc
++++ b/chrome/browser/shell_integration_linux.cc
+@@ -404,21 +404,21 @@ std::string GetProgramClassName() {
+ std::string GetProgramClassClass() {
+   std::unique_ptr<base::Environment> env(base::Environment::Create());
+   return internal::GetProgramClassClass(*base::CommandLine::ForCurrentProcess(),
+                                         chrome::GetDesktopName(env.get()));
+ }
+ 
+ std::string GetIconName() {
+ #if BUILDFLAG(GOOGLE_CHROME_BRANDING)
+   return "google-chrome";
+ #else  // BUILDFLAG(CHROMIUM_BRANDING)
+-  return "chromium-browser";
++  return "chromium-gost";
+ #endif
+ }
+ 
+ bool GetExistingShortcutContents(base::Environment* env,
+                                  const base::FilePath& desktop_filename,
+                                  std::string* output) {
+   base::ScopedBlockingCall scoped_blocking_call(FROM_HERE,
+                                                 base::BlockingType::MAY_BLOCK);
+ 
+   std::vector<base::FilePath> search_paths = GetDataSearchLocations(env);
+diff --git a/chrome/common/channel_info_posix.cc b/chrome/common/channel_info_posix.cc
+index 1632dce3925..b67d664f363 100644
+--- a/chrome/common/channel_info_posix.cc
++++ b/chrome/common/channel_info_posix.cc
+@@ -79,20 +79,20 @@ std::string GetDesktopName(base::Environment* env) {
+     default:
+       return "google-chrome.desktop";
+   }
+ #else  // BUILDFLAG(CHROMIUM_BRANDING)
+   // Allow $CHROME_DESKTOP to override the built-in value, so that development
+   // versions can set themselves as the default without interfering with
+   // non-official, packaged versions using the built-in value.
+   std::string name;
+   if (env->GetVar("CHROME_DESKTOP", &name) && !name.empty())
+     return name;
+-  return "chromium-browser.desktop";
++  return "chromium-gost.desktop";
+ #endif
+ }
+ #endif  // defined(OS_LINUX) && !defined(OS_CHROMEOS)
+ 
+ version_info::Channel GetChannel() {
+   return GetChannelImpl(nullptr);
+ }
+ 
+ }  // namespace chrome
+-- 
+2.24.1
+
