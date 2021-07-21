@@ -317,7 +317,7 @@ index 0990d3cf1..d6b306c9d 100644
 +      ssl->version = version;
 +      ssl->s3->have_version = 1;
 +
-+      if (ssl_get_new_session(ssl->s3->hs.get(), 0) <= 0)
++      if (ssl_get_new_session(ssl->s3->hs.get()) <= 0)
 +        return 0;
 +
 +      // SERVER CERTIFICATES (ssl_parse_cert_chain)
