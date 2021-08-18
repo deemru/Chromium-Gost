@@ -1,4 +1,4 @@
-From 01694a46f663cf3cf7156ce2b3ce068e095ea328 Mon Sep 17 00:00:00 2001
+From 47c481c84596200e3d0082905b982d6b41aa88e3 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 21 Jul 2021 09:55:47 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -9,6 +9,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../native_process_launcher_posix.cc          |  12 ++
  .../browser/resources/new_tab_page/logo.html  |   5 +-
  chrome/browser/shell_integration_linux.cc     |   2 +-
+ .../webui/print_preview/print_preview_ui.cc   |   4 +-
  chrome/common/channel_info_posix.cc           |   2 +-
  chrome/common/chrome_constants.cc             |   2 +-
  .../chromium-browser/chromium-browser.info    |  10 +-
@@ -41,10 +42,10 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.cc  |   9 ++
  .../renderer/core/frame/reporting_context.h   |   7 +-
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 37 files changed, 488 insertions(+), 26 deletions(-)
+ 38 files changed, 490 insertions(+), 28 deletions(-)
 
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
-index 522375410823..aae9bd8eba5d 100644
+index 5223754108237..aae9bd8eba5df 100644
 --- a/chrome/app/app-entitlements.plist
 +++ b/chrome/app/app-entitlements.plist
 @@ -14,5 +14,11 @@
@@ -60,7 +61,7 @@ index 522375410823..aae9bd8eba5d 100644
  </dict>
  </plist>
 diff --git a/chrome/app/theme/chromium/BRANDING b/chrome/app/theme/chromium/BRANDING
-index 90c7f27d0603..479cb5794960 100644
+index 90c7f27d06030..479cb57949602 100644
 --- a/chrome/app/theme/chromium/BRANDING
 +++ b/chrome/app/theme/chromium/BRANDING
 @@ -1,10 +1,10 @@
@@ -83,7 +84,7 @@ index 90c7f27d0603..479cb5794960 100644
  MAC_CREATOR_CODE=Cr24
  MAC_TEAM_ID=
 diff --git a/chrome/browser/extensions/api/messaging/native_process_launcher_posix.cc b/chrome/browser/extensions/api/messaging/native_process_launcher_posix.cc
-index 27398beca002..ca11dc56aa78 100644
+index 27398beca0023..ca11dc56aa781 100644
 --- a/chrome/browser/extensions/api/messaging/native_process_launcher_posix.cc
 +++ b/chrome/browser/extensions/api/messaging/native_process_launcher_posix.cc
 @@ -43,6 +43,18 @@ base::FilePath NativeProcessLauncher::FindManifest(
@@ -106,7 +107,7 @@ index 27398beca002..ca11dc56aa78 100644
    if (result.empty())
      *error_message = "Can't find native messaging host " + host_name;
 diff --git a/chrome/browser/resources/new_tab_page/logo.html b/chrome/browser/resources/new_tab_page/logo.html
-index 31c7fa5df04b..e437038c98cb 100644
+index 31c7fa5df04b1..e437038c98cb4 100644
 --- a/chrome/browser/resources/new_tab_page/logo.html
 +++ b/chrome/browser/resources/new_tab_page/logo.html
 @@ -19,10 +19,7 @@
@@ -122,7 +123,7 @@ index 31c7fa5df04b..e437038c98cb 100644
  
    :host(:not([single-colored])) #logo {
 diff --git a/chrome/browser/shell_integration_linux.cc b/chrome/browser/shell_integration_linux.cc
-index 1e7552bf0bce..d1b8d17044c3 100644
+index 1e7552bf0bced..d1b8d17044c3c 100644
 --- a/chrome/browser/shell_integration_linux.cc
 +++ b/chrome/browser/shell_integration_linux.cc
 @@ -414,7 +414,7 @@ std::string GetIconName() {
@@ -134,8 +135,26 @@ index 1e7552bf0bce..d1b8d17044c3 100644
  #endif
  }
  
+diff --git a/chrome/browser/ui/webui/print_preview/print_preview_ui.cc b/chrome/browser/ui/webui/print_preview/print_preview_ui.cc
+index f98201bb37881..8bfa4fcc3eead 100644
+--- a/chrome/browser/ui/webui/print_preview/print_preview_ui.cc
++++ b/chrome/browser/ui/webui/print_preview/print_preview_ui.cc
+@@ -407,11 +407,11 @@ void AddPrintPreviewFlags(content::WebUIDataSource* source, Profile* profile) {
+ 
+   source->AddBoolean("isEnterpriseManaged", webui::IsEnterpriseManaged());
+ 
+-#if BUILDFLAG(ENABLE_SERVICE_DISCOVERY)
++//#if BUILDFLAG(ENABLE_SERVICE_DISCOVERY)
+   source->AddBoolean(
+       "forceEnablePrivetPrinting",
+       profile->GetPrefs()->GetBoolean(prefs::kForceEnablePrivetPrinting));
+-#endif
++//#endif
+ 
+ #if BUILDFLAG(IS_CHROMEOS_ASH)
+   source->AddBoolean(
 diff --git a/chrome/common/channel_info_posix.cc b/chrome/common/channel_info_posix.cc
-index 240a5dfde968..3e1b4baaaab2 100644
+index 240a5dfde9682..3e1b4baaaab2c 100644
 --- a/chrome/common/channel_info_posix.cc
 +++ b/chrome/common/channel_info_posix.cc
 @@ -120,7 +120,7 @@ std::string GetDesktopName(base::Environment* env) {
@@ -148,7 +167,7 @@ index 240a5dfde968..3e1b4baaaab2 100644
  }
  #endif  // defined(OS_LINUX) || BUILDFLAG(IS_CHROMEOS_LACROS)
 diff --git a/chrome/common/chrome_constants.cc b/chrome/common/chrome_constants.cc
-index 517f82e04d75..005a5e10345d 100644
+index 517f82e04d752..005a5e10345df 100644
 --- a/chrome/common/chrome_constants.cc
 +++ b/chrome/common/chrome_constants.cc
 @@ -15,7 +15,7 @@
@@ -161,7 +180,7 @@ index 517f82e04d75..005a5e10345d 100644
  #error Unknown branding
  #endif
 diff --git a/chrome/installer/linux/common/chromium-browser/chromium-browser.info b/chrome/installer/linux/common/chromium-browser/chromium-browser.info
-index 6f67b06166f0..997d45b6af45 100644
+index 6f67b06166f00..997d45b6af450 100644
 --- a/chrome/installer/linux/common/chromium-browser/chromium-browser.info
 +++ b/chrome/installer/linux/common/chromium-browser/chromium-browser.info
 @@ -6,7 +6,7 @@
@@ -195,7 +214,7 @@ index 6f67b06166f0..997d45b6af45 100644
  # Package maintainer information.
  # TODO(mmoss) Setup a mailbox for this address
 diff --git a/chrome/installer/linux/rpm/chrome.spec.template b/chrome/installer/linux/rpm/chrome.spec.template
-index c755e4cea220..e7cfec11ec84 100644
+index c755e4cea2202..e7cfec11ec84a 100644
 --- a/chrome/installer/linux/rpm/chrome.spec.template
 +++ b/chrome/installer/linux/rpm/chrome.spec.template
 @@ -122,6 +122,8 @@ add_nss_symlinks
@@ -217,7 +236,7 @@ index c755e4cea220..e7cfec11ec84 100644
  case $CHANNEL in
    stable )
 diff --git a/components/remote_cocoa/app_shim/certificate_viewer.mm b/components/remote_cocoa/app_shim/certificate_viewer.mm
-index 0c12e8bda385..c071d69f7a7b 100644
+index 0c12e8bda3856..c071d69f7a7bd 100644
 --- a/components/remote_cocoa/app_shim/certificate_viewer.mm
 +++ b/components/remote_cocoa/app_shim/certificate_viewer.mm
 @@ -14,10 +14,56 @@
@@ -278,7 +297,7 @@ index 0c12e8bda385..c071d69f7a7b 100644
        net::x509_util::CreateSecCertificateArrayForX509Certificate(certificate));
    if (!cert_chain)
 diff --git a/components/search/ntp_features.cc b/components/search/ntp_features.cc
-index 4fa4368c6f97..4a85aed2de16 100644
+index 5d5db1c0d95bc..d9532a9abcfe0 100644
 --- a/components/search/ntp_features.cc
 +++ b/components/search/ntp_features.cc
 @@ -68,7 +68,7 @@ const base::Feature kNtpShortcuts{"NtpShortcuts",
@@ -291,7 +310,7 @@ index 4fa4368c6f97..4a85aed2de16 100644
  // If enabled, modules will be shown.
  const base::Feature kModules{"NtpModules", base::FEATURE_DISABLED_BY_DEFAULT};
 diff --git a/content/browser/BUILD.gn b/content/browser/BUILD.gn
-index e3dd6ac51051..6c70f56024c2 100644
+index e3dd6ac510518..6c70f56024c2b 100644
 --- a/content/browser/BUILD.gn
 +++ b/content/browser/BUILD.gn
 @@ -2927,6 +2927,14 @@ source_set("browser") {
@@ -310,7 +329,7 @@ index e3dd6ac51051..6c70f56024c2 100644
    if (use_viz_devtools) {
      sources += [
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
-index 4bb577abb154..81f78b72d517 100644
+index 4bb577abb154e..81f78b72d5177 100644
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
 @@ -129,6 +129,10 @@
@@ -337,7 +356,7 @@ index 4bb577abb154..81f78b72d517 100644
  
      if (cert && private_key) {
 diff --git a/content/common/user_agent.cc b/content/common/user_agent.cc
-index 104986360e1c..0a50d54a09a1 100644
+index 104986360e1c5..0a50d54a09a11 100644
 --- a/content/common/user_agent.cc
 +++ b/content/common/user_agent.cc
 @@ -310,7 +310,7 @@ std::string BuildUserAgentFromOSAndProduct(const std::string& os_info,
@@ -350,7 +369,7 @@ index 104986360e1c..0a50d54a09a1 100644
        WEBKIT_VERSION_MAJOR,
        WEBKIT_VERSION_MINOR,
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
-index c18e34fbd7b8..6ce21e603aa2 100644
+index c18e34fbd7b86..6ce21e603aa29 100644
 --- a/net/base/net_error_list.h
 +++ b/net/base/net_error_list.h
 @@ -22,6 +22,11 @@
@@ -366,7 +385,7 @@ index c18e34fbd7b8..6ce21e603aa2 100644
  // indicate a fatal error.  Typically this error will be generated as a
  // notification to wait for some external notification that the IO operation
 diff --git a/net/cert/cert_verify_proc.cc b/net/cert/cert_verify_proc.cc
-index 8cf304df9de9..b59ba1d21540 100644
+index 8cf304df9de9f..b59ba1d215407 100644
 --- a/net/cert/cert_verify_proc.cc
 +++ b/net/cert/cert_verify_proc.cc
 @@ -523,6 +523,12 @@ scoped_refptr<CertVerifyProc> CertVerifyProc::CreateBuiltinVerifyProc(
@@ -407,7 +426,7 @@ index 8cf304df9de9..b59ba1d21540 100644
    // in the chain. Also fills in the has_* booleans for the digest algorithms
    // present in the chain.
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index af5aca2a2d56..99388849ecab 100644
+index af5aca2a2d560..99388849ecabd 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
 @@ -1582,6 +1582,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
@@ -427,7 +446,7 @@ index af5aca2a2d56..99388849ecab 100644
  }
  
 diff --git a/net/socket/socket.h b/net/socket/socket.h
-index beecf2325a15..7f3f0488afdf 100644
+index beecf2325a153..7f3f0488afdf8 100644
 --- a/net/socket/socket.h
 +++ b/net/socket/socket.h
 @@ -21,6 +21,10 @@ class IOBuffer;
@@ -442,7 +461,7 @@ index beecf2325a15..7f3f0488afdf 100644
    virtual ~Socket();
  
 diff --git a/net/socket/ssl_client_socket.cc b/net/socket/ssl_client_socket.cc
-index fcfc88b342ae..318e2278dfd3 100644
+index fcfc88b342aed..318e2278dfd34 100644
 --- a/net/socket/ssl_client_socket.cc
 +++ b/net/socket/ssl_client_socket.cc
 @@ -12,6 +12,10 @@
@@ -469,7 +488,7 @@ index fcfc88b342ae..318e2278dfd3 100644
  
  SSLClientContext::~SSLClientContext() {
 diff --git a/net/socket/ssl_client_socket.h b/net/socket/ssl_client_socket.h
-index 0f0fe9a36df1..5c89b9280901 100644
+index 0f0fe9a36df1d..5c89b92809014 100644
 --- a/net/socket/ssl_client_socket.h
 +++ b/net/socket/ssl_client_socket.h
 @@ -172,6 +172,10 @@ class NET_EXPORT SSLClientContext : public SSLConfigService::Observer,
@@ -484,7 +503,7 @@ index 0f0fe9a36df1..5c89b9280901 100644
    void NotifySSLConfigChanged(bool is_cert_database_change);
    void NotifySSLConfigForServerChanged(const HostPortPair& server);
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index d049893b0b55..50dd36beb69a 100644
+index d049893b0b552..50dd36beb69a5 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
 @@ -425,6 +425,18 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
@@ -628,7 +647,7 @@ index d049893b0b55..50dd36beb69a 100644
    if (client_cert_.get()) {
      if (!client_private_key_) {
 diff --git a/net/socket/ssl_client_socket_impl.h b/net/socket/ssl_client_socket_impl.h
-index 83e512909299..22bd66cc5da2 100644
+index 83e5129092998..22bd66cc5da20 100644
 --- a/net/socket/ssl_client_socket_impl.h
 +++ b/net/socket/ssl_client_socket_impl.h
 @@ -51,6 +51,9 @@ class X509Certificate;
@@ -642,7 +661,7 @@ index 83e512909299..22bd66cc5da2 100644
    // The given hostname will be compared with the name(s) in the server's
    // certificate during the SSL handshake.  |ssl_config| specifies the SSL
 diff --git a/net/spdy/spdy_session.cc b/net/spdy/spdy_session.cc
-index 057e96477b01..2faf15154c11 100644
+index 057e96477b01b..2faf15154c11a 100644
 --- a/net/spdy/spdy_session.cc
 +++ b/net/spdy/spdy_session.cc
 @@ -1699,6 +1699,11 @@ void SpdySession::RemovePooledAlias(const SpdySessionKey& alias_key) {
@@ -658,7 +677,7 @@ index 057e96477b01..2faf15154c11 100644
    CHECK(GetSSLInfo(&ssl_info));
  
 diff --git a/net/ssl/client_cert_store_mac.cc b/net/ssl/client_cert_store_mac.cc
-index 7d97f1d09041..a49a46357295 100644
+index 7d97f1d090417..a49a463572954 100644
 --- a/net/ssl/client_cert_store_mac.cc
 +++ b/net/ssl/client_cert_store_mac.cc
 @@ -295,6 +295,12 @@ void AddIdentity(ScopedCFTypeRef<SecIdentityRef> sec_identity,
@@ -707,7 +726,7 @@ index 7d97f1d09041..a49a46357295 100644
  }
  
 diff --git a/net/ssl/client_cert_store_nss.cc b/net/ssl/client_cert_store_nss.cc
-index 9ef425caaa56..2795c6d52efc 100644
+index 9ef425caaa565..2795c6d52efce 100644
 --- a/net/ssl/client_cert_store_nss.cc
 +++ b/net/ssl/client_cert_store_nss.cc
 @@ -145,6 +145,12 @@ void ClientCertStoreNSS::FilterCertsOnWorkerThread(
@@ -758,7 +777,7 @@ index 9ef425caaa56..2795c6d52efc 100644
  }
  
 diff --git a/net/ssl/client_cert_store_win.cc b/net/ssl/client_cert_store_win.cc
-index 226d7efbbcc1..49befd45283e 100644
+index 226d7efbbcc1a..49befd45283ea 100644
 --- a/net/ssl/client_cert_store_win.cc
 +++ b/net/ssl/client_cert_store_win.cc
 @@ -107,6 +107,12 @@ static BOOL WINAPI ClientCertFindCallback(PCCERT_CONTEXT cert_context,
@@ -808,7 +827,7 @@ index 226d7efbbcc1..49befd45283e 100644
              ClientCertIdentitySorter());
    return selected_identities;
 diff --git a/net/ssl/openssl_ssl_util.cc b/net/ssl/openssl_ssl_util.cc
-index 585338617635..77a560bb4c7c 100644
+index 585338617635a..77a560bb4c7cf 100644
 --- a/net/ssl/openssl_ssl_util.cc
 +++ b/net/ssl/openssl_ssl_util.cc
 @@ -85,6 +85,10 @@ int MapOpenSSLErrorSSL(uint32_t error_code) {
@@ -823,7 +842,7 @@ index 585338617635..77a560bb4c7c 100644
      case SSL_R_SSLV3_ALERT_UNSUPPORTED_CERTIFICATE:
      case SSL_R_SSLV3_ALERT_CERTIFICATE_REVOKED:
 diff --git a/net/ssl/ssl_cipher_suite_names.cc b/net/ssl/ssl_cipher_suite_names.cc
-index fb852b7d005d..c58e475b1f4c 100644
+index fb852b7d005d2..c58e475b1f4c9 100644
 --- a/net/ssl/ssl_cipher_suite_names.cc
 +++ b/net/ssl/ssl_cipher_suite_names.cc
 @@ -66,6 +66,34 @@ void SSLCipherSuiteToStrings(const char** key_exchange_str,
@@ -877,7 +896,7 @@ index fb852b7d005d..c58e475b1f4c 100644
  
    obsolete_ssl |= ObsoleteSSLStatusForSignature(signature_algorithm);
 diff --git a/net/ssl/ssl_platform_key_util.cc b/net/ssl/ssl_platform_key_util.cc
-index 2d1a8c3ac4e0..b4588a62a66d 100644
+index 2d1a8c3ac4e0c..b4588a62a66d2 100644
 --- a/net/ssl/ssl_platform_key_util.cc
 +++ b/net/ssl/ssl_platform_key_util.cc
 @@ -51,6 +51,27 @@ scoped_refptr<base::SingleThreadTaskRunner> GetSSLPlatformKeyTaskRunner() {
@@ -909,7 +928,7 @@ index 2d1a8c3ac4e0..b4588a62a66d 100644
      const X509Certificate* certificate) {
    crypto::OpenSSLErrStackTracer tracker(FROM_HERE);
 diff --git a/net/ssl/ssl_platform_key_util.h b/net/ssl/ssl_platform_key_util.h
-index c5bfe61e7761..48a330ec6e26 100644
+index c5bfe61e7761e..48a330ec6e26d 100644
 --- a/net/ssl/ssl_platform_key_util.h
 +++ b/net/ssl/ssl_platform_key_util.h
 @@ -15,6 +15,9 @@
@@ -934,7 +953,7 @@ index c5bfe61e7761..48a330ec6e26 100644
  bssl::UniquePtr<EVP_PKEY> GetClientCertPublicKey(
      const X509Certificate* certificate);
 diff --git a/sandbox/policy/mac/common.sb b/sandbox/policy/mac/common.sb
-index 84c7e99b329e..8fa5d3c06b47 100644
+index 84c7e99b329eb..8fa5d3c06b474 100644
 --- a/sandbox/policy/mac/common.sb
 +++ b/sandbox/policy/mac/common.sb
 @@ -121,6 +121,22 @@
@@ -961,7 +980,7 @@ index 84c7e99b329e..8fa5d3c06b47 100644
  ; This is read by CFPrefs calling getpwuid in a loop. libinfo then fails to
  ; contact any of the opendirectoryd mach services, and falls back to
 diff --git a/sandbox/win/src/process_mitigations.cc b/sandbox/win/src/process_mitigations.cc
-index 69dc9255fe28..d119604b10d4 100644
+index 69dc9255fe289..d119604b10d4c 100644
 --- a/sandbox/win/src/process_mitigations.cc
 +++ b/sandbox/win/src/process_mitigations.cc
 @@ -223,6 +223,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
@@ -997,7 +1016,7 @@ index 69dc9255fe28..d119604b10d4 100644
  
    // Enable image load policies.
 diff --git a/third_party/blink/renderer/core/frame/local_frame.cc b/third_party/blink/renderer/core/frame/local_frame.cc
-index fab2d2cbc446..18bdd327cb0a 100644
+index fab2d2cbc446c..18bdd327cb0a2 100644
 --- a/third_party/blink/renderer/core/frame/local_frame.cc
 +++ b/third_party/blink/renderer/core/frame/local_frame.cc
 @@ -39,6 +39,7 @@
@@ -1035,7 +1054,7 @@ index fab2d2cbc446..18bdd327cb0a 100644
  // static
  void LocalFrame::NotifyUserActivation(
 diff --git a/third_party/blink/renderer/core/frame/local_frame.h b/third_party/blink/renderer/core/frame/local_frame.h
-index 777647d822d3..fbb27342f6f7 100644
+index 777647d822d32..fbb27342f6f76 100644
 --- a/third_party/blink/renderer/core/frame/local_frame.h
 +++ b/third_party/blink/renderer/core/frame/local_frame.h
 @@ -35,6 +35,7 @@
@@ -1070,7 +1089,7 @@ index 777647d822d3..fbb27342f6f7 100644
  #if defined(OS_MAC)
    // LocalFrame can be reused by multiple ExecutionContext.
 diff --git a/third_party/blink/renderer/core/frame/reporting_context.cc b/third_party/blink/renderer/core/frame/reporting_context.cc
-index c27fcf95bff0..63c170bfca53 100644
+index c27fcf95bff06..63c170bfca53b 100644
 --- a/third_party/blink/renderer/core/frame/reporting_context.cc
 +++ b/third_party/blink/renderer/core/frame/reporting_context.cc
 @@ -4,6 +4,7 @@
@@ -1134,7 +1153,7 @@ index c27fcf95bff0..63c170bfca53 100644
  
  }  // namespace blink
 diff --git a/third_party/blink/renderer/core/frame/reporting_context.h b/third_party/blink/renderer/core/frame/reporting_context.h
-index 51bee8be0e3f..d575e88b9a36 100644
+index 51bee8be0e3fc..d575e88b9a361 100644
 --- a/third_party/blink/renderer/core/frame/reporting_context.h
 +++ b/third_party/blink/renderer/core/frame/reporting_context.h
 @@ -5,6 +5,7 @@
@@ -1170,7 +1189,7 @@ index 51bee8be0e3f..d575e88b9a36 100644
    HeapMojoReceiver<mojom::blink::ReportingObserver, ReportingContext> receiver_;
  };
 diff --git a/third_party/boringssl/BUILD.generated.gni b/third_party/boringssl/BUILD.generated.gni
-index 26c3ff2b0dda..2d30e4610250 100644
+index 26c3ff2b0dda7..2d30e46102507 100644
 --- a/third_party/boringssl/BUILD.generated.gni
 +++ b/third_party/boringssl/BUILD.generated.gni
 @@ -5,6 +5,8 @@
