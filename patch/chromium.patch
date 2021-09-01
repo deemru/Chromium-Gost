@@ -1,12 +1,13 @@
-From 47c481c84596200e3d0082905b982d6b41aa88e3 Mon Sep 17 00:00:00 2001
+From 62cf6ada75590533da7f3e7e66fc9ee692ab233f Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
-Date: Wed, 21 Jul 2021 09:55:47 +0300
+Date: Wed, 1 Sep 2021 16:18:09 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
  chrome/app/app-entitlements.plist             |   6 +
  chrome/app/theme/chromium/BRANDING            |  16 +--
  .../native_process_launcher_posix.cc          |  12 ++
+ chrome/browser/resources/new_tab_page/app.js  |   2 +-
  .../browser/resources/new_tab_page/logo.html  |   5 +-
  chrome/browser/shell_integration_linux.cc     |   2 +-
  .../webui/print_preview/print_preview_ui.cc   |   4 +-
@@ -15,7 +16,6 @@ Subject: [PATCH] chromium GOSTSSL
  .../chromium-browser/chromium-browser.info    |  10 +-
  .../installer/linux/rpm/chrome.spec.template  |   4 +
  .../app_shim/certificate_viewer.mm            |  46 +++++++
- components/search/ntp_features.cc             |   2 +-
  content/browser/BUILD.gn                      |   8 ++
  content/browser/storage_partition_impl.cc     |   9 ++
  content/common/user_agent.cc                  |   2 +-
@@ -61,7 +61,7 @@ index 5223754108237..aae9bd8eba5df 100644
  </dict>
  </plist>
 diff --git a/chrome/app/theme/chromium/BRANDING b/chrome/app/theme/chromium/BRANDING
-index 90c7f27d06030..479cb57949602 100644
+index f8363d5b294fe..2f8021eabe810 100644
 --- a/chrome/app/theme/chromium/BRANDING
 +++ b/chrome/app/theme/chromium/BRANDING
 @@ -1,10 +1,10 @@
@@ -71,7 +71,7 @@ index 90c7f27d06030..479cb57949602 100644
 -PRODUCT_SHORTNAME=Chromium
 -PRODUCT_INSTALLER_FULLNAME=Chromium Installer
 -PRODUCT_INSTALLER_SHORTNAME=Chromium Installer
--COPYRIGHT=Copyright 2021 The Chromium Authors. All rights reserved.
+-COPYRIGHT=Copyright @LASTCHANGE_YEAR@ The Chromium Authors. All rights reserved.
 -MAC_BUNDLE_ID=org.chromium.Chromium
 +COMPANY_FULLNAME=The Chromium-Gost Authors
 +COMPANY_SHORTNAME=The Chromium-Gost Authors
@@ -79,7 +79,7 @@ index 90c7f27d06030..479cb57949602 100644
 +PRODUCT_SHORTNAME=Chromium-Gost
 +PRODUCT_INSTALLER_FULLNAME=Chromium-Gost Installer
 +PRODUCT_INSTALLER_SHORTNAME=Chromium-Gost Installer
-+COPYRIGHT=Copyright 2021 The Chromium-Gost Authors. All rights reserved.
++COPYRIGHT=Copyright @LASTCHANGE_YEAR@ The Chromium-Gost Authors. All rights reserved.
 +MAC_BUNDLE_ID=ru.cryptopro.chromium-gost
  MAC_CREATOR_CODE=Cr24
  MAC_TEAM_ID=
@@ -106,6 +106,19 @@ index 27398beca0023..ca11dc56aa781 100644
  
    if (result.empty())
      *error_message = "Can't find native messaging host " + host_name;
+diff --git a/chrome/browser/resources/new_tab_page/app.js b/chrome/browser/resources/new_tab_page/app.js
+index e085490b89e87..ee2136fb61556 100644
+--- a/chrome/browser/resources/new_tab_page/app.js
++++ b/chrome/browser/resources/new_tab_page/app.js
+@@ -199,7 +199,7 @@ class AppElement extends mixinBehaviors
+       /** @private */
+       middleSlotPromoEnabled_: {
+         type: Boolean,
+-        value: () => loadTimeData.getBoolean('middleSlotPromoEnabled'),
++        value: false,
+       },
+ 
+       /** @private */
 diff --git a/chrome/browser/resources/new_tab_page/logo.html b/chrome/browser/resources/new_tab_page/logo.html
 index 31c7fa5df04b1..e437038c98cb4 100644
 --- a/chrome/browser/resources/new_tab_page/logo.html
@@ -136,10 +149,10 @@ index 1e7552bf0bced..d1b8d17044c3c 100644
  }
  
 diff --git a/chrome/browser/ui/webui/print_preview/print_preview_ui.cc b/chrome/browser/ui/webui/print_preview/print_preview_ui.cc
-index f98201bb37881..8bfa4fcc3eead 100644
+index 7d68582201d35..224793707138d 100644
 --- a/chrome/browser/ui/webui/print_preview/print_preview_ui.cc
 +++ b/chrome/browser/ui/webui/print_preview/print_preview_ui.cc
-@@ -407,11 +407,11 @@ void AddPrintPreviewFlags(content::WebUIDataSource* source, Profile* profile) {
+@@ -409,11 +409,11 @@ void AddPrintPreviewFlags(content::WebUIDataSource* source, Profile* profile) {
  
    source->AddBoolean("isEnterpriseManaged", webui::IsEnterpriseManaged());
  
@@ -150,9 +163,9 @@ index f98201bb37881..8bfa4fcc3eead 100644
        profile->GetPrefs()->GetBoolean(prefs::kForceEnablePrivetPrinting));
 -#endif
 +//#endif
+ }
  
- #if BUILDFLAG(IS_CHROMEOS_ASH)
-   source->AddBoolean(
+ void SetupPrintPreviewPlugin(content::WebUIDataSource* source) {
 diff --git a/chrome/common/channel_info_posix.cc b/chrome/common/channel_info_posix.cc
 index 240a5dfde9682..3e1b4baaaab2c 100644
 --- a/chrome/common/channel_info_posix.cc
@@ -167,7 +180,7 @@ index 240a5dfde9682..3e1b4baaaab2c 100644
  }
  #endif  // defined(OS_LINUX) || BUILDFLAG(IS_CHROMEOS_LACROS)
 diff --git a/chrome/common/chrome_constants.cc b/chrome/common/chrome_constants.cc
-index 517f82e04d752..005a5e10345df 100644
+index 04f9960e4c2a7..d814da2436737 100644
 --- a/chrome/common/chrome_constants.cc
 +++ b/chrome/common/chrome_constants.cc
 @@ -15,7 +15,7 @@
@@ -296,24 +309,11 @@ index 0c12e8bda3856..c071d69f7a7bd 100644
    base::ScopedCFTypeRef<CFArrayRef> cert_chain(
        net::x509_util::CreateSecCertificateArrayForX509Certificate(certificate));
    if (!cert_chain)
-diff --git a/components/search/ntp_features.cc b/components/search/ntp_features.cc
-index 5d5db1c0d95bc..d9532a9abcfe0 100644
---- a/components/search/ntp_features.cc
-+++ b/components/search/ntp_features.cc
-@@ -68,7 +68,7 @@ const base::Feature kNtpShortcuts{"NtpShortcuts",
- 
- // If enabled, middle slot promo will be shown.
- const base::Feature kNtpMiddleSlotPromo{"NtpMiddleSlotPromo",
--                                        base::FEATURE_ENABLED_BY_DEFAULT};
-+                                        base::FEATURE_DISABLED_BY_DEFAULT};
- 
- // If enabled, modules will be shown.
- const base::Feature kModules{"NtpModules", base::FEATURE_DISABLED_BY_DEFAULT};
 diff --git a/content/browser/BUILD.gn b/content/browser/BUILD.gn
-index e3dd6ac510518..6c70f56024c2b 100644
+index 366a8dfb17cb8..0ea48107eaf39 100644
 --- a/content/browser/BUILD.gn
 +++ b/content/browser/BUILD.gn
-@@ -2927,6 +2927,14 @@ source_set("browser") {
+@@ -2973,6 +2973,14 @@ source_set("browser") {
        "net/reporting_service_proxy.h",
      ]
    }
@@ -329,7 +329,7 @@ index e3dd6ac510518..6c70f56024c2b 100644
    if (use_viz_devtools) {
      sources += [
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
-index 4bb577abb154e..81f78b72d5177 100644
+index ba5ab2ff3ef43..b49ef1473559c 100644
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
 @@ -129,6 +129,10 @@
@@ -356,18 +356,18 @@ index 4bb577abb154e..81f78b72d5177 100644
  
      if (cert && private_key) {
 diff --git a/content/common/user_agent.cc b/content/common/user_agent.cc
-index 104986360e1c5..0a50d54a09a11 100644
+index 25facd610551c..6dd53004effe7 100644
 --- a/content/common/user_agent.cc
 +++ b/content/common/user_agent.cc
-@@ -310,7 +310,7 @@ std::string BuildUserAgentFromOSAndProduct(const std::string& os_info,
+@@ -341,7 +341,7 @@ std::string BuildUserAgentFromOSAndProduct(const std::string& os_info,
    std::string user_agent;
-   base::StringAppendF(
-       &user_agent,
--      "Mozilla/5.0 (%s) AppleWebKit/%d.%d (KHTML, like Gecko) %s Safari/%d.%d",
-+      "Mozilla/5.0 (%s) AppleWebKit/%d.%d (KHTML, like Gecko) %s Safari/%d.%d (Chromium GOST)",
-       os_info.c_str(),
-       WEBKIT_VERSION_MAJOR,
-       WEBKIT_VERSION_MINOR,
+   base::StringAppendF(&user_agent,
+                       "Mozilla/5.0 (%s) AppleWebKit/537.36 (KHTML, like Gecko) "
+-                      "%s Safari/537.36",
++                      "%s Safari/537.36 (Chromium GOST)",
+                       os_info.c_str(), product.c_str());
+   return user_agent;
+ }
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
 index c18e34fbd7b86..6ce21e603aa29 100644
 --- a/net/base/net_error_list.h
@@ -385,10 +385,10 @@ index c18e34fbd7b86..6ce21e603aa29 100644
  // indicate a fatal error.  Typically this error will be generated as a
  // notification to wait for some external notification that the IO operation
 diff --git a/net/cert/cert_verify_proc.cc b/net/cert/cert_verify_proc.cc
-index 8cf304df9de9f..b59ba1d215407 100644
+index 1b565ca5f8663..c0b4d3ff673ec 100644
 --- a/net/cert/cert_verify_proc.cc
 +++ b/net/cert/cert_verify_proc.cc
-@@ -523,6 +523,12 @@ scoped_refptr<CertVerifyProc> CertVerifyProc::CreateBuiltinVerifyProc(
+@@ -497,6 +497,12 @@ scoped_refptr<CertVerifyProc> CertVerifyProc::CreateBuiltinVerifyProc(
  
  CertVerifyProc::CertVerifyProc() {}
  
@@ -401,7 +401,7 @@ index 8cf304df9de9f..b59ba1d215407 100644
  CertVerifyProc::~CertVerifyProc() = default;
  
  int CertVerifyProc::Verify(X509Certificate* cert,
-@@ -555,6 +561,23 @@ int CertVerifyProc::Verify(X509Certificate* cert,
+@@ -529,6 +535,23 @@ int CertVerifyProc::Verify(X509Certificate* cert,
        VerifyInternal(cert, hostname, ocsp_response, sct_list, flags, crl_set,
                       additional_trust_anchors, verify_result, net_log);
  
@@ -426,10 +426,10 @@ index 8cf304df9de9f..b59ba1d215407 100644
    // in the chain. Also fills in the has_* booleans for the digest algorithms
    // present in the chain.
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index af5aca2a2d560..99388849ecabd 100644
+index 47cb01bfa08af..2026c0ff3ebc9 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
-@@ -1582,6 +1582,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
+@@ -1562,6 +1562,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
        }
      }
    }
@@ -503,7 +503,7 @@ index 0f0fe9a36df1d..5c89b92809014 100644
    void NotifySSLConfigChanged(bool is_cert_database_change);
    void NotifySSLConfigForServerChanged(const HostPortPair& server);
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index d049893b0b552..50dd36beb69a5 100644
+index 62672bfa326f8..d9b5ca190c898 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
 @@ -425,6 +425,18 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
@@ -627,7 +627,7 @@ index d049893b0b552..50dd36beb69a5 100644
    const uint8_t* ocsp_response_raw;
    size_t ocsp_response_len;
    SSL_get0_ocsp_response(ssl_.get(), &ocsp_response_raw, &ocsp_response_len);
-@@ -1647,6 +1747,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1655,6 +1755,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
@@ -661,10 +661,10 @@ index 83e5129092998..22bd66cc5da20 100644
    // The given hostname will be compared with the name(s) in the server's
    // certificate during the SSL handshake.  |ssl_config| specifies the SSL
 diff --git a/net/spdy/spdy_session.cc b/net/spdy/spdy_session.cc
-index 057e96477b01b..2faf15154c11a 100644
+index 8520d2eaea0f4..1b2648e23fd6f 100644
 --- a/net/spdy/spdy_session.cc
 +++ b/net/spdy/spdy_session.cc
-@@ -1699,6 +1699,11 @@ void SpdySession::RemovePooledAlias(const SpdySessionKey& alias_key) {
+@@ -1710,6 +1710,11 @@ void SpdySession::RemovePooledAlias(const SpdySessionKey& alias_key) {
  }
  
  bool SpdySession::HasAcceptableTransportSecurity() const {
@@ -677,7 +677,7 @@ index 057e96477b01b..2faf15154c11a 100644
    CHECK(GetSSLInfo(&ssl_info));
  
 diff --git a/net/ssl/client_cert_store_mac.cc b/net/ssl/client_cert_store_mac.cc
-index 7d97f1d090417..a49a463572954 100644
+index b382b07d5c9f4..e546183b2e07c 100644
 --- a/net/ssl/client_cert_store_mac.cc
 +++ b/net/ssl/client_cert_store_mac.cc
 @@ -295,6 +295,12 @@ void AddIdentity(ScopedCFTypeRef<SecIdentityRef> sec_identity,
@@ -726,10 +726,10 @@ index 7d97f1d090417..a49a463572954 100644
  }
  
 diff --git a/net/ssl/client_cert_store_nss.cc b/net/ssl/client_cert_store_nss.cc
-index 9ef425caaa565..2795c6d52efce 100644
+index 0999bd82213b1..f7fc628134d5a 100644
 --- a/net/ssl/client_cert_store_nss.cc
 +++ b/net/ssl/client_cert_store_nss.cc
-@@ -145,6 +145,12 @@ void ClientCertStoreNSS::FilterCertsOnWorkerThread(
+@@ -144,6 +144,12 @@ void ClientCertStoreNSS::FilterCertsOnWorkerThread(
    std::sort(identities->begin(), identities->end(), ClientCertIdentitySorter());
  }
  
@@ -742,7 +742,7 @@ index 9ef425caaa565..2795c6d52efce 100644
  ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
      scoped_refptr<crypto::CryptoModuleBlockingPasswordDelegate>
          password_delegate,
-@@ -159,6 +165,33 @@ ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
+@@ -158,6 +164,33 @@ ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
    GetPlatformCertsOnWorkerThread(std::move(password_delegate), CertFilter(),
                                   &selected_identities);
    FilterCertsOnWorkerThread(&selected_identities, *request);
@@ -842,10 +842,10 @@ index 585338617635a..77a560bb4c7cf 100644
      case SSL_R_SSLV3_ALERT_UNSUPPORTED_CERTIFICATE:
      case SSL_R_SSLV3_ALERT_CERTIFICATE_REVOKED:
 diff --git a/net/ssl/ssl_cipher_suite_names.cc b/net/ssl/ssl_cipher_suite_names.cc
-index fb852b7d005d2..c58e475b1f4c9 100644
+index 8a539db77d6c9..26c6b0ec9c4b0 100644
 --- a/net/ssl/ssl_cipher_suite_names.cc
 +++ b/net/ssl/ssl_cipher_suite_names.cc
-@@ -66,6 +66,34 @@ void SSLCipherSuiteToStrings(const char** key_exchange_str,
+@@ -68,6 +68,34 @@ void SSLCipherSuiteToStrings(const char** key_exchange_str,
    *is_aead = false;
    *is_tls13 = false;
  
@@ -880,7 +880,7 @@ index fb852b7d005d2..c58e475b1f4c9 100644
    const SSL_CIPHER* cipher = SSL_get_cipher_by_value(cipher_suite);
    if (!cipher)
      return;
-@@ -179,6 +207,14 @@ int ObsoleteSSLStatus(int connection_status, uint16_t signature_algorithm) {
+@@ -181,6 +209,14 @@ int ObsoleteSSLStatus(int connection_status, uint16_t signature_algorithm) {
    obsolete_ssl |= ObsoleteSSLStatusForProtocol(ssl_version);
  
    uint16_t cipher_suite = SSLConnectionStatusToCipherSuite(connection_status);
@@ -1016,7 +1016,7 @@ index 69dc9255fe289..d119604b10d4c 100644
  
    // Enable image load policies.
 diff --git a/third_party/blink/renderer/core/frame/local_frame.cc b/third_party/blink/renderer/core/frame/local_frame.cc
-index fab2d2cbc446c..18bdd327cb0a2 100644
+index c0f2ba8de2f77..f4dd2ac126190 100644
 --- a/third_party/blink/renderer/core/frame/local_frame.cc
 +++ b/third_party/blink/renderer/core/frame/local_frame.cc
 @@ -39,6 +39,7 @@
@@ -1027,7 +1027,7 @@ index fab2d2cbc446c..18bdd327cb0a2 100644
  #include "services/data_decoder/public/mojom/resource_snapshot_for_web_bundle.mojom-blink.h"
  #include "services/network/public/cpp/features.h"
  #include "services/network/public/mojom/content_security_policy.mojom-blink.h"
-@@ -630,7 +631,9 @@ void LocalFrame::Trace(Visitor* visitor) const {
+@@ -423,7 +424,9 @@ void LocalFrame::Trace(Visitor* visitor) const {
    visitor->Trace(raw_system_clipboard_);
    visitor->Trace(virtual_keyboard_overlay_changed_observers_);
    visitor->Trace(pause_handle_receivers_);
@@ -1037,7 +1037,7 @@ index fab2d2cbc446c..18bdd327cb0a2 100644
  #if defined(OS_MAC)
    visitor->Trace(text_input_host_);
  #endif
-@@ -2500,6 +2503,7 @@ const base::UnguessableToken& LocalFrame::GetAgentClusterId() const {
+@@ -2310,6 +2313,7 @@ const base::UnguessableToken& LocalFrame::GetAgentClusterId() const {
    return base::UnguessableToken::Null();
  }
  
@@ -1045,7 +1045,7 @@ index fab2d2cbc446c..18bdd327cb0a2 100644
  mojom::blink::ReportingServiceProxy* LocalFrame::GetReportingService() {
    if (!reporting_service_.is_bound()) {
      GetBrowserInterfaceBroker().GetInterface(
-@@ -2508,6 +2512,7 @@ mojom::blink::ReportingServiceProxy* LocalFrame::GetReportingService() {
+@@ -2318,6 +2322,7 @@ mojom::blink::ReportingServiceProxy* LocalFrame::GetReportingService() {
    }
    return reporting_service_.get();
  }
@@ -1054,18 +1054,18 @@ index fab2d2cbc446c..18bdd327cb0a2 100644
  // static
  void LocalFrame::NotifyUserActivation(
 diff --git a/third_party/blink/renderer/core/frame/local_frame.h b/third_party/blink/renderer/core/frame/local_frame.h
-index 777647d822d32..fbb27342f6f76 100644
+index 69f690cf25bce..8c419fafd32b8 100644
 --- a/third_party/blink/renderer/core/frame/local_frame.h
 +++ b/third_party/blink/renderer/core/frame/local_frame.h
-@@ -35,6 +35,7 @@
+@@ -34,6 +34,7 @@
  #include "base/time/default_tick_clock.h"
  #include "base/unguessable_token.h"
  #include "build/build_config.h"
 +#include "net/net_buildflags.h"
  #include "mojo/public/cpp/bindings/pending_associated_receiver.h"
  #include "mojo/public/cpp/bindings/pending_receiver.h"
- #include "third_party/blink/public/common/frame/frame_ad_evidence.h"
-@@ -540,9 +541,9 @@ class CORE_EXPORT LocalFrame final
+ #include "services/network/public/mojom/fetch_api.mojom-blink-forward.h"
+@@ -545,9 +546,9 @@ class CORE_EXPORT LocalFrame final : public Frame,
    }
  
    SmoothScrollSequencer& GetSmoothScrollSequencer();
@@ -1077,7 +1077,7 @@ index 777647d822d32..fbb27342f6f76 100644
    // Returns the frame host ptr. The interface returned is backed by an
    // associated interface with the legacy Chrome IPC channel.
    mojom::blink::LocalFrameHost& GetLocalFrameHostRemote() const;
-@@ -1019,8 +1020,10 @@ class CORE_EXPORT LocalFrame final
+@@ -875,8 +876,10 @@ class CORE_EXPORT LocalFrame final : public Frame,
    // const methods.
    //
    // LocalFrame can be reused by multiple ExecutionContext.
@@ -1189,7 +1189,7 @@ index 51bee8be0e3fc..d575e88b9a361 100644
    HeapMojoReceiver<mojom::blink::ReportingObserver, ReportingContext> receiver_;
  };
 diff --git a/third_party/boringssl/BUILD.generated.gni b/third_party/boringssl/BUILD.generated.gni
-index 26c3ff2b0dda7..2d30e46102507 100644
+index b9ad8a2d9b6e8..f91ac3bd9e32f 100644
 --- a/third_party/boringssl/BUILD.generated.gni
 +++ b/third_party/boringssl/BUILD.generated.gni
 @@ -5,6 +5,8 @@
@@ -1202,5 +1202,4 @@ index 26c3ff2b0dda7..2d30e46102507 100644
    "src/crypto/asn1/a_bitstr.c",
    "src/crypto/asn1/a_bool.c",
 -- 
-2.30.2.windows.1
 
