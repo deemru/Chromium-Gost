@@ -77,6 +77,10 @@ static const SSL_CIPHER * tls_0081 = NULL;
 static const SSL_CIPHER * tls_C100 = NULL;
 static const SSL_CIPHER * tls_C101 = NULL;
 static const SSL_CIPHER * tls_C102 = NULL;
+static const SSL_CIPHER * tls_C103 = NULL;
+static const SSL_CIPHER * tls_C104 = NULL;
+static const SSL_CIPHER * tls_C105 = NULL;
+static const SSL_CIPHER * tls_C106 = NULL;
 static const SSL_CIPHER * tls_FF85 = NULL;
 
 int gostssl_init()
@@ -98,6 +102,10 @@ int gostssl_init()
         NULL == ( tls_C100 = boring_SSL_get_cipher_by_value( 0xC100 ) ) ||
         NULL == ( tls_C101 = boring_SSL_get_cipher_by_value( 0xC101 ) ) ||
         NULL == ( tls_C102 = boring_SSL_get_cipher_by_value( 0xC102 ) ) ||
+        NULL == ( tls_C103 = boring_SSL_get_cipher_by_value( 0xC103 ) ) ||
+        NULL == ( tls_C104 = boring_SSL_get_cipher_by_value( 0xC104 ) ) ||
+        NULL == ( tls_C105 = boring_SSL_get_cipher_by_value( 0xC105 ) ) ||
+        NULL == ( tls_C106 = boring_SSL_get_cipher_by_value( 0xC106 ) ) ||
         NULL == ( tls_FF85 = boring_SSL_get_cipher_by_value( 0xFF85 ) ) )
         return 0;
 
@@ -309,6 +317,7 @@ static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, con
         w->host_status = host_status_get( w->host_string );
 
         msspi_set_cert_cb( w->h, (msspi_cert_cb)gostssl_cert_cb );
+        msspi_set_cipherlist( w->h, "C103:C105:C104:C106:C100:C101:C102:FF85:0081" );
         w->s = (SSL *)s;
 
         if( s->hostname.get() )
@@ -373,6 +382,10 @@ int gostssl_tls_gost_required( SSL * s, const SSL_CIPHER * cipher )
           cipher == tls_C100 ||
           cipher == tls_C101 ||
           cipher == tls_C102 ||
+          cipher == tls_C103 ||
+          cipher == tls_C104 ||
+          cipher == tls_C105 ||
+          cipher == tls_C106 ||
           cipher == tls_FF85 ) )
     {
         boring_ERR_clear_error();
@@ -402,6 +415,11 @@ static int msspi_to_ssl_version( DWORD dwProtocol )
         case 0x00000400 /*SP_PROT_TLS1_2_SERVER*/:
         case 0x00000800 /*SP_PROT_TLS1_2_CLIENT*/:
             return TLS1_2_VERSION;
+
+        case 0x00000304:
+        case 0x00001000 /*SP_PROT_TLS1_3_SERVER*/:
+        case 0x00002000 /*SP_PROT_TLS1_3_CLIENT*/:
+            return TLS1_3_VERSION;
 
         default:
             return SSL3_VERSION;
@@ -591,6 +609,10 @@ int gostssl_connect( SSL * s, int * is_gost )
             cipher_id != 0xC100 &&
             cipher_id != 0xC101 &&
             cipher_id != 0xC102 &&
+            cipher_id != 0xC103 &&
+            cipher_id != 0xC104 &&
+            cipher_id != 0xC105 &&
+            cipher_id != 0xC106 &&
             cipher_id != 0xFF85 )
         {
             PCCERT_CONTEXT certcheck = CertCreateCertificateContext( X509_ASN_ENCODING, (BYTE *)servercerts_bufs[0], (DWORD)servercerts_lens[0] );
@@ -601,7 +623,7 @@ int gostssl_connect( SSL * s, int * is_gost )
             if( 0 == strcmp( certcheck->pCertInfo->SubjectPublicKeyInfo.Algorithm.pszObjId, szOID_CP_GOST_R3410EL ) )
                 cipher_id = 0x0081;
             else if( 0 == strcmp( certcheck->pCertInfo->SubjectPublicKeyInfo.Algorithm.pszObjId, szOID_CP_GOST_R3410_12_256 ) ||
-                0 == strcmp( certcheck->pCertInfo->SubjectPublicKeyInfo.Algorithm.pszObjId, szOID_CP_GOST_R3410_12_512 ) )
+                     0 == strcmp( certcheck->pCertInfo->SubjectPublicKeyInfo.Algorithm.pszObjId, szOID_CP_GOST_R3410_12_512 ) )
                 cipher_id = 0xC102;
 
             CertFreeCertificateContext( certcheck );
