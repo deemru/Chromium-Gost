@@ -1,4 +1,4 @@
-From 6ad7b94e455c3b3a3953cc9533e338fd9e60b870 Mon Sep 17 00:00:00 2001
+From 1358dc9c70900b2fdaff78ce2e7eca469ea6c6f0 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 1 Sep 2021 16:18:09 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -33,7 +33,7 @@ Subject: [PATCH] chromium GOSTSSL
  net/ssl/client_cert_store_nss.cc              |  33 ++++++
  net/ssl/client_cert_store_win.cc              |  32 +++++
  net/ssl/openssl_ssl_util.cc                   |   4 +
- net/ssl/ssl_cipher_suite_names.cc             |  60 ++++++++++
+ net/ssl/ssl_cipher_suite_names.cc             |  64 ++++++++++
  net/ssl/ssl_platform_key_util.cc              |  21 ++++
  net/ssl/ssl_platform_key_util.h               |   7 ++
  sandbox/policy/mac/common.sb                  |  16 +++
@@ -43,7 +43,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.cc  |   9 ++
  .../renderer/core/frame/reporting_context.h   |   7 +-
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 39 files changed, 516 insertions(+), 30 deletions(-)
+ 39 files changed, 520 insertions(+), 30 deletions(-)
 
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
 index 5223754108237..aae9bd8eba5df 100644
@@ -863,7 +863,7 @@ index 585338617635a..77a560bb4c7cf 100644
      case SSL_R_SSLV3_ALERT_UNSUPPORTED_CERTIFICATE:
      case SSL_R_SSLV3_ALERT_CERTIFICATE_REVOKED:
 diff --git a/net/ssl/ssl_cipher_suite_names.cc b/net/ssl/ssl_cipher_suite_names.cc
-index 8a539db77d6c9..d0fea0049628f 100644
+index 8a539db77d6c9..7e460f9184e59 100644
 --- a/net/ssl/ssl_cipher_suite_names.cc
 +++ b/net/ssl/ssl_cipher_suite_names.cc
 @@ -68,6 +68,58 @@ void SSLCipherSuiteToStrings(const char** key_exchange_str,
@@ -925,7 +925,7 @@ index 8a539db77d6c9..d0fea0049628f 100644
    const SSL_CIPHER* cipher = SSL_get_cipher_by_value(cipher_suite);
    if (!cipher)
      return;
-@@ -181,6 +233,14 @@ int ObsoleteSSLStatus(int connection_status, uint16_t signature_algorithm) {
+@@ -181,6 +233,18 @@ int ObsoleteSSLStatus(int connection_status, uint16_t signature_algorithm) {
    obsolete_ssl |= ObsoleteSSLStatusForProtocol(ssl_version);
  
    uint16_t cipher_suite = SSLConnectionStatusToCipherSuite(connection_status);
@@ -933,6 +933,10 @@ index 8a539db77d6c9..d0fea0049628f 100644
 +  if( cipher_suite == 0xc102 /* TLS_GOSTR341112_256_WITH_28147_CNT_IMIT */ ||
 +      cipher_suite == 0xc101 /* TLS_GOSTR341112_256_WITH_MAGMA_CTR_OMAC */ ||
 +      cipher_suite == 0xc100 /* TLS_GOSTR341112_256_WITH_KUZNYECHIK_CTR_OMAC */ ||
++      cipher_suite == 0xc103 /* TLS_GOSTR341112_256_WITH_KUZNYECHIK_MGM_L */ ||
++      cipher_suite == 0xc104 /* TLS_GOSTR341112_256_WITH_MAGMA_MGM_L */ ||
++      cipher_suite == 0xc105 /* TLS_GOSTR341112_256_WITH_KUZNYECHIK_MGM_S */ ||
++      cipher_suite == 0xc106 /* TLS_GOSTR341112_256_WITH_MAGMA_MGM_S */ ||
 +      cipher_suite == 0x0081 /* GOST2001-GOST89-GOST89 */ ||
 +      cipher_suite == 0xff85 /* GOST2012-GOST8912-GOST8912 */ )
 +    return OBSOLETE_SSL_NONE;
