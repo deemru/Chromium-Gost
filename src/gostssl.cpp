@@ -37,6 +37,8 @@ void gostssl_free( SSL * s );
 
 // Markers
 int gostssl_tls_gost_required( SSL * s, const SSL_CIPHER * cipher );
+void gostssl_boring_hello( SSL * s, const char * data, size_t len );
+void gostssl_server_proxy( SSL * s, const char * data, size_t len );
 
 // Hooks
 DLLEXPORT void gostssl_certhook( void * cert, int size );
@@ -141,10 +143,22 @@ struct GostSSL_Worker
     SSL * s;
     GOSTSSL_HOST_STATUS host_status;
     std::string host_string;
+    std::vector<char> boring_hello;
+    std::vector<char> server_proxy;
 };
 
 static int gostssl_read_cb( GostSSL_Worker * w, void * buf, int len )
 {
+    if( w->server_proxy.size() )
+    {
+        if( w->server_proxy.size() > len )
+            return 0;
+        len = w->server_proxy.size();
+        memcpy( buf, w->server_proxy.data(), len );
+        w->server_proxy.clear();
+        return len;
+    }
+
     return boring_BIO_read( w->s, buf, len );
 }
 
@@ -389,12 +403,34 @@ int gostssl_tls_gost_required( SSL * s, const SSL_CIPHER * cipher )
           cipher == tls_FF85 ) )
     {
         boring_ERR_clear_error();
-        boring_ERR_put_error( ERR_LIB_SSL, 0, SSL_R_TLS_GOST_REQUIRED, __FILE__, __LINE__ );
+        if( w->boring_hello.size() && w->server_proxy.size() && msspi_set_input( w->h, w->boring_hello.data(), w->boring_hello.size() ) )
+        {
+            w->host_status = GOSTSSL_HOST_PROBING;
+            boring_ERR_put_error( ERR_LIB_SSL, 0, SSL_R_TLS_GOST_PROXY, __FILE__, __LINE__ );
+        }
+        else
+        {
+            boring_ERR_put_error( ERR_LIB_SSL, 0, SSL_R_TLS_GOST_REQUIRED, __FILE__, __LINE__ );
+        }
         host_status_set( w->host_string, GOSTSSL_HOST_PROBING );
         return 1;
     }
 
     return 0;
+}
+
+void gostssl_boring_hello( SSL * s, const char * data, size_t len )
+{
+    GostSSL_Worker * w = workers_api( s, WDB_SEARCH );
+    if( w && w->host_status == GOSTSSL_HOST_AUTO )
+        w->boring_hello.insert( w->boring_hello.end(), data, data + len );
+}
+
+void gostssl_server_proxy( SSL * s, const char * data, size_t len )
+{
+    GostSSL_Worker * w = workers_api( s, WDB_SEARCH );
+    if( w && w->host_status == GOSTSSL_HOST_AUTO )
+        w->server_proxy.insert( w->server_proxy.end(), data, data + len );
 }
 
 static int msspi_to_ssl_version( DWORD dwProtocol )

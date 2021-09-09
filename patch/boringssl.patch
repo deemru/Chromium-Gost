@@ -1,27 +1,30 @@
-From aa18ef9f5349c89ab48c1e28a66dc7e6d20bfc51 Mon Sep 17 00:00:00 2001
+From d7fa5617f99bc183270c8c6780946b9337beb4c4 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 30 Jan 2019 15:04:56 +0300
 Subject: [PATCH] boringssl GOSTSSL
 
 ---
- include/openssl/ssl.h   |   4 +
+ include/openssl/ssl.h   |   5 +
  ssl/extensions.cc       |  42 ++++++++
- ssl/handshake_client.cc |   9 ++
- ssl/internal.h          |  34 +++++++
- ssl/ssl_cipher.cc       | 138 ++++++++++++++++++++++++++
- ssl/ssl_lib.cc          | 210 ++++++++++++++++++++++++++++++++++++++++
- 6 files changed, 437 insertions(+)
+ ssl/handshake_client.cc |   8 ++
+ ssl/internal.h          |  36 +++++++
+ ssl/s3_both.cc          |   8 ++
+ ssl/ssl_buffer.cc       |   5 +
+ ssl/ssl_cipher.cc       | 138 +++++++++++++++++++++++++
+ ssl/ssl_lib.cc          | 222 ++++++++++++++++++++++++++++++++++++++++
+ 8 files changed, 464 insertions(+)
 
 diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
-index dc3a79dfb..efaab73b8 100644
+index dc3a79dfb..95881205f 100644
 --- a/include/openssl/ssl.h
 +++ b/include/openssl/ssl.h
-@@ -5284,6 +5284,10 @@ BSSL_NAMESPACE_END
+@@ -5284,6 +5284,11 @@ BSSL_NAMESPACE_END
  
  #endif
  
 +#ifndef NO_GOSTSSL
 +#define SSL_R_TLS_GOST_REQUIRED 3072
++#define SSL_R_TLS_GOST_PROXY 3073
 +#endif // GOSTSSL
 +
  #define SSL_R_APP_DATA_IN_HANDSHAKE 100
@@ -88,17 +91,16 @@ index 69a2bdc1a..f92bd4364 100644
  }
  
 diff --git a/ssl/handshake_client.cc b/ssl/handshake_client.cc
-index d5ccafc26..fe0716093 100644
+index d5ccafc26..2649a633d 100644
 --- a/ssl/handshake_client.cc
 +++ b/ssl/handshake_client.cc
-@@ -682,6 +682,15 @@ static enum ssl_hs_wait_t do_read_server_hello(SSL_HANDSHAKE *hs) {
+@@ -682,6 +682,14 @@ static enum ssl_hs_wait_t do_read_server_hello(SSL_HANDSHAKE *hs) {
      return ssl_hs_error;
    }
  
 +#ifndef NO_GOSTSSL
 +  if (gostssl()) {
 +    if (gostssl_tls_gost_required(ssl, SSL_get_cipher_by_value(cipher_suite))) {
-+      ssl_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_ILLEGAL_PARAMETER);
 +      return ssl_hs_error;
 +    }
 +  }
@@ -108,7 +110,7 @@ index d5ccafc26..fe0716093 100644
    if (!parse_supported_versions(hs, &server_version, &server_hello)) {
      return ssl_hs_error;
 diff --git a/ssl/internal.h b/ssl/internal.h
-index ba1dde351..b25c4ffec 100644
+index ba1dde351..f08a32b70 100644
 --- a/ssl/internal.h
 +++ b/ssl/internal.h
 @@ -541,6 +541,13 @@ BSSL_NAMESPACE_BEGIN
@@ -125,7 +127,7 @@ index ba1dde351..b25c4ffec 100644
  // Bits for |algorithm_auth| (server authentication).
  #define SSL_aRSA 0x00000001u
  #define SSL_aECDSA 0x00000002u
-@@ -3343,6 +3350,33 @@ void ssl_set_read_error(SSL *ssl);
+@@ -3343,6 +3350,35 @@ void ssl_set_read_error(SSL *ssl);
  
  BSSL_NAMESPACE_END
  
@@ -153,12 +155,49 @@ index ba1dde351..b25c4ffec 100644
 +int gostssl_shutdown( SSL * s, int * is_gost );
 +void gostssl_free( SSL * s );
 +int gostssl_tls_gost_required( SSL * s, const SSL_CIPHER * cipher );
++void gostssl_boring_hello( SSL * s, const char * data, size_t len );
++void gostssl_server_proxy( SSL * s, const char * data, size_t len );
 +//
 +}
 +#endif // GOSTSSL
  
  // Opaque C types.
  //
+diff --git a/ssl/s3_both.cc b/ssl/s3_both.cc
+index cddeb3fef..b237e0c59 100644
+--- a/ssl/s3_both.cc
++++ b/ssl/s3_both.cc
+@@ -339,6 +339,14 @@ int tls_flush_flight(SSL *ssl) {
+       return ret;
+     }
+ 
++#ifndef NO_GOSTSSL
++  if( gostssl() ){
++    if( ssl->s3->hs != nullptr && ssl->s3->hs->new_cipher == nullptr ){
++      gostssl_boring_hello( ssl, ssl->s3->pending_flight->data + ssl->s3->pending_flight_offset, ret );
++    }
++  }
++#endif // GOSTSSL
++
+     ssl->s3->pending_flight_offset += ret;
+   }
+ 
+diff --git a/ssl/ssl_buffer.cc b/ssl/ssl_buffer.cc
+index d73055fbf..90a08c307 100644
+--- a/ssl/ssl_buffer.cc
++++ b/ssl/ssl_buffer.cc
+@@ -160,6 +160,11 @@ static int tls_read_buffer_extend_to(SSL *ssl, size_t len) {
+       ssl->s3->rwstate = SSL_ERROR_WANT_READ;
+       return ret;
+     }
++#ifndef NO_GOSTSSL
++    if( gostssl() && ssl->s3->hs != nullptr && ssl->s3->hs->new_cipher == nullptr ) {
++      gostssl_server_proxy( ssl, (const char *)buf->data() + buf->size(), ret );
++    }
++#endif // GOSTSSL
+     buf->DidWrite(static_cast<size_t>(ret));
+   }
+ 
 diff --git a/ssl/ssl_cipher.cc b/ssl/ssl_cipher.cc
 index 4f5049c60..df53b077f 100644
 --- a/ssl/ssl_cipher.cc
@@ -351,7 +390,7 @@ index 4f5049c60..df53b077f 100644
        alg_bits = 256;
        strength_bits = 256;
 diff --git a/ssl/ssl_lib.cc b/ssl/ssl_lib.cc
-index 3c9fc904f..8b0d6f4ff 100644
+index 3c9fc904f..d0b36ce16 100644
 --- a/ssl/ssl_lib.cc
 +++ b/ssl/ssl_lib.cc
 @@ -504,6 +504,162 @@ static int ssl_session_cmp(const SSL_SESSION *a, const SSL_SESSION *b) {
@@ -545,7 +584,26 @@ index 3c9fc904f..8b0d6f4ff 100644
  
    if (ssl->do_handshake == NULL) {
      OPENSSL_PUT_ERROR(SSL, SSL_R_CONNECTION_TYPE_NOT_SET);
-@@ -1006,6 +1176,15 @@ static int ssl_read_impl(SSL *ssl) {
+@@ -842,6 +1012,18 @@ int SSL_do_handshake(SSL *ssl) {
+   ssl_do_info_callback(
+       ssl, ssl->server ? SSL_CB_ACCEPT_EXIT : SSL_CB_CONNECT_EXIT, ret);
+   if (ret <= 0) {
++#ifndef NO_GOSTSSL
++  if( gostssl() ){
++    if( ERR_GET_REASON(ERR_peek_error()) == SSL_R_TLS_GOST_PROXY ){
++      int is_gost;
++      int ret_gost;
++      ssl_reset_error_state( ssl );
++      ret_gost = gostssl_connect( ssl, &is_gost );
++      if( is_gost )
++        return ret_gost;
++    }
++  }
++#endif // GOSTSSL
+     return ret;
+   }
+ 
+@@ -1006,6 +1188,15 @@ static int ssl_read_impl(SSL *ssl) {
  }
  
  int SSL_read(SSL *ssl, void *buf, int num) {
@@ -561,7 +619,7 @@ index 3c9fc904f..8b0d6f4ff 100644
    int ret = SSL_peek(ssl, buf, num);
    if (ret <= 0) {
      return ret;
-@@ -1021,6 +1200,15 @@ int SSL_read(SSL *ssl, void *buf, int num) {
+@@ -1021,6 +1212,15 @@ int SSL_read(SSL *ssl, void *buf, int num) {
  }
  
  int SSL_peek(SSL *ssl, void *buf, int num) {
@@ -577,7 +635,7 @@ index 3c9fc904f..8b0d6f4ff 100644
    if (ssl->quic_method != nullptr) {
      OPENSSL_PUT_ERROR(SSL, ERR_R_SHOULD_NOT_HAVE_BEEN_CALLED);
      return 0;
-@@ -1041,6 +1229,15 @@ int SSL_peek(SSL *ssl, void *buf, int num) {
+@@ -1041,6 +1241,15 @@ int SSL_peek(SSL *ssl, void *buf, int num) {
  
  int SSL_write(SSL *ssl, const void *buf, int num) {
    ssl_reset_error_state(ssl);
@@ -593,7 +651,7 @@ index 3c9fc904f..8b0d6f4ff 100644
  
    if (ssl->quic_method != nullptr) {
      OPENSSL_PUT_ERROR(SSL, ERR_R_SHOULD_NOT_HAVE_BEEN_CALLED);
-@@ -1106,6 +1303,15 @@ int SSL_key_update(SSL *ssl, int request_type) {
+@@ -1106,6 +1315,15 @@ int SSL_key_update(SSL *ssl, int request_type) {
  
  int SSL_shutdown(SSL *ssl) {
    ssl_reset_error_state(ssl);
@@ -609,7 +667,7 @@ index 3c9fc904f..8b0d6f4ff 100644
  
    if (ssl->do_handshake == NULL) {
      OPENSSL_PUT_ERROR(SSL, SSL_R_UNINITIALIZED);
-@@ -2390,6 +2596,10 @@ EVP_PKEY *SSL_CTX_get0_privatekey(const SSL_CTX *ctx) {
+@@ -2390,6 +2608,10 @@ EVP_PKEY *SSL_CTX_get0_privatekey(const SSL_CTX *ctx) {
  }
  
  const SSL_CIPHER *SSL_get_current_cipher(const SSL *ssl) {
