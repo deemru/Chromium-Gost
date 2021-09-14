@@ -403,12 +403,14 @@ int gostssl_tls_gost_required( SSL * s, const SSL_CIPHER * cipher )
           cipher == tls_FF85 ) )
     {
         boring_ERR_clear_error();
+#if 0 // experimental stuff
         if( w->boring_hello.size() && w->server_proxy.size() && msspi_set_input( w->h, w->boring_hello.data(), w->boring_hello.size() ) )
         {
             w->host_status = GOSTSSL_HOST_PROBING;
             boring_ERR_put_error( ERR_LIB_SSL, 0, SSL_R_TLS_GOST_PROXY, __FILE__, __LINE__ );
         }
         else
+#endif
         {
             boring_ERR_put_error( ERR_LIB_SSL, 0, SSL_R_TLS_GOST_REQUIRED, __FILE__, __LINE__ );
         }
