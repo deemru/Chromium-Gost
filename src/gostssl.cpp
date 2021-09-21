@@ -45,7 +45,7 @@ DLLEXPORT void gostssl_certhook( void * cert, int size );
 DLLEXPORT void gostssl_verifyhook( void * s, const char * host, unsigned * is_gost );
 DLLEXPORT void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost );
 DLLEXPORT void gostssl_isgostcerthook( void * cert, int size, int * is_gost );
-DLLEXPORT void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size );
+DLLEXPORT void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size, const char * ciphers );
 DLLEXPORT int gostssl_is_msspi( SSL * s );
 DLLEXPORT char gostssl_certificate_info( const char * cert, size_t size, const char ** info, size_t * len );
 
@@ -310,7 +310,7 @@ typedef enum
 }
 WORKER_DB_ACTION;
 
-static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, const char * cachestring = NULL, const void * cert = NULL, int size = 0 )
+static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, const char * cachestring = NULL, const void * cert = NULL, int size = 0, const char * ciphers = NULL )
 {
     GostSSL_Worker * w = NULL;
 
@@ -331,7 +331,7 @@ static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, con
         w->host_status = host_status_get( w->host_string );
 
         msspi_set_cert_cb( w->h, (msspi_cert_cb)gostssl_cert_cb );
-        msspi_set_cipherlist( w->h, "C103:C105:C104:C106:C100:C101:C102:FF85:0081" );
+        msspi_set_cipherlist( w->h, ciphers );
         w->s = (SSL *)s;
 
         if( s->hostname.get() )
@@ -567,7 +567,7 @@ int gostssl_shutdown( SSL * s, int * is_gost )
 
 #define B2C(x) ( x < 0xA ? x + '0' : x + 'A' - 10 )
 
-void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size )
+void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size, const char * ciphers )
 {
     BYTE * bb = (BYTE *)cachestring;
     std::vector<BYTE> cc;
@@ -580,7 +580,7 @@ void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const vo
         cc[i * 2 + 1] = B2C( Fx );
     }
     cc[len * 2] = 0;
-    workers_api( s, WDB_NEW, (char *)&cc[0], cert, size );
+    workers_api( s, WDB_NEW, (char *)&cc[0], cert, size, ciphers );
 }
 
 int gostssl_connect( SSL * s, int * is_gost )
@@ -632,13 +632,13 @@ int gostssl_connect( SSL * s, int * is_gost )
         std::vector<int> servercerts_lens;
         size_t servercerts_count;
         {
-            if( !msspi_get_peerchain( w->h, 0, NULL, NULL, &servercerts_count ) )
+            if( !msspi_get_peercerts( w->h, NULL, NULL, &servercerts_count ) )
                 return 0;
 
             servercerts_bufs.resize( servercerts_count );
             servercerts_lens.resize( servercerts_count );
 
-            if( !msspi_get_peerchain( w->h, 0, &servercerts_bufs[0], &servercerts_lens[0], &servercerts_count ) )
+            if( !msspi_get_peercerts( w->h, &servercerts_bufs[0], &servercerts_lens[0], &servercerts_count ) )
                 return 0;
         }
 

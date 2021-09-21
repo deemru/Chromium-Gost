@@ -1,4 +1,4 @@
-From 1358dc9c70900b2fdaff78ce2e7eca469ea6c6f0 Mon Sep 17 00:00:00 2001
+From 8c50199160dd6f38dc72676899f989b5a0bd00b6 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 1 Sep 2021 16:18:09 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -19,6 +19,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../app_shim/certificate_viewer.mm            |  46 +++++++
  content/browser/BUILD.gn                      |   8 ++
  content/browser/storage_partition_impl.cc     |   9 ++
+ content/browser/utility_process_host.cc       |   3 +
  content/common/user_agent.cc                  |   2 +-
  net/base/net_error_list.h                     |   5 +
  net/cert/cert_verify_proc.cc                  |  23 ++++
@@ -26,16 +27,16 @@ Subject: [PATCH] chromium GOSTSSL
  net/socket/socket.h                           |   4 +
  net/socket/ssl_client_socket.cc               |   9 ++
  net/socket/ssl_client_socket.h                |   4 +
- net/socket/ssl_client_socket_impl.cc          | 112 ++++++++++++++++++
+ net/socket/ssl_client_socket_impl.cc          | 125 ++++++++++++++++++
  net/socket/ssl_client_socket_impl.h           |   3 +
  net/spdy/spdy_session.cc                      |   5 +
  net/ssl/client_cert_store_mac.cc              |  31 +++++
- net/ssl/client_cert_store_nss.cc              |  33 ++++++
+ net/ssl/client_cert_store_nss.cc              |  33 +++++
  net/ssl/client_cert_store_win.cc              |  32 +++++
  net/ssl/openssl_ssl_util.cc                   |   4 +
- net/ssl/ssl_cipher_suite_names.cc             |  64 ++++++++++
- net/ssl/ssl_platform_key_util.cc              |  21 ++++
- net/ssl/ssl_platform_key_util.h               |   7 ++
+ net/ssl/ssl_cipher_suite_names.cc             |  64 +++++++++
+ net/ssl/ssl_platform_key_util.cc              |  21 +++
+ net/ssl/ssl_platform_key_util.h               |   7 +
  sandbox/policy/mac/common.sb                  |  16 +++
  sandbox/win/src/process_mitigations.cc        |   4 +
  .../blink/renderer/core/frame/local_frame.cc  |   5 +
@@ -43,7 +44,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.cc  |   9 ++
  .../renderer/core/frame/reporting_context.h   |   7 +-
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 39 files changed, 520 insertions(+), 30 deletions(-)
+ 40 files changed, 536 insertions(+), 30 deletions(-)
 
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
 index 5223754108237..aae9bd8eba5df 100644
@@ -376,6 +377,20 @@ index ba5ab2ff3ef43..b49ef1473559c 100644
      DCHECK((cert && private_key) || (!cert && !private_key));
  
      if (cert && private_key) {
+diff --git a/content/browser/utility_process_host.cc b/content/browser/utility_process_host.cc
+index dc2de5687268e..f7c14e4c08f13 100644
+--- a/content/browser/utility_process_host.cc
++++ b/content/browser/utility_process_host.cc
+@@ -222,6 +222,9 @@ bool UtilityProcessHost::StartProcess() {
+ 
+     // Browser command-line switches to propagate to the utility process.
+     static const char* const kSwitchNames[] = {
++#ifndef NO_GOSTSSL
++      "ciphers",
++#endif // GOSTSSL
+       network::switches::kAdditionalTrustTokenKeyCommitments,
+       network::switches::kForceEffectiveConnectionType,
+       network::switches::kHostResolverRules,
 diff --git a/content/common/user_agent.cc b/content/common/user_agent.cc
 index 25facd610551c..6dd53004effe7 100644
 --- a/content/common/user_agent.cc
@@ -524,7 +539,7 @@ index 0f0fe9a36df1d..5c89b92809014 100644
    void NotifySSLConfigChanged(bool is_cert_database_change);
    void NotifySSLConfigForServerChanged(const HostPortPair& server);
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 62672bfa326f8..d9b5ca190c898 100644
+index 62672bfa326f8..5ecc1bdbd3f31 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
 @@ -425,6 +425,18 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
@@ -533,7 +548,7 @@ index 62672bfa326f8..d9b5ca190c898 100644
  
 +#ifndef NO_GOSTSSL
 +extern "C" {
-+void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size );
++void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size, const char * ciphers );
 +void gostssl_certhook( void * cert, int size );
 +void gostssl_verifyhook( void * s, const char * host, unsigned * is_gost );
 +int gostssl_is_msspi( SSL * s );
@@ -546,7 +561,7 @@ index 62672bfa326f8..d9b5ca190c898 100644
  int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
    // this has never worked for layered sockets. CHECK to detect any consumers
-@@ -443,6 +455,18 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
+@@ -443,6 +455,31 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
      return rv;
    }
  
@@ -558,14 +573,27 @@ index 62672bfa326f8..d9b5ca190c898 100644
 +      cert = (const void *)CRYPTO_BUFFER_data(client_cert_.get()->cert_buffer());
 +      len = (int)CRYPTO_BUFFER_len(client_cert_.get()->cert_buffer());
 +    }
-+    gostssl_newsession( ssl_.get(), &context_->seqnum_, sizeof( context_->seqnum_ ), cert, len );
++    static _LIBCPP_NO_DESTROY std::string ciphers;
++    if( ciphers == "" )
++    {
++      base::CommandLine * command_line = base::CommandLine::ForCurrentProcess();
++      if( command_line->HasSwitch( "ciphers" ) )
++        ciphers = command_line->GetSwitchValueASCII( "ciphers" );
++      if( ciphers == "" )
++      {
++        ciphers =  "C104:C105:C104:C106:C100:C101:C102:FF85:0081";
++        ciphers += ":";
++        ciphers += "C030:C02F:C028:C027:C014:C013:009D:009C:003D:003C:0035:002F:000A";
++      }
++    }
++    gostssl_newsession( ssl_.get(), &context_->seqnum_, sizeof( context_->seqnum_ ), cert, len, ciphers.c_str() );
 +  }
 +#endif // GOSTSSL
 +
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -1148,6 +1172,82 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
+@@ -1148,6 +1185,82 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
  
    start_cert_verification_time_ = base::TimeTicks::Now();
  
@@ -648,7 +676,7 @@ index 62672bfa326f8..d9b5ca190c898 100644
    const uint8_t* ocsp_response_raw;
    size_t ocsp_response_len;
    SSL_get0_ocsp_response(ssl_.get(), &ocsp_response_raw, &ocsp_response_len);
-@@ -1655,6 +1755,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1655,6 +1768,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
