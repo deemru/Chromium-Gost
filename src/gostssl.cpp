@@ -632,13 +632,13 @@ int gostssl_connect( SSL * s, int * is_gost )
         std::vector<int> servercerts_lens;
         size_t servercerts_count;
         {
-            if( !msspi_get_peercerts( w->h, NULL, NULL, &servercerts_count ) )
+            if( !msspi_get_peerchain( w->h, 0, NULL, NULL, &servercerts_count ) )
                 return 0;
 
             servercerts_bufs.resize( servercerts_count );
             servercerts_lens.resize( servercerts_count );
 
-            if( !msspi_get_peercerts( w->h, &servercerts_bufs[0], &servercerts_lens[0], &servercerts_count ) )
+            if( !msspi_get_peerchain( w->h, 0, &servercerts_bufs[0], &servercerts_lens[0], &servercerts_count ) )
                 return 0;
         }
 
