@@ -35,6 +35,9 @@ copy /y %CHROMIUM_GOST_REPO%\extra\product_logo\product_logo_32.png chrome\app\t
 copy /y %CHROMIUM_GOST_REPO%\extra\product_logo\product_logo_64.png chrome\app\theme\default_200_percent\chromium\product_logo_32.png
 copy /y %CHROMIUM_GOST_REPO%\extra\product_logo\product_logo_32.xpm chrome\app\theme\chromium\linux\product_logo_32.xpm
 
+copy /y %CHROMIUM_GOST_REPO%\extra\favicon_ntp_16.png chrome\app\theme\default_100_percent\common\favicon_ntp.png
+copy /y %CHROMIUM_GOST_REPO%\extra\favicon_ntp_32.png chrome\app\theme\default_200_percent\common\favicon_ntp.png
+
 copy /y %CHROMIUM_GOST_REPO%\src\gostssl.cpp third_party\boringssl\gostssl.cpp
 copy /y %CHROMIUM_GOST_REPO%\src\msspi\src\msspi.cpp third_party\boringssl\msspi.cpp
 copy /y %CHROMIUM_GOST_REPO%\src\msspi\src\msspi.h third_party\boringssl\msspi.h

@@ -33,6 +33,9 @@ cp -f $CHROMIUM_GOST_REPO/extra/product_logo/product_logo_32.png chrome/app/them
 cp -f $CHROMIUM_GOST_REPO/extra/product_logo/product_logo_64.png chrome/app/theme/default_200_percent/chromium/product_logo_32.png
 cp -f $CHROMIUM_GOST_REPO/extra/product_logo/product_logo_32.xpm chrome/app/theme/chromium/linux/product_logo_32.xpm
 
+cp -f $CHROMIUM_GOST_REPO/extra/favicon_ntp_16.png chrome/app/theme/default_100_percent/common/favicon_ntp.png
+cp -f $CHROMIUM_GOST_REPO/extra/favicon_ntp_32.png chrome/app/theme/default_200_percent/common/favicon_ntp.png
+
 cp -f $CHROMIUM_GOST_REPO/extra/colored_header.svg chrome/browser/resources/new_tab_page/icons/colored_header.svg
 cp -f $CHROMIUM_GOST_REPO/extra/chromium-gost.svg chrome/browser/resources/new_tab_page/icons/google_logo.svg
 
