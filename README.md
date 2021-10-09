@@ -8,6 +8,7 @@
 [![windows](https://img.shields.io/badge/windows-supported-brightgreen.svg)](https://github.com/deemru/chromium-gost/releases/latest)
 [![linux](https://img.shields.io/badge/linux-supported-brightgreen.svg)](https://github.com/deemru/chromium-gost/releases/latest)
 [![macos](https://img.shields.io/badge/macos-supported-brightgreen.svg)](https://github.com/deemru/chromium-gost/releases/latest)
+[![Всего](https://img.shields.io/github/downloads/deemru/chromium-gost/total)](https://github.com/deemru/chromium-gost/releases/latest)
 
 [chromium-gost](https://github.com/deemru/chromium-gost) — веб-браузер с открытым исходным кодом на основе [Chromium](https://ru.wikipedia.org/wiki/Chromium) с поддержкой криптографических алгоритмов ГОСТ при установке [защищённых соединений](https://ru.wikipedia.org/wiki/TLS) через интерфейс [msspi](https://github.com/deemru/msspi)
 
