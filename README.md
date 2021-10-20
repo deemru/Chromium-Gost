@@ -8,7 +8,7 @@
 [![windows](https://img.shields.io/badge/windows-supported-brightgreen.svg)](https://github.com/deemru/chromium-gost/releases/latest)
 [![linux](https://img.shields.io/badge/linux-supported-brightgreen.svg)](https://github.com/deemru/chromium-gost/releases/latest)
 [![macos](https://img.shields.io/badge/macos-supported-brightgreen.svg)](https://github.com/deemru/chromium-gost/releases/latest)
-[![Всего](https://img.shields.io/github/downloads/deemru/chromium-gost/total)](https://github.com/deemru/chromium-gost/releases/latest)
+[![downloads](https://img.shields.io/github/downloads/deemru/chromium-gost/total)](https://github.com/deemru/chromium-gost/releases/latest)
 
 [chromium-gost](https://github.com/deemru/chromium-gost) — веб-браузер с открытым исходным кодом на основе [Chromium](https://ru.wikipedia.org/wiki/Chromium) с поддержкой криптографических алгоритмов ГОСТ при установке [защищённых соединений](https://ru.wikipedia.org/wiki/TLS) через интерфейс [msspi](https://github.com/deemru/msspi)
 
@@ -25,7 +25,7 @@
 
 - В случае возникновения подобного сигнала для данного сайта происходит переключение в режим работы интерфейса `msspi`. Если защищённое соединение успешно устанавливается через интерфейс `msspi`, сайт отмечается поддерживающим алгоритмы ГОСТ и все последующие с ним соединения будут использовать интерфейс `msspi`.
 
-- Для пользователя данный алгоритм работы остаётся прозрачен, так как `Chromium` автоматически устанавливает повторное соединение через интерфейс `msspi`.
+- Данный алгоритм максимально прозрачен для пользователя и минимально влияет на опыт взаимодействия с сайтом.
 
 # Обсуждение
 
