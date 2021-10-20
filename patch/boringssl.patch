@@ -1,6 +1,6 @@
-From d7fa5617f99bc183270c8c6780946b9337beb4c4 Mon Sep 17 00:00:00 2001
+From 1d799a5916e7972fafb2c437e5ccbe4a9fa48c2b Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
-Date: Wed, 30 Jan 2019 15:04:56 +0300
+Date: Wed, 20 Oct 2021 11:51:56 +0300
 Subject: [PATCH] boringssl GOSTSSL
 
 ---
@@ -15,10 +15,10 @@ Subject: [PATCH] boringssl GOSTSSL
  8 files changed, 464 insertions(+)
 
 diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
-index dc3a79dfb..95881205f 100644
+index 82e1da8e4..29b1a65fc 100644
 --- a/include/openssl/ssl.h
 +++ b/include/openssl/ssl.h
-@@ -5284,6 +5284,11 @@ BSSL_NAMESPACE_END
+@@ -5335,6 +5335,11 @@ BSSL_NAMESPACE_END
  
  #endif
  
@@ -31,7 +31,7 @@ index dc3a79dfb..95881205f 100644
  #define SSL_R_ATTEMPT_TO_REUSE_SESSION_IN_DIFFERENT_CONTEXT 101
  #define SSL_R_BAD_ALERT 102
 diff --git a/ssl/extensions.cc b/ssl/extensions.cc
-index 69a2bdc1a..f92bd4364 100644
+index 6fec44584..c63f03a97 100644
 --- a/ssl/extensions.cc
 +++ b/ssl/extensions.cc
 @@ -477,6 +477,31 @@ bool tls12_add_verify_sigalgs(const SSL_HANDSHAKE *hs, CBB *out) {
@@ -66,7 +66,7 @@ index 69a2bdc1a..f92bd4364 100644
    return true;
  }
  
-@@ -2548,6 +2573,23 @@ static bool ext_supported_groups_add_clienthello(const SSL_HANDSHAKE *hs,
+@@ -2560,6 +2585,23 @@ static bool ext_supported_groups_add_clienthello(const SSL_HANDSHAKE *hs,
      }
    }
  
@@ -91,29 +91,29 @@ index 69a2bdc1a..f92bd4364 100644
  }
  
 diff --git a/ssl/handshake_client.cc b/ssl/handshake_client.cc
-index d5ccafc26..2649a633d 100644
+index ee9045e6a..fb57a5286 100644
 --- a/ssl/handshake_client.cc
 +++ b/ssl/handshake_client.cc
-@@ -682,6 +682,14 @@ static enum ssl_hs_wait_t do_read_server_hello(SSL_HANDSHAKE *hs) {
+@@ -693,6 +693,14 @@ static enum ssl_hs_wait_t do_read_server_hello(SSL_HANDSHAKE *hs) {
      return ssl_hs_error;
    }
  
 +#ifndef NO_GOSTSSL
 +  if (gostssl()) {
-+    if (gostssl_tls_gost_required(ssl, SSL_get_cipher_by_value(cipher_suite))) {
++    if (gostssl_tls_gost_required(ssl, SSL_get_cipher_by_value(server_hello.cipher_suite))) {
 +      return ssl_hs_error;
 +    }
 +  }
 +#endif // GOSTSSL
 +
-   // Use the supported_versions extension if applicable.
-   if (!parse_supported_versions(hs, &server_version, &server_hello)) {
-     return ssl_hs_error;
+   if (!ssl_supports_version(hs, server_version)) {
+     OPENSSL_PUT_ERROR(SSL, SSL_R_UNSUPPORTED_PROTOCOL);
+     ssl_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_PROTOCOL_VERSION);
 diff --git a/ssl/internal.h b/ssl/internal.h
-index ba1dde351..f08a32b70 100644
+index 6b7528ce4..a21892b8c 100644
 --- a/ssl/internal.h
 +++ b/ssl/internal.h
-@@ -541,6 +541,13 @@ BSSL_NAMESPACE_BEGIN
+@@ -542,6 +542,13 @@ BSSL_NAMESPACE_BEGIN
  #define SSL_kPSK 0x00000004u
  #define SSL_kGENERIC 0x00000008u
  
@@ -127,7 +127,7 @@ index ba1dde351..f08a32b70 100644
  // Bits for |algorithm_auth| (server authentication).
  #define SSL_aRSA 0x00000001u
  #define SSL_aECDSA 0x00000002u
-@@ -3343,6 +3350,35 @@ void ssl_set_read_error(SSL *ssl);
+@@ -3384,6 +3391,35 @@ void ssl_set_read_error(SSL *ssl);
  
  BSSL_NAMESPACE_END
  
@@ -199,7 +199,7 @@ index d73055fbf..90a08c307 100644
    }
  
 diff --git a/ssl/ssl_cipher.cc b/ssl/ssl_cipher.cc
-index 4f5049c60..df53b077f 100644
+index 60b3e2c75..6011da9cb 100644
 --- a/ssl/ssl_cipher.cc
 +++ b/ssl/ssl_cipher.cc
 @@ -208,6 +208,20 @@ static constexpr SSL_CIPHER kCiphers[] = {
@@ -390,7 +390,7 @@ index 4f5049c60..df53b077f 100644
        alg_bits = 256;
        strength_bits = 256;
 diff --git a/ssl/ssl_lib.cc b/ssl/ssl_lib.cc
-index 3c9fc904f..d0b36ce16 100644
+index 03864e1ea..ebc4a23bd 100644
 --- a/ssl/ssl_lib.cc
 +++ b/ssl/ssl_lib.cc
 @@ -504,6 +504,162 @@ static int ssl_session_cmp(const SSL_SESSION *a, const SSL_SESSION *b) {
@@ -634,7 +634,7 @@ index 3c9fc904f..d0b36ce16 100644
 +#endif // GOSTSSL
    if (ssl->quic_method != nullptr) {
      OPENSSL_PUT_ERROR(SSL, ERR_R_SHOULD_NOT_HAVE_BEEN_CALLED);
-     return 0;
+     return -1;
 @@ -1041,6 +1241,15 @@ int SSL_peek(SSL *ssl, void *buf, int num) {
  
  int SSL_write(SSL *ssl, const void *buf, int num) {
