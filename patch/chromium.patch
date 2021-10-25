@@ -640,7 +640,7 @@ index 62169fbf98400..0d5d1125a54ac 100644
 +        ciphers = command_line->GetSwitchValueASCII( "ciphers" );
 +      if( ciphers == "" )
 +      {
-+        ciphers =  "C104:C105:C104:C106:C100:C101:C102:FF85:0081";
++        ciphers =  "C104:C105:C103:C106:C100:C101:C102:FF85:0081";
 +        ciphers += ":";
 +        ciphers += "C030:C02F:C028:C027:C014:C013:009D:009C:003D:003C:0035:002F:000A";
 +      }
