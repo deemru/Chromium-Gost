@@ -1,8 +1,7 @@
 #!/bin/sh
 
 cd $(dirname $0)
-git submodule init
-git submodule update
+git submodule update --init --recursive --depth 1
 . ./chromium-gost-env.sh
 export PATH=$DEPOT_TOOLS_PATH:$PATH
 export GOST_BRANCH=GOSTSSL-$CHROMIUM_TAG
@@ -16,8 +15,10 @@ git reset HEAD~ --hard
 cd $CHROMIUM_PATH
 git reset HEAD~ --hard
 git fetch --tags
+git checkout -b temp tags/$CHROMIUM_TAG
+git show-ref --quiet refs/heads/$GOST_BRANCH && git branch -D $GOST_BRANCH
 git checkout -b $GOST_BRANCH tags/$CHROMIUM_TAG
-git checkout -f $GOST_BRANCH
+git branch -D temp
 gclient sync --with_branch_heads -D
 git am --3way --ignore-space-change < $CHROMIUM_GOST_REPO/patch/chromium.patch || exit
 
@@ -54,6 +55,8 @@ cp -f $CHROMIUM_GOST_REPO/src/msspi/third_party/cprocsp/include/WinCryptEx.h thi
 cp -f $CHROMIUM_GOST_REPO/src/msspi/third_party/cprocsp/include/common.h third_party/boringssl/src/include/common.h
 
 cd $BORINGSSL_PATH
+git checkout -b temp
+git show-ref --quiet refs/heads/$GOST_BRANCH && git branch -D $GOST_BRANCH
 git checkout -b $GOST_BRANCH
-git checkout -f $GOST_BRANCH
+git branch -D temp
 git am --3way --ignore-space-change < $CHROMIUM_GOST_REPO/patch/boringssl.patch || exit

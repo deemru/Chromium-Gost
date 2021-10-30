@@ -1,6 +1,5 @@
 cd /d %~dp0
-call git submodule init
-call git submodule update
+call git submodule update --init --recursive --depth 1
 call chromium-gost-env.bat
 set PATH=%DEPOT_TOOLS_PATH%;%PATH%
 set DEPOT_TOOLS_WIN_TOOLCHAIN=0
@@ -15,8 +14,10 @@ call git reset HEAD~ --hard
 cd %CHROMIUM_PATH%
 call git reset HEAD~ --hard
 call git fetch --tags
+call git checkout -b temp tags/%CHROMIUM_TAG%
+call git show-ref --quiet refs/heads/%GOST_BRANCH% && call git branch -D %GOST_BRANCH%
 call git checkout -b %GOST_BRANCH% tags/%CHROMIUM_TAG%
-call git checkout -f %GOST_BRANCH%
+call git branch -D temp
 call gclient sync --with_branch_heads -D
 call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\chromium.patch || goto :finish
 
@@ -52,8 +53,10 @@ copy /y %CHROMIUM_GOST_REPO%\src\msspi\third_party\cprocsp\include\WinCryptEx.h 
 copy /y %CHROMIUM_GOST_REPO%\src\msspi\third_party\cprocsp\include\common.h third_party\boringssl\src\include\common.h
 
 cd %BORINGSSL_PATH%
+call git checkout -b temp
+call git show-ref --quiet refs/heads/%GOST_BRANCH% && call git branch -D %GOST_BRANCH%
 call git checkout -b %GOST_BRANCH%
-call git checkout -f %GOST_BRANCH%
+call git branch -D temp
 call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\boringssl.patch || goto :finish
 
 :finish
