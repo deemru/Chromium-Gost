@@ -2,18 +2,18 @@
   <img src="extra/chromium-gost-header.png"/>
 </h3>
 
-# chromium-gost 
+# Chromium-Gost
 
-[![version](https://img.shields.io/github/release/deemru/chromium-gost.svg)](https://github.com/deemru/chromium-gost/releases/latest)
-[![windows](https://img.shields.io/badge/windows-supported-brightgreen.svg)](https://github.com/deemru/chromium-gost/releases/latest)
-[![linux](https://img.shields.io/badge/linux-supported-brightgreen.svg)](https://github.com/deemru/chromium-gost/releases/latest)
-[![macos](https://img.shields.io/badge/macos-supported-brightgreen.svg)](https://github.com/deemru/chromium-gost/releases/latest)
-[![downloads](https://img.shields.io/github/downloads/deemru/chromium-gost/total)](https://github.com/deemru/chromium-gost/releases/latest)
+[![version](https://img.shields.io/github/release/deemru/Chromium-Gost.svg)](https://github.com/deemru/Chromium-Gost/releases/latest)
+[![windows](https://img.shields.io/badge/windows-supported-brightgreen.svg)](https://github.com/deemru/Chromium-Gost/releases/latest)
+[![linux](https://img.shields.io/badge/linux-supported-brightgreen.svg)](https://github.com/deemru/Chromium-Gost/releases/latest)
+[![macos](https://img.shields.io/badge/macos-supported-brightgreen.svg)](https://github.com/deemru/Chromium-Gost/releases/latest)
+[![downloads](https://img.shields.io/github/downloads/deemru/Chromium-Gost/total)](https://github.com/deemru/Chromium-Gost/releases/latest)
 
-[chromium-gost](https://github.com/deemru/chromium-gost) — веб-браузер с открытым исходным кодом на основе [Chromium](https://ru.wikipedia.org/wiki/Chromium) с поддержкой криптографических алгоритмов ГОСТ при установке [защищённых соединений](https://ru.wikipedia.org/wiki/TLS) через интерфейс [msspi](https://github.com/deemru/msspi)
+[Chromium-Gost](https://github.com/deemru/Chromium-Gost) — веб-браузер с открытым исходным кодом на основе [Chromium](https://ru.wikipedia.org/wiki/Chromium) с поддержкой криптографических алгоритмов ГОСТ при установке [защищённых соединений](https://ru.wikipedia.org/wiki/TLS) через интерфейс [msspi](https://github.com/deemru/msspi)
 
-# [Скачать](https://github.com/deemru/chromium-gost/releases/latest)
-[chromium-gost](https://github.com/deemru/chromium-gost) доступен для операционных систем Windows, Linux и MacOS. Вы можете скачать соответствующий дистрибутив в [chromium-gost/releases/latest](https://github.com/deemru/chromium-gost/releases/latest)
+# [Скачать](https://github.com/deemru/Chromium-Gost/releases/latest)
+[Chromium-Gost](https://github.com/deemru/Chromium-Gost) доступен для операционных систем Windows, Linux и MacOS. Вы можете скачать соответствующий дистрибутив в [Chromium-Gost/releases/latest](https://github.com/deemru/Chromium-Gost/releases/latest)
 
 # Принцип работы
 
@@ -33,10 +33,10 @@
 
 # Сборка
 
-[![appveyor](https://img.shields.io/appveyor/ci/deemru/chromium-gost.svg?label=appveyor)](https://ci.appveyor.com/project/deemru/chromium-gost)
+[![appveyor](https://img.shields.io/appveyor/ci/deemru/Chromium-Gost.svg?label=appveyor)](https://ci.appveyor.com/project/deemru/Chromium-Gost)
 
 - Освоить сборку оригинального проекта [Chromium](https://chromium.googlesource.com/chromium/src/+/master/docs/README.md) — [Get the code: check out, build, and run Chromium]( https://chromium.googlesource.com/chromium/src/+/master/docs/get_the_code.md)
-- Извлечь [chromium-gost](https://github.com/deemru/chromium-gost)
+- Извлечь [Chromium-Gost](https://github.com/deemru/Chromium-Gost)
 - Использовать скрипты из `build_linux`, `build_mac` или `build_windows`
 - Скорректировать пути — `chromium-gost-env`
 - Подготовить сборку — `chromium-gost-prepare`
