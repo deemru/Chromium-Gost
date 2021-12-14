@@ -2,7 +2,7 @@
   <img src="extra/chromium-gost-header.png"/>
 </h3>
 
-# Chromium-Gost
+#
 
 [![version](https://img.shields.io/github/release/deemru/Chromium-Gost.svg)](https://github.com/deemru/Chromium-Gost/releases/latest)
 [![windows](https://img.shields.io/badge/windows-supported-brightgreen.svg)](https://github.com/deemru/Chromium-Gost/releases/latest)
