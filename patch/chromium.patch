@@ -1,6 +1,6 @@
-From 84b148cbdf411a08cebc55582fb10afc2a9b1c4d Mon Sep 17 00:00:00 2001
+From 810d5107d0b3f35f18261d9c6d5ba8e48b6a280b Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
-Date: Wed, 22 Sep 2021 15:24:03 +0300
+Date: Thu, 6 Jan 2022 00:24:13 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
@@ -176,10 +176,10 @@ index 9f551a89e4a9d..88e1c13862582 100644
  }
  
 diff --git a/chrome/browser/ui/webui/whats_new/whats_new_util.cc b/chrome/browser/ui/webui/whats_new/whats_new_util.cc
-index 4092adbab3244..5c4d191c32896 100644
+index 56b06771ca694..688f6d24f7d50 100644
 --- a/chrome/browser/ui/webui/whats_new/whats_new_util.cc
 +++ b/chrome/browser/ui/webui/whats_new/whats_new_util.cc
-@@ -33,7 +33,7 @@ bool ShouldShowForState(PrefService* local_state) {
+@@ -53,7 +53,7 @@ bool ShouldShowForState(PrefService* local_state) {
    // Show What's New if the page hasn't yet been shown for the current
    // milestone.
    int last_version = local_state->GetInteger(prefs::kLastWhatsNewVersion);
@@ -215,7 +215,7 @@ index cc31b307db635..ad77208b83ed2 100644
  #error Unknown branding
  #endif
 diff --git a/chrome/installer/linux/common/chromium-browser/chromium-browser.info b/chrome/installer/linux/common/chromium-browser/chromium-browser.info
-index 6f67b06166f00..997d45b6af450 100644
+index 6f67b06166f00..a5485e2ee444f 100644
 --- a/chrome/installer/linux/common/chromium-browser/chromium-browser.info
 +++ b/chrome/installer/linux/common/chromium-browser/chromium-browser.info
 @@ -6,7 +6,7 @@
@@ -332,10 +332,10 @@ index 0c12e8bda3856..c071d69f7a7bd 100644
        net::x509_util::CreateSecCertificateArrayForX509Certificate(certificate));
    if (!cert_chain)
 diff --git a/content/browser/BUILD.gn b/content/browser/BUILD.gn
-index 58b898688dd63..da001b130b434 100644
+index 990f2b448755e..f750bda60a7f4 100644
 --- a/content/browser/BUILD.gn
 +++ b/content/browser/BUILD.gn
-@@ -3042,6 +3042,14 @@ source_set("browser") {
+@@ -2991,6 +2991,14 @@ source_set("browser") {
        "net/reporting_service_proxy.h",
      ]
    }
@@ -351,7 +351,7 @@ index 58b898688dd63..da001b130b434 100644
    if (enable_vr) {
      if (!is_android) {
 diff --git a/content/browser/devtools/protocol/network_handler.cc b/content/browser/devtools/protocol/network_handler.cc
-index 77d6e1130e2f4..0a5173981bed8 100644
+index 4155f0105058e..a86f7713fbb20 100644
 --- a/content/browser/devtools/protocol/network_handler.cc
 +++ b/content/browser/devtools/protocol/network_handler.cc
 @@ -451,6 +451,7 @@ std::vector<GURL> ComputeCookieURLs(RenderFrameHostImpl* frame_host,
@@ -371,7 +371,7 @@ index 77d6e1130e2f4..0a5173981bed8 100644
  String resourcePriority(net::RequestPriority priority) {
    switch (priority) {
 diff --git a/content/browser/devtools/protocol/network_handler.h b/content/browser/devtools/protocol/network_handler.h
-index fd73637c2ab84..03a346703cc55 100644
+index 7974a13989e0e..763e6fdac4912 100644
 --- a/content/browser/devtools/protocol/network_handler.h
 +++ b/content/browser/devtools/protocol/network_handler.h
 @@ -309,8 +309,10 @@ class NetworkHandler : public DevToolsDomainHandler,
@@ -386,10 +386,10 @@ index fd73637c2ab84..03a346703cc55 100644
    // TODO(dgozman): Remove this.
    const std::string host_id_;
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
-index 95e5475cc69e8..396594bbed08b 100644
+index 003e4cb5339b7..4b9b9330593f6 100644
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
-@@ -124,6 +124,10 @@
+@@ -125,6 +125,10 @@
  #include "services/service_manager/public/cpp/interface_provider.h"
  #endif  // defined(OS_ANDROID)
  
@@ -400,7 +400,7 @@ index 95e5475cc69e8..396594bbed08b 100644
  #if BUILDFLAG(ENABLE_PLUGINS)
  #include "content/browser/plugin_private_storage_helper.h"
  #endif  // BUILDFLAG(ENABLE_PLUGINS)
-@@ -593,6 +597,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
+@@ -596,6 +600,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
        scoped_refptr<net::X509Certificate> cert,
        scoped_refptr<net::SSLPrivateKey> private_key) override {
      DCHECK_CURRENTLY_ON(BrowserThread::UI);
@@ -413,7 +413,7 @@ index 95e5475cc69e8..396594bbed08b 100644
  
      if (cert && private_key) {
 diff --git a/content/browser/utility_process_host.cc b/content/browser/utility_process_host.cc
-index 9230b5c64934d..500b5f33d1fff 100644
+index ca5554f47759d..939ed50921723 100644
 --- a/content/browser/utility_process_host.cc
 +++ b/content/browser/utility_process_host.cc
 @@ -219,6 +219,9 @@ bool UtilityProcessHost::StartProcess() {
@@ -427,7 +427,7 @@ index 9230b5c64934d..500b5f33d1fff 100644
        network::switches::kForceEffectiveConnectionType,
        network::switches::kHostResolverRules,
 diff --git a/content/common/user_agent.cc b/content/common/user_agent.cc
-index 25facd610551c..6dd53004effe7 100644
+index 1fd514d6d7315..ecaec3e25f37d 100644
 --- a/content/common/user_agent.cc
 +++ b/content/common/user_agent.cc
 @@ -341,7 +341,7 @@ std::string BuildUserAgentFromOSAndProduct(const std::string& os_info,
@@ -440,7 +440,7 @@ index 25facd610551c..6dd53004effe7 100644
    return user_agent;
  }
 diff --git a/content/public/common/content_switch_dependent_feature_overrides.cc b/content/public/common/content_switch_dependent_feature_overrides.cc
-index 8bdfba8477414..a650077fd4261 100644
+index 01cb2b6a346a0..263ec73e1e183 100644
 --- a/content/public/common/content_switch_dependent_feature_overrides.cc
 +++ b/content/public/common/content_switch_dependent_feature_overrides.cc
 @@ -7,6 +7,7 @@
@@ -451,7 +451,7 @@ index 8bdfba8477414..a650077fd4261 100644
  #include "services/network/public/cpp/features.h"
  #include "services/network/public/cpp/network_switches.h"
  #include "third_party/blink/public/common/features.h"
-@@ -40,9 +41,11 @@ GetSwitchDependentFeatureOverrides(const base::CommandLine& command_line) {
+@@ -36,9 +37,11 @@ GetSwitchDependentFeatureOverrides(const base::CommandLine& command_line) {
        {switches::kEnableExperimentalWebPlatformFeatures,
         std::cref(features::kDocumentPolicyNegotiation),
         base::FeatureList::OVERRIDE_ENABLE_FEATURE},
@@ -464,7 +464,7 @@ index 8bdfba8477414..a650077fd4261 100644
         std::cref(features::kExperimentalContentSecurityPolicyFeatures),
         base::FeatureList::OVERRIDE_ENABLE_FEATURE},
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
-index 8cf9647a8a11f..a0c4e395e670a 100644
+index c7f10fcc811d5..8e8442cb2df69 100644
 --- a/net/base/net_error_list.h
 +++ b/net/base/net_error_list.h
 @@ -22,6 +22,11 @@
@@ -521,10 +521,10 @@ index a64586d3f7508..1bd9812aa29b4 100644
    // in the chain. Also fills in the has_* booleans for the digest algorithms
    // present in the chain.
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index 47cb01bfa08af..2026c0ff3ebc9 100644
+index 1a22270806b04..4742f703ea978 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
-@@ -1562,6 +1562,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
+@@ -1563,6 +1563,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
        }
      }
    }
@@ -583,10 +583,10 @@ index fcfc88b342aed..318e2278dfd34 100644
  
  SSLClientContext::~SSLClientContext() {
 diff --git a/net/socket/ssl_client_socket.h b/net/socket/ssl_client_socket.h
-index c1e41ed2022f6..7cb2bd1162725 100644
+index 23e830e786f61..93d46ba2dc211 100644
 --- a/net/socket/ssl_client_socket.h
 +++ b/net/socket/ssl_client_socket.h
-@@ -176,6 +176,10 @@ class NET_EXPORT SSLClientContext : public SSLConfigService::Observer,
+@@ -184,6 +184,10 @@ class NET_EXPORT SSLClientContext : public SSLConfigService::Observer,
    // CertDatabase::Observer:
    void OnCertDBChanged() override;
  
@@ -598,10 +598,10 @@ index c1e41ed2022f6..7cb2bd1162725 100644
    void NotifySSLConfigChanged(bool is_cert_database_change);
    void NotifySSLConfigForServerChanged(const HostPortPair& server);
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index f6ba90328bb78..d4b25db650394 100644
+index ca76577797f17..581f74543522a 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
-@@ -425,6 +425,18 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
+@@ -441,6 +441,18 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
    return OK;
  }
  
@@ -620,7 +620,7 @@ index f6ba90328bb78..d4b25db650394 100644
  int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
    // this has never worked for layered sockets. CHECK to detect any consumers
-@@ -443,6 +455,31 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
+@@ -459,6 +471,31 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
      return rv;
    }
  
@@ -652,7 +652,7 @@ index f6ba90328bb78..d4b25db650394 100644
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -1162,6 +1199,82 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
+@@ -1169,6 +1206,82 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
  
    start_cert_verification_time_ = base::TimeTicks::Now();
  
@@ -732,10 +732,10 @@ index f6ba90328bb78..d4b25db650394 100644
 +  }
 +#endif // GOSTSSL
 +
-   const uint8_t* ocsp_response_raw;
-   size_t ocsp_response_len;
-   SSL_get0_ocsp_response(ssl_.get(), &ocsp_response_raw, &ocsp_response_len);
-@@ -1669,6 +1782,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+   base::StringPiece ech_name_override = GetECHNameOverride();
+   if (!ech_name_override.empty()) {
+     // If ECH was offered but not negotiated, BoringSSL will ask to verify a
+@@ -1715,6 +1828,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
@@ -755,7 +755,7 @@ index f6ba90328bb78..d4b25db650394 100644
    if (client_cert_.get()) {
      if (!client_private_key_) {
 diff --git a/net/socket/ssl_client_socket_impl.h b/net/socket/ssl_client_socket_impl.h
-index 85ac408b7d0a4..0ac35f9fccb5b 100644
+index 1fa0ec9e64dcd..90e4570212d4d 100644
 --- a/net/socket/ssl_client_socket_impl.h
 +++ b/net/socket/ssl_client_socket_impl.h
 @@ -51,6 +51,9 @@ class X509Certificate;
@@ -769,10 +769,10 @@ index 85ac408b7d0a4..0ac35f9fccb5b 100644
    // The given hostname will be compared with the name(s) in the server's
    // certificate during the SSL handshake.  |ssl_config| specifies the SSL
 diff --git a/net/spdy/spdy_session.cc b/net/spdy/spdy_session.cc
-index a308363714941..930fe039e280e 100644
+index 07031bbbdeaae..ae33537626987 100644
 --- a/net/spdy/spdy_session.cc
 +++ b/net/spdy/spdy_session.cc
-@@ -1718,6 +1718,11 @@ void SpdySession::RemovePooledAlias(const SpdySessionKey& alias_key) {
+@@ -1697,6 +1697,11 @@ void SpdySession::RemovePooledAlias(const SpdySessionKey& alias_key) {
  }
  
  bool SpdySession::HasAcceptableTransportSecurity() const {
@@ -785,7 +785,7 @@ index a308363714941..930fe039e280e 100644
    CHECK(GetSSLInfo(&ssl_info));
  
 diff --git a/net/ssl/client_cert_store_mac.cc b/net/ssl/client_cert_store_mac.cc
-index b382b07d5c9f4..d72c96848ec27 100644
+index 7255c0757936d..65976edd2b300 100644
 --- a/net/ssl/client_cert_store_mac.cc
 +++ b/net/ssl/client_cert_store_mac.cc
 @@ -295,6 +295,12 @@ void AddIdentity(ScopedCFTypeRef<SecIdentityRef> sec_identity,
@@ -885,7 +885,7 @@ index 0999bd82213b1..9bf0e8f420ce8 100644
  }
  
 diff --git a/net/ssl/client_cert_store_win.cc b/net/ssl/client_cert_store_win.cc
-index bd5a95a6130c5..bd21f0126f576 100644
+index 11d3cfb529761..b1d0a29ea2b80 100644
 --- a/net/ssl/client_cert_store_win.cc
 +++ b/net/ssl/client_cert_store_win.cc
 @@ -107,6 +107,12 @@ static BOOL WINAPI ClientCertFindCallback(PCCERT_CONTEXT cert_context,
@@ -935,7 +935,7 @@ index bd5a95a6130c5..bd21f0126f576 100644
              ClientCertIdentitySorter());
    return selected_identities;
 diff --git a/net/ssl/openssl_ssl_util.cc b/net/ssl/openssl_ssl_util.cc
-index 585338617635a..77a560bb4c7cf 100644
+index ca3987fc410e9..e7648bad9bcf4 100644
 --- a/net/ssl/openssl_ssl_util.cc
 +++ b/net/ssl/openssl_ssl_util.cc
 @@ -85,6 +85,10 @@ int MapOpenSSLErrorSSL(uint32_t error_code) {
@@ -1064,11 +1064,11 @@ index 7d9d498082487..5e1c9ee8f3134 100644
      const X509Certificate* certificate) {
    crypto::OpenSSLErrStackTracer tracker(FROM_HERE);
 diff --git a/net/ssl/ssl_platform_key_util.h b/net/ssl/ssl_platform_key_util.h
-index c5bfe61e7761e..48a330ec6e26d 100644
+index fcefd7f0178eb..ef84c6021ae29 100644
 --- a/net/ssl/ssl_platform_key_util.h
 +++ b/net/ssl/ssl_platform_key_util.h
 @@ -15,6 +15,9 @@
- #include "base/single_thread_task_runner.h"
+ #include "base/task/single_thread_task_runner.h"
  #include "net/base/net_export.h"
  #include "third_party/abseil-cpp/absl/types/optional.h"
 +#ifndef NO_GOSTSSL
@@ -1152,10 +1152,10 @@ index 69dc9255fe289..d119604b10d4c 100644
  
    // Enable image load policies.
 diff --git a/services/network/network_context.cc b/services/network/network_context.cc
-index f8fddf1b0a2c7..aa937998022a8 100644
+index 88a71e97b2eb1..4443f17abcb9c 100644
 --- a/services/network/network_context.cc
 +++ b/services/network/network_context.cc
-@@ -1093,6 +1093,11 @@ void NetworkContext::OnReportingObserverDisconnect(
+@@ -1098,6 +1098,11 @@ void NetworkContext::OnReportingObserverDisconnect(
  }
  
  #else   // BUILDFLAG(ENABLE_REPORTING)
@@ -1167,7 +1167,7 @@ index f8fddf1b0a2c7..aa937998022a8 100644
  void NetworkContext::ClearReportingCacheReports(
      mojom::ClearDataFilterPtr filter,
      ClearReportingCacheReportsCallback callback) {
-@@ -1121,7 +1126,7 @@ void NetworkContext::SetDocumentReportingEndpoints(
+@@ -1126,7 +1131,7 @@ void NetworkContext::SetDocumentReportingEndpoints(
  
  void NetworkContext::SendReportsAndRemoveSource(
      const base::UnguessableToken& reporting_source) {
@@ -1177,11 +1177,11 @@ index f8fddf1b0a2c7..aa937998022a8 100644
  
  void NetworkContext::QueueReport(
 diff --git a/services/network/network_context.h b/services/network/network_context.h
-index 9f204502a1d58..0476202ba4cce 100644
+index d5564a6d6647f..3a29d40150ea2 100644
 --- a/services/network/network_context.h
 +++ b/services/network/network_context.h
-@@ -570,10 +570,10 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) NetworkContext
-     return require_network_isolation_key_;
+@@ -578,10 +578,10 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) NetworkContext
+     return cors_non_wildcard_request_headers_support_;
    }
  
 -#if BUILDFLAG(ENABLE_REPORTING)
@@ -1193,7 +1193,7 @@ index 9f204502a1d58..0476202ba4cce 100644
    void OnReportUpdated(const net::ReportingReport* service_report) override;
    void OnReportingObserverDisconnect(mojo::RemoteSetElementId mojo_id);
 diff --git a/third_party/blink/renderer/core/frame/local_frame.cc b/third_party/blink/renderer/core/frame/local_frame.cc
-index cc3b5af94302c..59051fc8b2d61 100644
+index 8da41334aab84..eabfdeb43362a 100644
 --- a/third_party/blink/renderer/core/frame/local_frame.cc
 +++ b/third_party/blink/renderer/core/frame/local_frame.cc
 @@ -39,6 +39,7 @@
@@ -1204,7 +1204,7 @@ index cc3b5af94302c..59051fc8b2d61 100644
  #include "services/data_decoder/public/mojom/resource_snapshot_for_web_bundle.mojom-blink.h"
  #include "services/network/public/cpp/features.h"
  #include "services/network/public/mojom/content_security_policy.mojom-blink.h"
-@@ -2304,9 +2305,11 @@ const base::UnguessableToken& LocalFrame::GetAgentClusterId() const {
+@@ -2325,9 +2326,11 @@ const base::UnguessableToken& LocalFrame::GetAgentClusterId() const {
    return base::UnguessableToken::Null();
  }
  
@@ -1217,7 +1217,7 @@ index cc3b5af94302c..59051fc8b2d61 100644
  // static
  void LocalFrame::NotifyUserActivation(
 diff --git a/third_party/blink/renderer/core/frame/local_frame.h b/third_party/blink/renderer/core/frame/local_frame.h
-index 4d00d08b3101f..edcef077bafe2 100644
+index 3955888798b84..e0f0e0c0aea4b 100644
 --- a/third_party/blink/renderer/core/frame/local_frame.h
 +++ b/third_party/blink/renderer/core/frame/local_frame.h
 @@ -35,6 +35,7 @@
@@ -1228,7 +1228,7 @@ index 4d00d08b3101f..edcef077bafe2 100644
  #include "mojo/public/cpp/bindings/pending_associated_receiver.h"
  #include "mojo/public/cpp/bindings/pending_receiver.h"
  #include "services/device/public/mojom/device_posture_provider.mojom-blink-forward.h"
-@@ -545,9 +546,9 @@ class CORE_EXPORT LocalFrame final : public Frame,
+@@ -547,9 +548,9 @@ class CORE_EXPORT LocalFrame final : public Frame,
    }
  
    SmoothScrollSequencer& GetSmoothScrollSequencer();
@@ -1341,7 +1341,7 @@ index c2f7760de52a9..d60fba4d0964f 100644
    HeapMojoReceiver<mojom::blink::ReportingObserver, ReportingContext> receiver_;
  };
 diff --git a/third_party/boringssl/BUILD.generated.gni b/third_party/boringssl/BUILD.generated.gni
-index f2ab001dc7b53..3410268710081 100644
+index cf39fbd5d427b..5aaf51bb9995b 100644
 --- a/third_party/boringssl/BUILD.generated.gni
 +++ b/third_party/boringssl/BUILD.generated.gni
 @@ -5,6 +5,8 @@
