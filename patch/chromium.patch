@@ -1,4 +1,4 @@
-From b7e478ec3c1df5f6ff78b44985109714cfc49008 Mon Sep 17 00:00:00 2001
+From a952e6d18d49d4c685ede86f166932b1074189cd Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 2 Feb 2022 13:08:35 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -34,11 +34,12 @@ Subject: [PATCH] chromium GOSTSSL
  net/ssl/client_cert_store_win.cc              |  32 +++++
  net/ssl/openssl_ssl_util.cc                   |   4 +
  net/ssl/ssl_cipher_suite_names.cc             |  64 +++++++++
+ net/ssl/ssl_platform_key_util.cc              |  22 +++
  net/ssl/ssl_platform_key_util.h               |   7 +
  sandbox/policy/mac/common.sb                  |  16 +++
  sandbox/win/src/process_mitigations.cc        |   4 +
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 34 files changed, 482 insertions(+), 25 deletions(-)
+ 35 files changed, 504 insertions(+), 25 deletions(-)
 
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
 index 5223754108237..aae9bd8eba5df 100644
@@ -942,6 +943,39 @@ index 8a539db77d6c9..7e460f9184e59 100644
    obsolete_ssl |= ObsoleteSSLStatusForCipherSuite(cipher_suite);
  
    obsolete_ssl |= ObsoleteSSLStatusForSignature(signature_algorithm);
+diff --git a/net/ssl/ssl_platform_key_util.cc b/net/ssl/ssl_platform_key_util.cc
+index 38a8741a589c5..62c75049d48c4 100644
+--- a/net/ssl/ssl_platform_key_util.cc
++++ b/net/ssl/ssl_platform_key_util.cc
+@@ -51,6 +51,28 @@ scoped_refptr<base::SingleThreadTaskRunner> GetSSLPlatformKeyTaskRunner() {
+   return g_platform_key_task_runner.Get().task_runner();
+ }
+ 
++#ifndef NO_GOSTSSL
++class SSLEmptyPrivateKey : public ThreadedSSLPrivateKey::Delegate {
++ public:
++  SSLEmptyPrivateKey() {}
++  SSLEmptyPrivateKey( const SSLEmptyPrivateKey & ) = delete;
++  SSLEmptyPrivateKey & operator=( const SSLEmptyPrivateKey & ) = delete;
++  ~SSLEmptyPrivateKey() override {}
++
++  std::string GetProviderName() override { return "EmptyPrivateKey"; }
++  std::vector<uint16_t> GetAlgorithmPreferences() override { return {}; }
++  Error Sign(uint16_t algorithm,
++             base::span<const uint8_t> input,
++             std::vector<uint8_t>* signature) override {
++    return ERR_SSL_CLIENT_AUTH_SIGNATURE_FAILED;
++  }
++};
++scoped_refptr<SSLPrivateKey> GetEmptyPrivateKey() {
++  return base::MakeRefCounted<ThreadedSSLPrivateKey>(
++      std::make_unique<SSLEmptyPrivateKey>(), GetSSLPlatformKeyTaskRunner());
++}
++#endif // GOSTSSL
++
+ bssl::UniquePtr<EVP_PKEY> GetClientCertPublicKey(
+     const X509Certificate* certificate) {
+   crypto::OpenSSLErrStackTracer tracker(FROM_HERE);
 diff --git a/net/ssl/ssl_platform_key_util.h b/net/ssl/ssl_platform_key_util.h
 index fcefd7f0178eb..ef84c6021ae29 100644
 --- a/net/ssl/ssl_platform_key_util.h
