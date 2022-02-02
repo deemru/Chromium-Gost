@@ -1,6 +1,6 @@
-From 810d5107d0b3f35f18261d9c6d5ba8e48b6a280b Mon Sep 17 00:00:00 2001
+From a701f306c13ec4e5669e0f3bb41f3c5daf813f9c Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
-Date: Thu, 6 Jan 2022 00:24:13 +0300
+Date: Wed, 2 Feb 2022 13:08:35 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
@@ -17,13 +17,9 @@ Subject: [PATCH] chromium GOSTSSL
  .../chromium-browser/chromium-browser.info    |  10 +-
  .../installer/linux/rpm/chrome.spec.template  |   4 +
  .../app_shim/certificate_viewer.mm            |  46 +++++++
- content/browser/BUILD.gn                      |   8 ++
- .../devtools/protocol/network_handler.cc      |   2 +
- .../devtools/protocol/network_handler.h       |   2 +
  content/browser/storage_partition_impl.cc     |   9 ++
  content/browser/utility_process_host.cc       |   3 +
  content/common/user_agent.cc                  |   2 +-
- ...tent_switch_dependent_feature_overrides.cc |   3 +
  net/base/net_error_list.h                     |   5 +
  net/cert/cert_verify_proc.cc                  |  23 ++++
  net/http/http_network_transaction.cc          |   9 ++
@@ -49,7 +45,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.cc  |   9 ++
  .../renderer/core/frame/reporting_context.h   |   7 +-
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 45 files changed, 545 insertions(+), 31 deletions(-)
+ 41 files changed, 530 insertions(+), 31 deletions(-)
 
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
 index 5223754108237..aae9bd8eba5df 100644
@@ -114,10 +110,10 @@ index 27398beca0023..ca11dc56aa781 100644
    if (result.empty())
      *error_message = "Can't find native messaging host " + host_name;
 diff --git a/chrome/browser/resources/new_tab_page/app.js b/chrome/browser/resources/new_tab_page/app.js
-index 636c805bb91d2..3c1e5908311a2 100644
+index 98770b073b7e6..0e1899a38b209 100644
 --- a/chrome/browser/resources/new_tab_page/app.js
 +++ b/chrome/browser/resources/new_tab_page/app.js
-@@ -217,13 +217,13 @@ class AppElement extends mixinBehaviors
+@@ -207,13 +207,13 @@ class AppElement extends mixinBehaviors
        /** @private */
        middleSlotPromoEnabled_: {
          type: Boolean,
@@ -176,18 +172,18 @@ index 9f551a89e4a9d..88e1c13862582 100644
  }
  
 diff --git a/chrome/browser/ui/webui/whats_new/whats_new_util.cc b/chrome/browser/ui/webui/whats_new/whats_new_util.cc
-index 56b06771ca694..688f6d24f7d50 100644
+index 99ca051c7042f..043d357a6ffeb 100644
 --- a/chrome/browser/ui/webui/whats_new/whats_new_util.cc
 +++ b/chrome/browser/ui/webui/whats_new/whats_new_util.cc
-@@ -53,7 +53,7 @@ bool ShouldShowForState(PrefService* local_state) {
-   // Show What's New if the page hasn't yet been shown for the current
-   // milestone.
-   int last_version = local_state->GetInteger(prefs::kLastWhatsNewVersion);
--  return CHROME_VERSION_MAJOR > last_version;
-+  return CHROME_VERSION_MAJOR > last_version && false;
+@@ -71,7 +71,7 @@ bool ShouldShowForState(PrefService* local_state) {
+   // potentially displaying multiple times in a given milestone, e.g. for
+   // multiple profile relaunches (see https://crbug.com/1274313).
+   local_state->SetInteger(prefs::kLastWhatsNewVersion, CHROME_VERSION_MAJOR);
+-  return true;
++  return false;
  }
  
- void SetLastVersion(PrefService* local_state) {
+ GURL GetServerURL(bool may_redirect) {
 diff --git a/chrome/common/channel_info_posix.cc b/chrome/common/channel_info_posix.cc
 index 240a5dfde9682..3e1b4baaaab2c 100644
 --- a/chrome/common/channel_info_posix.cc
@@ -331,65 +327,11 @@ index 0c12e8bda3856..c071d69f7a7bd 100644
    base::ScopedCFTypeRef<CFArrayRef> cert_chain(
        net::x509_util::CreateSecCertificateArrayForX509Certificate(certificate));
    if (!cert_chain)
-diff --git a/content/browser/BUILD.gn b/content/browser/BUILD.gn
-index 990f2b448755e..f750bda60a7f4 100644
---- a/content/browser/BUILD.gn
-+++ b/content/browser/BUILD.gn
-@@ -2991,6 +2991,14 @@ source_set("browser") {
-       "net/reporting_service_proxy.h",
-     ]
-   }
-+  else {
-+    sources += [
-+      "net/cross_origin_embedder_policy_reporter.cc",
-+      "net/cross_origin_embedder_policy_reporter.h",
-+      "net/cross_origin_opener_policy_reporter.cc",
-+      "net/cross_origin_opener_policy_reporter.h",
-+    ]
-+  }
- 
-   if (enable_vr) {
-     if (!is_android) {
-diff --git a/content/browser/devtools/protocol/network_handler.cc b/content/browser/devtools/protocol/network_handler.cc
-index 4155f0105058e..a86f7713fbb20 100644
---- a/content/browser/devtools/protocol/network_handler.cc
-+++ b/content/browser/devtools/protocol/network_handler.cc
-@@ -451,6 +451,7 @@ std::vector<GURL> ComputeCookieURLs(RenderFrameHostImpl* frame_host,
-   return urls;
- }
- 
-+#if BUILDFLAG(ENABLE_REPORTING)
- std::vector<GURL> ComputeReportingURLs(RenderFrameHostImpl* frame_host) {
-   std::vector<GURL> urls;
-   base::queue<FrameTreeNode*> queue;
-@@ -468,6 +469,7 @@ std::vector<GURL> ComputeReportingURLs(RenderFrameHostImpl* frame_host) {
-   }
-   return urls;
- }
-+#endif  // BUILDFLAG(ENABLE_REPORTING)
- 
- String resourcePriority(net::RequestPriority priority) {
-   switch (priority) {
-diff --git a/content/browser/devtools/protocol/network_handler.h b/content/browser/devtools/protocol/network_handler.h
-index 7974a13989e0e..763e6fdac4912 100644
---- a/content/browser/devtools/protocol/network_handler.h
-+++ b/content/browser/devtools/protocol/network_handler.h
-@@ -309,8 +309,10 @@ class NetworkHandler : public DevToolsDomainHandler,
-       Response response,
-       mojo::ScopedDataPipeConsumerHandle pipe,
-       const std::string& mime_type);
-+#if BUILDFLAG(ENABLE_REPORTING)
-   std::unique_ptr<protocol::Network::ReportingApiReport> BuildProtocolReport(
-       const net::ReportingReport& report);
-+#endif  // BUILDFLAG(ENABLE_REPORTING)
- 
-   // TODO(dgozman): Remove this.
-   const std::string host_id_;
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
-index 003e4cb5339b7..4b9b9330593f6 100644
+index b9de2bb2138d5..fabcdf0e9a419 100644
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
-@@ -125,6 +125,10 @@
+@@ -128,6 +128,10 @@
  #include "services/service_manager/public/cpp/interface_provider.h"
  #endif  // defined(OS_ANDROID)
  
@@ -400,7 +342,7 @@ index 003e4cb5339b7..4b9b9330593f6 100644
  #if BUILDFLAG(ENABLE_PLUGINS)
  #include "content/browser/plugin_private_storage_helper.h"
  #endif  // BUILDFLAG(ENABLE_PLUGINS)
-@@ -596,6 +600,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
+@@ -611,6 +615,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
        scoped_refptr<net::X509Certificate> cert,
        scoped_refptr<net::SSLPrivateKey> private_key) override {
      DCHECK_CURRENTLY_ON(BrowserThread::UI);
@@ -413,7 +355,7 @@ index 003e4cb5339b7..4b9b9330593f6 100644
  
      if (cert && private_key) {
 diff --git a/content/browser/utility_process_host.cc b/content/browser/utility_process_host.cc
-index ca5554f47759d..939ed50921723 100644
+index 48492fa4df561..08424a3bbf9e2 100644
 --- a/content/browser/utility_process_host.cc
 +++ b/content/browser/utility_process_host.cc
 @@ -219,6 +219,9 @@ bool UtilityProcessHost::StartProcess() {
@@ -427,10 +369,10 @@ index ca5554f47759d..939ed50921723 100644
        network::switches::kForceEffectiveConnectionType,
        network::switches::kHostResolverRules,
 diff --git a/content/common/user_agent.cc b/content/common/user_agent.cc
-index 1fd514d6d7315..ecaec3e25f37d 100644
+index 2fd614fcfee60..d70fc69697a38 100644
 --- a/content/common/user_agent.cc
 +++ b/content/common/user_agent.cc
-@@ -341,7 +341,7 @@ std::string BuildUserAgentFromOSAndProduct(const std::string& os_info,
+@@ -344,7 +344,7 @@ std::string BuildUserAgentFromOSAndProduct(const std::string& os_info,
    std::string user_agent;
    base::StringAppendF(&user_agent,
                        "Mozilla/5.0 (%s) AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -439,32 +381,8 @@ index 1fd514d6d7315..ecaec3e25f37d 100644
                        os_info.c_str(), product.c_str());
    return user_agent;
  }
-diff --git a/content/public/common/content_switch_dependent_feature_overrides.cc b/content/public/common/content_switch_dependent_feature_overrides.cc
-index 01cb2b6a346a0..263ec73e1e183 100644
---- a/content/public/common/content_switch_dependent_feature_overrides.cc
-+++ b/content/public/common/content_switch_dependent_feature_overrides.cc
-@@ -7,6 +7,7 @@
- #include "content/public/common/content_features.h"
- #include "content/public/common/content_switches.h"
- #include "net/base/features.h"
-+#include "net/net_buildflags.h"
- #include "services/network/public/cpp/features.h"
- #include "services/network/public/cpp/network_switches.h"
- #include "third_party/blink/public/common/features.h"
-@@ -36,9 +37,11 @@ GetSwitchDependentFeatureOverrides(const base::CommandLine& command_line) {
-       {switches::kEnableExperimentalWebPlatformFeatures,
-        std::cref(features::kDocumentPolicyNegotiation),
-        base::FeatureList::OVERRIDE_ENABLE_FEATURE},
-+#if BUILDFLAG(ENABLE_REPORTING)
-       {switches::kEnableExperimentalWebPlatformFeatures,
-        std::cref(net::features::kDocumentReporting),
-        base::FeatureList::OVERRIDE_ENABLE_FEATURE},
-+#endif
-       {switches::kEnableExperimentalWebPlatformFeatures,
-        std::cref(features::kExperimentalContentSecurityPolicyFeatures),
-        base::FeatureList::OVERRIDE_ENABLE_FEATURE},
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
-index c7f10fcc811d5..8e8442cb2df69 100644
+index ef046e995c12f..f3412dff618da 100644
 --- a/net/base/net_error_list.h
 +++ b/net/base/net_error_list.h
 @@ -22,6 +22,11 @@
@@ -480,7 +398,7 @@ index c7f10fcc811d5..8e8442cb2df69 100644
  // indicate a fatal error.  Typically this error will be generated as a
  // notification to wait for some external notification that the IO operation
 diff --git a/net/cert/cert_verify_proc.cc b/net/cert/cert_verify_proc.cc
-index a64586d3f7508..1bd9812aa29b4 100644
+index 9c06a71483f9e..9ae98205e0929 100644
 --- a/net/cert/cert_verify_proc.cc
 +++ b/net/cert/cert_verify_proc.cc
 @@ -497,6 +497,12 @@ scoped_refptr<CertVerifyProc> CertVerifyProc::CreateBuiltinVerifyProc(
@@ -583,7 +501,7 @@ index fcfc88b342aed..318e2278dfd34 100644
  
  SSLClientContext::~SSLClientContext() {
 diff --git a/net/socket/ssl_client_socket.h b/net/socket/ssl_client_socket.h
-index 23e830e786f61..93d46ba2dc211 100644
+index 2863e2eccdb22..f824f6497cca5 100644
 --- a/net/socket/ssl_client_socket.h
 +++ b/net/socket/ssl_client_socket.h
 @@ -184,6 +184,10 @@ class NET_EXPORT SSLClientContext : public SSLConfigService::Observer,
@@ -598,10 +516,10 @@ index 23e830e786f61..93d46ba2dc211 100644
    void NotifySSLConfigChanged(bool is_cert_database_change);
    void NotifySSLConfigForServerChanged(const HostPortPair& server);
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index ca76577797f17..581f74543522a 100644
+index 11dd93489e7bf..58c85124979e4 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
-@@ -441,6 +441,18 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
+@@ -440,6 +440,18 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
    return OK;
  }
  
@@ -620,7 +538,7 @@ index ca76577797f17..581f74543522a 100644
  int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
    // this has never worked for layered sockets. CHECK to detect any consumers
-@@ -459,6 +471,31 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
+@@ -458,6 +470,31 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
      return rv;
    }
  
@@ -652,7 +570,7 @@ index ca76577797f17..581f74543522a 100644
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -1169,6 +1206,82 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
+@@ -1168,6 +1205,82 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
  
    start_cert_verification_time_ = base::TimeTicks::Now();
  
@@ -735,7 +653,7 @@ index ca76577797f17..581f74543522a 100644
    base::StringPiece ech_name_override = GetECHNameOverride();
    if (!ech_name_override.empty()) {
      // If ECH was offered but not negotiated, BoringSSL will ask to verify a
-@@ -1715,6 +1828,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1669,6 +1782,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
@@ -755,7 +673,7 @@ index ca76577797f17..581f74543522a 100644
    if (client_cert_.get()) {
      if (!client_private_key_) {
 diff --git a/net/socket/ssl_client_socket_impl.h b/net/socket/ssl_client_socket_impl.h
-index 1fa0ec9e64dcd..90e4570212d4d 100644
+index 60a3464088502..6289541240494 100644
 --- a/net/socket/ssl_client_socket_impl.h
 +++ b/net/socket/ssl_client_socket_impl.h
 @@ -51,6 +51,9 @@ class X509Certificate;
@@ -769,10 +687,10 @@ index 1fa0ec9e64dcd..90e4570212d4d 100644
    // The given hostname will be compared with the name(s) in the server's
    // certificate during the SSL handshake.  |ssl_config| specifies the SSL
 diff --git a/net/spdy/spdy_session.cc b/net/spdy/spdy_session.cc
-index 07031bbbdeaae..ae33537626987 100644
+index f2b859f910394..70d07c458ad86 100644
 --- a/net/spdy/spdy_session.cc
 +++ b/net/spdy/spdy_session.cc
-@@ -1697,6 +1697,11 @@ void SpdySession::RemovePooledAlias(const SpdySessionKey& alias_key) {
+@@ -1694,6 +1694,11 @@ void SpdySession::RemovePooledAlias(const SpdySessionKey& alias_key) {
  }
  
  bool SpdySession::HasAcceptableTransportSecurity() const {
@@ -1032,10 +950,10 @@ index 8a539db77d6c9..7e460f9184e59 100644
  
    obsolete_ssl |= ObsoleteSSLStatusForSignature(signature_algorithm);
 diff --git a/net/ssl/ssl_platform_key_util.cc b/net/ssl/ssl_platform_key_util.cc
-index 7d9d498082487..5e1c9ee8f3134 100644
+index 38a8741a589c5..695bc948529f8 100644
 --- a/net/ssl/ssl_platform_key_util.cc
 +++ b/net/ssl/ssl_platform_key_util.cc
-@@ -52,6 +52,27 @@ scoped_refptr<base::SingleThreadTaskRunner> GetSSLPlatformKeyTaskRunner() {
+@@ -51,6 +51,27 @@ scoped_refptr<base::SingleThreadTaskRunner> GetSSLPlatformKeyTaskRunner() {
    return g_platform_key_task_runner.Get().task_runner();
  }
  
@@ -1116,10 +1034,10 @@ index 84c7e99b329eb..8fa5d3c06b474 100644
  ; This is read by CFPrefs calling getpwuid in a loop. libinfo then fails to
  ; contact any of the opendirectoryd mach services, and falls back to
 diff --git a/sandbox/win/src/process_mitigations.cc b/sandbox/win/src/process_mitigations.cc
-index 69dc9255fe289..d119604b10d4c 100644
+index 1e5cafe772b71..a754aa2e4cdde 100644
 --- a/sandbox/win/src/process_mitigations.cc
 +++ b/sandbox/win/src/process_mitigations.cc
-@@ -223,6 +223,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
+@@ -231,6 +231,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
      // Verify caller is not accidentally setting both mutually exclusive
      // policies.
      DCHECK(!(flags & MITIGATION_DYNAMIC_CODE_DISABLE_WITH_OPT_OUT));
@@ -1127,7 +1045,7 @@ index 69dc9255fe289..d119604b10d4c 100644
      PROCESS_MITIGATION_DYNAMIC_CODE_POLICY policy = {};
      policy.ProhibitDynamicCode = true;
  
-@@ -231,6 +232,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
+@@ -239,6 +240,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
          ERROR_ACCESS_DENIED != ::GetLastError()) {
        return false;
      }
@@ -1135,7 +1053,7 @@ index 69dc9255fe289..d119604b10d4c 100644
    }
  
    if (version < base::win::Version::WIN10)
-@@ -253,6 +255,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
+@@ -261,6 +263,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
  
    // Enable binary signing policies.
    if (flags & MITIGATION_FORCE_MS_SIGNED_BINS) {
@@ -1143,7 +1061,7 @@ index 69dc9255fe289..d119604b10d4c 100644
      PROCESS_MITIGATION_BINARY_SIGNATURE_POLICY policy = {};
      // Allow only MS signed binaries.
      policy.MicrosoftSignedOnly = true;
-@@ -265,6 +268,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
+@@ -273,6 +276,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
          ERROR_ACCESS_DENIED != ::GetLastError()) {
        return false;
      }
@@ -1152,10 +1070,10 @@ index 69dc9255fe289..d119604b10d4c 100644
  
    // Enable image load policies.
 diff --git a/services/network/network_context.cc b/services/network/network_context.cc
-index 88a71e97b2eb1..4443f17abcb9c 100644
+index 4a3f4fe1fb97a..c09d83e9c6109 100644
 --- a/services/network/network_context.cc
 +++ b/services/network/network_context.cc
-@@ -1098,6 +1098,11 @@ void NetworkContext::OnReportingObserverDisconnect(
+@@ -1123,6 +1123,11 @@ void NetworkContext::OnReportingObserverDisconnect(
  }
  
  #else   // BUILDFLAG(ENABLE_REPORTING)
@@ -1167,7 +1085,7 @@ index 88a71e97b2eb1..4443f17abcb9c 100644
  void NetworkContext::ClearReportingCacheReports(
      mojom::ClearDataFilterPtr filter,
      ClearReportingCacheReportsCallback callback) {
-@@ -1126,7 +1131,7 @@ void NetworkContext::SetDocumentReportingEndpoints(
+@@ -1151,7 +1156,7 @@ void NetworkContext::SetDocumentReportingEndpoints(
  
  void NetworkContext::SendReportsAndRemoveSource(
      const base::UnguessableToken& reporting_source) {
@@ -1177,10 +1095,10 @@ index 88a71e97b2eb1..4443f17abcb9c 100644
  
  void NetworkContext::QueueReport(
 diff --git a/services/network/network_context.h b/services/network/network_context.h
-index d5564a6d6647f..3a29d40150ea2 100644
+index 6784d76ced775..8d7c43b053df8 100644
 --- a/services/network/network_context.h
 +++ b/services/network/network_context.h
-@@ -578,10 +578,10 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) NetworkContext
+@@ -576,10 +576,10 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) NetworkContext
      return cors_non_wildcard_request_headers_support_;
    }
  
@@ -1193,7 +1111,7 @@ index d5564a6d6647f..3a29d40150ea2 100644
    void OnReportUpdated(const net::ReportingReport* service_report) override;
    void OnReportingObserverDisconnect(mojo::RemoteSetElementId mojo_id);
 diff --git a/third_party/blink/renderer/core/frame/local_frame.cc b/third_party/blink/renderer/core/frame/local_frame.cc
-index 8da41334aab84..eabfdeb43362a 100644
+index e4fa7685539aa..e494f93789d96 100644
 --- a/third_party/blink/renderer/core/frame/local_frame.cc
 +++ b/third_party/blink/renderer/core/frame/local_frame.cc
 @@ -39,6 +39,7 @@
@@ -1204,7 +1122,7 @@ index 8da41334aab84..eabfdeb43362a 100644
  #include "services/data_decoder/public/mojom/resource_snapshot_for_web_bundle.mojom-blink.h"
  #include "services/network/public/cpp/features.h"
  #include "services/network/public/mojom/content_security_policy.mojom-blink.h"
-@@ -2325,9 +2326,11 @@ const base::UnguessableToken& LocalFrame::GetAgentClusterId() const {
+@@ -2289,9 +2290,11 @@ const base::UnguessableToken& LocalFrame::GetAgentClusterId() const {
    return base::UnguessableToken::Null();
  }
  
@@ -1217,7 +1135,7 @@ index 8da41334aab84..eabfdeb43362a 100644
  // static
  void LocalFrame::NotifyUserActivation(
 diff --git a/third_party/blink/renderer/core/frame/local_frame.h b/third_party/blink/renderer/core/frame/local_frame.h
-index 3955888798b84..e0f0e0c0aea4b 100644
+index b52d6d575fcb0..41bff5415d5fb 100644
 --- a/third_party/blink/renderer/core/frame/local_frame.h
 +++ b/third_party/blink/renderer/core/frame/local_frame.h
 @@ -35,6 +35,7 @@
@@ -1228,7 +1146,7 @@ index 3955888798b84..e0f0e0c0aea4b 100644
  #include "mojo/public/cpp/bindings/pending_associated_receiver.h"
  #include "mojo/public/cpp/bindings/pending_receiver.h"
  #include "services/device/public/mojom/device_posture_provider.mojom-blink-forward.h"
-@@ -547,9 +548,9 @@ class CORE_EXPORT LocalFrame final : public Frame,
+@@ -542,9 +543,9 @@ class CORE_EXPORT LocalFrame final
    }
  
    SmoothScrollSequencer& GetSmoothScrollSequencer();
@@ -1305,7 +1223,7 @@ index bf39e84a1e1bc..aedb5124056b6 100644
  
  }  // namespace blink
 diff --git a/third_party/blink/renderer/core/frame/reporting_context.h b/third_party/blink/renderer/core/frame/reporting_context.h
-index c2f7760de52a9..d60fba4d0964f 100644
+index 36b03122c755e..ea7f1c7993e9f 100644
 --- a/third_party/blink/renderer/core/frame/reporting_context.h
 +++ b/third_party/blink/renderer/core/frame/reporting_context.h
 @@ -5,6 +5,7 @@
@@ -1316,7 +1234,7 @@ index c2f7760de52a9..d60fba4d0964f 100644
  #include "third_party/blink/public/mojom/frame/reporting_observer.mojom-blink.h"
  #include "third_party/blink/public/mojom/reporting/reporting.mojom-blink.h"
  #include "third_party/blink/renderer/core/core_export.h"
-@@ -53,10 +54,10 @@ class CORE_EXPORT ReportingContext : public GarbageCollected<ReportingContext>,
+@@ -54,10 +55,10 @@ class CORE_EXPORT ReportingContext : public GarbageCollected<ReportingContext>,
   private:
    // Counts the use of a report type via UseCounter.
    void CountReport(Report*);
@@ -1329,7 +1247,7 @@ index c2f7760de52a9..d60fba4d0964f 100644
    void NotifyInternal(Report* report);
    // Send |report| via the Reporting API to |endpoint|.
    void SendToReportingAPI(Report* report, const String& endpoint) const;
-@@ -67,8 +68,10 @@ class CORE_EXPORT ReportingContext : public GarbageCollected<ReportingContext>,
+@@ -68,8 +69,10 @@ class CORE_EXPORT ReportingContext : public GarbageCollected<ReportingContext>,
  
    // This is declared mutable so that the service endpoint can be cached by
    // const methods.
@@ -1341,7 +1259,7 @@ index c2f7760de52a9..d60fba4d0964f 100644
    HeapMojoReceiver<mojom::blink::ReportingObserver, ReportingContext> receiver_;
  };
 diff --git a/third_party/boringssl/BUILD.generated.gni b/third_party/boringssl/BUILD.generated.gni
-index cf39fbd5d427b..5aaf51bb9995b 100644
+index fed3f02e8edee..a404841cd0ecb 100644
 --- a/third_party/boringssl/BUILD.generated.gni
 +++ b/third_party/boringssl/BUILD.generated.gni
 @@ -5,6 +5,8 @@
