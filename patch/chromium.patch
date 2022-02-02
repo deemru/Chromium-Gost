@@ -1,4 +1,4 @@
-From a701f306c13ec4e5669e0f3bb41f3c5daf813f9c Mon Sep 17 00:00:00 2001
+From b7e478ec3c1df5f6ff78b44985109714cfc49008 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 2 Feb 2022 13:08:35 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -34,18 +34,11 @@ Subject: [PATCH] chromium GOSTSSL
  net/ssl/client_cert_store_win.cc              |  32 +++++
  net/ssl/openssl_ssl_util.cc                   |   4 +
  net/ssl/ssl_cipher_suite_names.cc             |  64 +++++++++
- net/ssl/ssl_platform_key_util.cc              |  21 +++
  net/ssl/ssl_platform_key_util.h               |   7 +
  sandbox/policy/mac/common.sb                  |  16 +++
  sandbox/win/src/process_mitigations.cc        |   4 +
- services/network/network_context.cc           |   7 +-
- services/network/network_context.h            |   2 +-
- .../blink/renderer/core/frame/local_frame.cc  |   3 +
- .../blink/renderer/core/frame/local_frame.h   |   5 +-
- .../renderer/core/frame/reporting_context.cc  |   9 ++
- .../renderer/core/frame/reporting_context.h   |   7 +-
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 41 files changed, 530 insertions(+), 31 deletions(-)
+ 34 files changed, 482 insertions(+), 25 deletions(-)
 
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
 index 5223754108237..aae9bd8eba5df 100644
@@ -949,38 +942,6 @@ index 8a539db77d6c9..7e460f9184e59 100644
    obsolete_ssl |= ObsoleteSSLStatusForCipherSuite(cipher_suite);
  
    obsolete_ssl |= ObsoleteSSLStatusForSignature(signature_algorithm);
-diff --git a/net/ssl/ssl_platform_key_util.cc b/net/ssl/ssl_platform_key_util.cc
-index 38a8741a589c5..695bc948529f8 100644
---- a/net/ssl/ssl_platform_key_util.cc
-+++ b/net/ssl/ssl_platform_key_util.cc
-@@ -51,6 +51,27 @@ scoped_refptr<base::SingleThreadTaskRunner> GetSSLPlatformKeyTaskRunner() {
-   return g_platform_key_task_runner.Get().task_runner();
- }
- 
-+#ifndef NO_GOSTSSL
-+class SSLEmptyPrivateKey : public ThreadedSSLPrivateKey::Delegate {
-+ public:
-+  SSLEmptyPrivateKey() {}
-+  ~SSLEmptyPrivateKey() override {}
-+  std::string GetProviderName() override { return "EmptyPrivateKey"; }
-+  std::vector<uint16_t> GetAlgorithmPreferences() override { return {}; }
-+  Error Sign(uint16_t algorithm,
-+             base::span<const uint8_t> input,
-+             std::vector<uint8_t>* signature) override {
-+    return ERR_SSL_CLIENT_AUTH_SIGNATURE_FAILED;
-+  }
-+ private:
-+  DISALLOW_COPY_AND_ASSIGN(SSLEmptyPrivateKey);
-+};
-+scoped_refptr<SSLPrivateKey> GetEmptyPrivateKey() {
-+  return base::MakeRefCounted<ThreadedSSLPrivateKey>(
-+      std::make_unique<SSLEmptyPrivateKey>(), GetSSLPlatformKeyTaskRunner());
-+}
-+#endif // GOSTSSL
-+
- bssl::UniquePtr<EVP_PKEY> GetClientCertPublicKey(
-     const X509Certificate* certificate) {
-   crypto::OpenSSLErrStackTracer tracker(FROM_HERE);
 diff --git a/net/ssl/ssl_platform_key_util.h b/net/ssl/ssl_platform_key_util.h
 index fcefd7f0178eb..ef84c6021ae29 100644
 --- a/net/ssl/ssl_platform_key_util.h
@@ -1069,195 +1030,6 @@ index 1e5cafe772b71..a754aa2e4cdde 100644
    }
  
    // Enable image load policies.
-diff --git a/services/network/network_context.cc b/services/network/network_context.cc
-index 4a3f4fe1fb97a..c09d83e9c6109 100644
---- a/services/network/network_context.cc
-+++ b/services/network/network_context.cc
-@@ -1123,6 +1123,11 @@ void NetworkContext::OnReportingObserverDisconnect(
- }
- 
- #else   // BUILDFLAG(ENABLE_REPORTING)
-+void NetworkContext::AddReportingApiObserver(
-+    mojo::PendingRemote<network::mojom::ReportingApiObserver> observer) {
-+  NOTREACHED();
-+}
-+
- void NetworkContext::ClearReportingCacheReports(
-     mojom::ClearDataFilterPtr filter,
-     ClearReportingCacheReportsCallback callback) {
-@@ -1151,7 +1156,7 @@ void NetworkContext::SetDocumentReportingEndpoints(
- 
- void NetworkContext::SendReportsAndRemoveSource(
-     const base::UnguessableToken& reporting_source) {
--  NOTREACHED();
-+//  NOTREACHED();
- }
- 
- void NetworkContext::QueueReport(
-diff --git a/services/network/network_context.h b/services/network/network_context.h
-index 6784d76ced775..8d7c43b053df8 100644
---- a/services/network/network_context.h
-+++ b/services/network/network_context.h
-@@ -576,10 +576,10 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) NetworkContext
-     return cors_non_wildcard_request_headers_support_;
-   }
- 
--#if BUILDFLAG(ENABLE_REPORTING)
-   void AddReportingApiObserver(
-       mojo::PendingRemote<network::mojom::ReportingApiObserver> observer)
-       override;
-+#if BUILDFLAG(ENABLE_REPORTING)
-   void OnReportAdded(const net::ReportingReport* service_report) override;
-   void OnReportUpdated(const net::ReportingReport* service_report) override;
-   void OnReportingObserverDisconnect(mojo::RemoteSetElementId mojo_id);
-diff --git a/third_party/blink/renderer/core/frame/local_frame.cc b/third_party/blink/renderer/core/frame/local_frame.cc
-index e4fa7685539aa..e494f93789d96 100644
---- a/third_party/blink/renderer/core/frame/local_frame.cc
-+++ b/third_party/blink/renderer/core/frame/local_frame.cc
-@@ -39,6 +39,7 @@
- #include "base/values.h"
- #include "mojo/public/cpp/bindings/self_owned_receiver.h"
- #include "mojo/public/cpp/system/message_pipe.h"
-+#include "net/net_buildflags.h"
- #include "services/data_decoder/public/mojom/resource_snapshot_for_web_bundle.mojom-blink.h"
- #include "services/network/public/cpp/features.h"
- #include "services/network/public/mojom/content_security_policy.mojom-blink.h"
-@@ -2289,9 +2290,11 @@ const base::UnguessableToken& LocalFrame::GetAgentClusterId() const {
-   return base::UnguessableToken::Null();
- }
- 
-+#if BUILDFLAG(ENABLE_REPORTING)
- mojom::blink::ReportingServiceProxy* LocalFrame::GetReportingService() {
-   return mojo_handler_->ReportingService();
- }
-+#endif
- 
- // static
- void LocalFrame::NotifyUserActivation(
-diff --git a/third_party/blink/renderer/core/frame/local_frame.h b/third_party/blink/renderer/core/frame/local_frame.h
-index b52d6d575fcb0..41bff5415d5fb 100644
---- a/third_party/blink/renderer/core/frame/local_frame.h
-+++ b/third_party/blink/renderer/core/frame/local_frame.h
-@@ -35,6 +35,7 @@
- #include "base/time/default_tick_clock.h"
- #include "base/unguessable_token.h"
- #include "build/build_config.h"
-+#include "net/net_buildflags.h"
- #include "mojo/public/cpp/bindings/pending_associated_receiver.h"
- #include "mojo/public/cpp/bindings/pending_receiver.h"
- #include "services/device/public/mojom/device_posture_provider.mojom-blink-forward.h"
-@@ -542,9 +543,9 @@ class CORE_EXPORT LocalFrame final
-   }
- 
-   SmoothScrollSequencer& GetSmoothScrollSequencer();
--
-+#if BUILDFLAG(ENABLE_REPORTING)
-   mojom::blink::ReportingServiceProxy* GetReportingService();
--
-+#endif
-   // Returns the frame host ptr. The interface returned is backed by an
-   // associated interface with the legacy Chrome IPC channel.
-   mojom::blink::LocalFrameHost& GetLocalFrameHostRemote() const;
-diff --git a/third_party/blink/renderer/core/frame/reporting_context.cc b/third_party/blink/renderer/core/frame/reporting_context.cc
-index bf39e84a1e1bc..aedb5124056b6 100644
---- a/third_party/blink/renderer/core/frame/reporting_context.cc
-+++ b/third_party/blink/renderer/core/frame/reporting_context.cc
-@@ -4,6 +4,7 @@
- 
- #include "third_party/blink/renderer/core/frame/reporting_context.h"
- 
-+#include "net/net_buildflags.h"
- #include "third_party/blink/public/common/browser_interface_broker_proxy.h"
- #include "third_party/blink/public/platform/platform.h"
- #include "third_party/blink/public/platform/task_type.h"
-@@ -54,7 +55,9 @@ const char ReportingContext::kSupplementName[] = "ReportingContext";
- ReportingContext::ReportingContext(ExecutionContext& context)
-     : Supplement<ExecutionContext>(context),
-       execution_context_(context),
-+#if BUILDFLAG(ENABLE_REPORTING)
-       reporting_service_(&context),
-+#endif
-       receiver_(this, &context) {}
- 
- // static
-@@ -118,7 +121,9 @@ void ReportingContext::Trace(Visitor* visitor) const {
-   visitor->Trace(observers_);
-   visitor->Trace(report_buffer_);
-   visitor->Trace(execution_context_);
-+#if BUILDFLAG(ENABLE_REPORTING)
-   visitor->Trace(reporting_service_);
-+#endif
-   visitor->Trace(receiver_);
-   Supplement<ExecutionContext>::Trace(visitor);
- }
-@@ -140,6 +145,7 @@ void ReportingContext::CountReport(Report* report) {
-   UseCounter::Count(execution_context_, feature);
- }
- 
-+#if BUILDFLAG(ENABLE_REPORTING)
- const HeapMojoRemote<mojom::blink::ReportingServiceProxy>&
- ReportingContext::GetReportingService() const {
-   if (!reporting_service_.is_bound()) {
-@@ -149,6 +155,7 @@ ReportingContext::GetReportingService() const {
-   }
-   return reporting_service_;
- }
-+#endif
- 
- void ReportingContext::NotifyInternal(Report* report) {
-   // Buffer the report.
-@@ -171,6 +178,7 @@ void ReportingContext::NotifyInternal(Report* report) {
- 
- void ReportingContext::SendToReportingAPI(Report* report,
-                                           const String& endpoint) const {
-+#if BUILDFLAG(ENABLE_REPORTING)
-   const String& type = report->type();
-   if (!(type == ReportType::kCSPViolation || type == ReportType::kDeprecation ||
-         type == ReportType::kPermissionsPolicyViolation ||
-@@ -226,6 +234,7 @@ void ReportingContext::SendToReportingAPI(Report* report,
-         url, endpoint, body->featureId(), body->disposition(), body->message(),
-         body->sourceFile(), line_number, column_number);
-   }
-+#endif
- }
- 
- }  // namespace blink
-diff --git a/third_party/blink/renderer/core/frame/reporting_context.h b/third_party/blink/renderer/core/frame/reporting_context.h
-index 36b03122c755e..ea7f1c7993e9f 100644
---- a/third_party/blink/renderer/core/frame/reporting_context.h
-+++ b/third_party/blink/renderer/core/frame/reporting_context.h
-@@ -5,6 +5,7 @@
- #ifndef THIRD_PARTY_BLINK_RENDERER_CORE_FRAME_REPORTING_CONTEXT_H_
- #define THIRD_PARTY_BLINK_RENDERER_CORE_FRAME_REPORTING_CONTEXT_H_
- 
-+#include "net/net_buildflags.h"
- #include "third_party/blink/public/mojom/frame/reporting_observer.mojom-blink.h"
- #include "third_party/blink/public/mojom/reporting/reporting.mojom-blink.h"
- #include "third_party/blink/renderer/core/core_export.h"
-@@ -54,10 +55,10 @@ class CORE_EXPORT ReportingContext : public GarbageCollected<ReportingContext>,
-  private:
-   // Counts the use of a report type via UseCounter.
-   void CountReport(Report*);
--
-+#if BUILDFLAG(ENABLE_REPORTING)
-   const HeapMojoRemote<mojom::blink::ReportingServiceProxy>&
-   GetReportingService() const;
--
-+#endif
-   void NotifyInternal(Report* report);
-   // Send |report| via the Reporting API to |endpoint|.
-   void SendToReportingAPI(Report* report, const String& endpoint) const;
-@@ -68,8 +69,10 @@ class CORE_EXPORT ReportingContext : public GarbageCollected<ReportingContext>,
- 
-   // This is declared mutable so that the service endpoint can be cached by
-   // const methods.
-+#if BUILDFLAG(ENABLE_REPORTING)
-   mutable HeapMojoRemote<mojom::blink::ReportingServiceProxy>
-       reporting_service_;
-+#endif
- 
-   HeapMojoReceiver<mojom::blink::ReportingObserver, ReportingContext> receiver_;
- };
 diff --git a/third_party/boringssl/BUILD.generated.gni b/third_party/boringssl/BUILD.generated.gni
 index fed3f02e8edee..a404841cd0ecb 100644
 --- a/third_party/boringssl/BUILD.generated.gni
