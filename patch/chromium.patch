@@ -1,4 +1,4 @@
-From a952e6d18d49d4c685ede86f166932b1074189cd Mon Sep 17 00:00:00 2001
+From fdc1cacea55bf6cfef8a16fa24a8bea91312cdc8 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 2 Feb 2022 13:08:35 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -38,8 +38,10 @@ Subject: [PATCH] chromium GOSTSSL
  net/ssl/ssl_platform_key_util.h               |   7 +
  sandbox/policy/mac/common.sb                  |  16 +++
  sandbox/win/src/process_mitigations.cc        |   4 +
+ .../renderer/core/frame/reporting_context.cc  |   8 ++
+ .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 35 files changed, 504 insertions(+), 25 deletions(-)
+ 37 files changed, 517 insertions(+), 25 deletions(-)
 
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
 index 5223754108237..aae9bd8eba5df 100644
@@ -1064,6 +1066,98 @@ index 1e5cafe772b71..a754aa2e4cdde 100644
    }
  
    // Enable image load policies.
+diff --git a/third_party/blink/renderer/core/frame/reporting_context.cc b/third_party/blink/renderer/core/frame/reporting_context.cc
+index bf39e84a1e1bc..dc609a8010599 100644
+--- a/third_party/blink/renderer/core/frame/reporting_context.cc
++++ b/third_party/blink/renderer/core/frame/reporting_context.cc
+@@ -54,7 +54,9 @@ const char ReportingContext::kSupplementName[] = "ReportingContext";
+ ReportingContext::ReportingContext(ExecutionContext& context)
+     : Supplement<ExecutionContext>(context),
+       execution_context_(context),
++#if BUILDFLAG(ENABLE_REPORTING)
+       reporting_service_(&context),
++#endif
+       receiver_(this, &context) {}
+ 
+ // static
+@@ -118,7 +120,9 @@ void ReportingContext::Trace(Visitor* visitor) const {
+   visitor->Trace(observers_);
+   visitor->Trace(report_buffer_);
+   visitor->Trace(execution_context_);
++#if BUILDFLAG(ENABLE_REPORTING)
+   visitor->Trace(reporting_service_);
++#endif
+   visitor->Trace(receiver_);
+   Supplement<ExecutionContext>::Trace(visitor);
+ }
+@@ -140,6 +144,7 @@ void ReportingContext::CountReport(Report* report) {
+   UseCounter::Count(execution_context_, feature);
+ }
+ 
++#if BUILDFLAG(ENABLE_REPORTING)
+ const HeapMojoRemote<mojom::blink::ReportingServiceProxy>&
+ ReportingContext::GetReportingService() const {
+   if (!reporting_service_.is_bound()) {
+@@ -149,6 +154,7 @@ ReportingContext::GetReportingService() const {
+   }
+   return reporting_service_;
+ }
++#endif
+ 
+ void ReportingContext::NotifyInternal(Report* report) {
+   // Buffer the report.
+@@ -171,6 +177,7 @@ void ReportingContext::NotifyInternal(Report* report) {
+ 
+ void ReportingContext::SendToReportingAPI(Report* report,
+                                           const String& endpoint) const {
++#if BUILDFLAG(ENABLE_REPORTING)
+   const String& type = report->type();
+   if (!(type == ReportType::kCSPViolation || type == ReportType::kDeprecation ||
+         type == ReportType::kPermissionsPolicyViolation ||
+@@ -226,6 +233,7 @@ void ReportingContext::SendToReportingAPI(Report* report,
+         url, endpoint, body->featureId(), body->disposition(), body->message(),
+         body->sourceFile(), line_number, column_number);
+   }
++#endif
+ }
+ 
+ }  // namespace blink
+diff --git a/third_party/blink/renderer/core/frame/reporting_context.h b/third_party/blink/renderer/core/frame/reporting_context.h
+index 36b03122c755e..45d679795cd0e 100644
+--- a/third_party/blink/renderer/core/frame/reporting_context.h
++++ b/third_party/blink/renderer/core/frame/reporting_context.h
+@@ -5,6 +5,7 @@
+ #ifndef THIRD_PARTY_BLINK_RENDERER_CORE_FRAME_REPORTING_CONTEXT_H_
+ #define THIRD_PARTY_BLINK_RENDERER_CORE_FRAME_REPORTING_CONTEXT_H_
+ 
++#include "net/net_buildflags.h"
+ #include "third_party/blink/public/mojom/frame/reporting_observer.mojom-blink.h"
+ #include "third_party/blink/public/mojom/reporting/reporting.mojom-blink.h"
+ #include "third_party/blink/renderer/core/core_export.h"
+@@ -55,8 +56,10 @@ class CORE_EXPORT ReportingContext : public GarbageCollected<ReportingContext>,
+   // Counts the use of a report type via UseCounter.
+   void CountReport(Report*);
+ 
++#if BUILDFLAG(ENABLE_REPORTING)
+   const HeapMojoRemote<mojom::blink::ReportingServiceProxy>&
+   GetReportingService() const;
++#endif
+ 
+   void NotifyInternal(Report* report);
+   // Send |report| via the Reporting API to |endpoint|.
+@@ -66,10 +69,12 @@ class CORE_EXPORT ReportingContext : public GarbageCollected<ReportingContext>,
+   HeapHashMap<String, Member<HeapLinkedHashSet<Member<Report>>>> report_buffer_;
+   Member<ExecutionContext> execution_context_;
+ 
++#if BUILDFLAG(ENABLE_REPORTING)
+   // This is declared mutable so that the service endpoint can be cached by
+   // const methods.
+   mutable HeapMojoRemote<mojom::blink::ReportingServiceProxy>
+       reporting_service_;
++#endif
+ 
+   HeapMojoReceiver<mojom::blink::ReportingObserver, ReportingContext> receiver_;
+ };
 diff --git a/third_party/boringssl/BUILD.generated.gni b/third_party/boringssl/BUILD.generated.gni
 index fed3f02e8edee..a404841cd0ecb 100644
 --- a/third_party/boringssl/BUILD.generated.gni
