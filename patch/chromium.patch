@@ -1,9 +1,10 @@
-From fdc1cacea55bf6cfef8a16fa24a8bea91312cdc8 Mon Sep 17 00:00:00 2001
+From 5000e892f90580ddb11a4b040fe1f5a9c834b63d Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 2 Feb 2022 13:08:35 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
+ chrome/BUILD.gn                               |   4 +-
  chrome/app/app-entitlements.plist             |   6 +
  chrome/app/theme/chromium/BRANDING            |  16 +--
  .../native_process_launcher_posix.cc          |  12 ++
@@ -41,8 +42,30 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.cc  |   8 ++
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 37 files changed, 517 insertions(+), 25 deletions(-)
+ 38 files changed, 519 insertions(+), 27 deletions(-)
 
+diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
+index 9e2c48f5bc733..c2cd16de48bce 100644
+--- a/chrome/BUILD.gn
++++ b/chrome/BUILD.gn
+@@ -1516,7 +1516,7 @@ group("extra_resources") {
+   ]
+ }
+ 
+-if (is_chrome_branded && !is_android) {
++if (true && !is_android) {
+   if (!is_mac) {
+     _preinstalled_apps_target_type = "copy"
+   } else {
+@@ -1559,7 +1559,7 @@ if (!is_android) {
+       deps = [ ":resource_allowlist" ]
+     }
+ 
+-    if (is_chrome_branded && !is_mac) {
++    if (true && !is_mac) {
+       public_deps = [ ":preinstalled_apps" ]
+     }
+ 
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
 index 5223754108237..aae9bd8eba5df 100644
 --- a/chrome/app/app-entitlements.plist
