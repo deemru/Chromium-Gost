@@ -1,4 +1,4 @@
-From 5000e892f90580ddb11a4b040fe1f5a9c834b63d Mon Sep 17 00:00:00 2001
+From 5fb51d55b5573e59a14d24531747beb473772673 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 2 Feb 2022 13:08:35 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -8,7 +8,8 @@ Subject: [PATCH] chromium GOSTSSL
  chrome/app/app-entitlements.plist             |   6 +
  chrome/app/theme/chromium/BRANDING            |  16 +--
  .../native_process_launcher_posix.cc          |  12 ++
- chrome/browser/resources/new_tab_page/app.js  |   4 +-
+ chrome/browser/history/top_sites_factory.cc   |   4 +-
+ chrome/browser/resources/new_tab_page/app.js  |   6 +-
  .../browser/resources/new_tab_page/logo.html  |   5 +-
  chrome/browser/resources/new_tab_page/logo.js |   2 +-
  chrome/browser/shell_integration_linux.cc     |   2 +-
@@ -39,10 +40,11 @@ Subject: [PATCH] chromium GOSTSSL
  net/ssl/ssl_platform_key_util.h               |   7 +
  sandbox/policy/mac/common.sb                  |  16 +++
  sandbox/win/src/process_mitigations.cc        |   4 +
+ services/network/network_context.cc           |   2 +-
  .../renderer/core/frame/reporting_context.cc  |   8 ++
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 38 files changed, 519 insertions(+), 27 deletions(-)
+ 40 files changed, 523 insertions(+), 31 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
 index 9e2c48f5bc733..c2cd16de48bce 100644
@@ -128,10 +130,41 @@ index 27398beca0023..ca11dc56aa781 100644
  
    if (result.empty())
      *error_message = "Can't find native messaging host " + host_name;
+diff --git a/chrome/browser/history/top_sites_factory.cc b/chrome/browser/history/top_sites_factory.cc
+index 298c03780b09f..a545edd411ef3 100644
+--- a/chrome/browser/history/top_sites_factory.cc
++++ b/chrome/browser/history/top_sites_factory.cc
+@@ -53,7 +53,7 @@ struct RawPrepopulatedPage {
+                          // roughly match favicon).
+ };
+ 
+-#if !defined(OS_ANDROID)
++#if !defined(OS_ANDROID) && 0
+ // Android does not use prepopulated pages.
+ const RawPrepopulatedPage kRawPrepopulatedPages[] = {
+     {
+@@ -68,7 +68,7 @@ const RawPrepopulatedPage kRawPrepopulatedPages[] = {
+ void InitializePrepopulatedPageList(
+     Profile* profile,
+     history::PrepopulatedPageList* prepopulated_pages) {
+-#if !defined(OS_ANDROID)
++#if !defined(OS_ANDROID) && 0
+   DCHECK(prepopulated_pages);
+   PrefService* pref_service = profile->GetPrefs();
+   bool hide_web_store_icon = pref_service->GetBoolean(prefs::kHideWebStoreIcon);
 diff --git a/chrome/browser/resources/new_tab_page/app.js b/chrome/browser/resources/new_tab_page/app.js
-index 98770b073b7e6..0e1899a38b209 100644
+index 98770b073b7e6..53e3e9d12dd8d 100644
 --- a/chrome/browser/resources/new_tab_page/app.js
 +++ b/chrome/browser/resources/new_tab_page/app.js
+@@ -195,7 +195,7 @@ class AppElement extends mixinBehaviors
+       /** @private */
+       oneGoogleBarEnabled_: {
+         type: Boolean,
+-        value: () => loadTimeData.getBoolean('oneGoogleBarEnabled'),
++        value: false,
+       },
+ 
+       /** @private */
 @@ -207,13 +207,13 @@ class AppElement extends mixinBehaviors
        /** @private */
        middleSlotPromoEnabled_: {
@@ -1089,6 +1122,19 @@ index 1e5cafe772b71..a754aa2e4cdde 100644
    }
  
    // Enable image load policies.
+diff --git a/services/network/network_context.cc b/services/network/network_context.cc
+index 4a3f4fe1fb97a..ef8362e55ab5d 100644
+--- a/services/network/network_context.cc
++++ b/services/network/network_context.cc
+@@ -1151,7 +1151,7 @@ void NetworkContext::SetDocumentReportingEndpoints(
+ 
+ void NetworkContext::SendReportsAndRemoveSource(
+     const base::UnguessableToken& reporting_source) {
+-  NOTREACHED();
++  //NOTREACHED(); // https://bugs.chromium.org/p/chromium/issues/detail?id=1085807
+ }
+ 
+ void NetworkContext::QueueReport(
 diff --git a/third_party/blink/renderer/core/frame/reporting_context.cc b/third_party/blink/renderer/core/frame/reporting_context.cc
 index bf39e84a1e1bc..dc609a8010599 100644
 --- a/third_party/blink/renderer/core/frame/reporting_context.cc
