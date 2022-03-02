@@ -1,6 +1,6 @@
-From 40a71e461e813a2b0136c212118b6e5976f14c85 Mon Sep 17 00:00:00 2001
+From 7b7c78fb8e4fb570e9fd608132cf4bb24c79251d Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
-Date: Wed, 2 Feb 2022 13:08:35 +0300
+Date: Wed, 2 Mar 2022 18:25:36 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
@@ -48,10 +48,10 @@ Subject: [PATCH] chromium GOSTSSL
  41 files changed, 524 insertions(+), 32 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
-index 9e2c48f5bc733..c2cd16de48bce 100644
+index 771865462d721..096da4749ca4d 100644
 --- a/chrome/BUILD.gn
 +++ b/chrome/BUILD.gn
-@@ -1516,7 +1516,7 @@ group("extra_resources") {
+@@ -1546,7 +1546,7 @@ group("extra_resources") {
    ]
  }
  
@@ -60,7 +60,7 @@ index 9e2c48f5bc733..c2cd16de48bce 100644
    if (!is_mac) {
      _preinstalled_apps_target_type = "copy"
    } else {
-@@ -1559,7 +1559,7 @@ if (!is_android) {
+@@ -1589,7 +1589,7 @@ if (!is_android) {
        deps = [ ":resource_allowlist" ]
      }
  
@@ -109,7 +109,7 @@ index f8363d5b294fe..2f8021eabe810 100644
  MAC_CREATOR_CODE=Cr24
  MAC_TEAM_ID=
 diff --git a/chrome/browser/extensions/api/messaging/native_process_launcher_posix.cc b/chrome/browser/extensions/api/messaging/native_process_launcher_posix.cc
-index 27398beca0023..ca11dc56aa781 100644
+index caf9274d34ca8..4fde039b949f2 100644
 --- a/chrome/browser/extensions/api/messaging/native_process_launcher_posix.cc
 +++ b/chrome/browser/extensions/api/messaging/native_process_launcher_posix.cc
 @@ -43,6 +43,18 @@ base::FilePath NativeProcessLauncher::FindManifest(
@@ -132,15 +132,15 @@ index 27398beca0023..ca11dc56aa781 100644
    if (result.empty())
      *error_message = "Can't find native messaging host " + host_name;
 diff --git a/chrome/browser/history/top_sites_factory.cc b/chrome/browser/history/top_sites_factory.cc
-index 298c03780b09f..a545edd411ef3 100644
+index f999604508d0c..64510ca320a9e 100644
 --- a/chrome/browser/history/top_sites_factory.cc
 +++ b/chrome/browser/history/top_sites_factory.cc
 @@ -53,7 +53,7 @@ struct RawPrepopulatedPage {
                           // roughly match favicon).
  };
  
--#if !defined(OS_ANDROID)
-+#if !defined(OS_ANDROID) && 0
+-#if !BUILDFLAG(IS_ANDROID)
++#if !BUILDFLAG(IS_ANDROID) && 0 // no prepopulated
  // Android does not use prepopulated pages.
  const RawPrepopulatedPage kRawPrepopulatedPages[] = {
      {
@@ -148,16 +148,16 @@ index 298c03780b09f..a545edd411ef3 100644
  void InitializePrepopulatedPageList(
      Profile* profile,
      history::PrepopulatedPageList* prepopulated_pages) {
--#if !defined(OS_ANDROID)
-+#if !defined(OS_ANDROID) && 0
+-#if !BUILDFLAG(IS_ANDROID)
++#if !BUILDFLAG(IS_ANDROID) && 0 // no prepopulated
    DCHECK(prepopulated_pages);
    PrefService* pref_service = profile->GetPrefs();
    bool hide_web_store_icon = pref_service->GetBoolean(prefs::kHideWebStoreIcon);
 diff --git a/chrome/browser/resources/new_tab_page/app.js b/chrome/browser/resources/new_tab_page/app.js
-index 98770b073b7e6..53e3e9d12dd8d 100644
+index 0d3355f60b44f..67cbdd473e78d 100644
 --- a/chrome/browser/resources/new_tab_page/app.js
 +++ b/chrome/browser/resources/new_tab_page/app.js
-@@ -195,7 +195,7 @@ class AppElement extends mixinBehaviors
+@@ -196,7 +196,7 @@ class AppElement extends mixinBehaviors
        /** @private */
        oneGoogleBarEnabled_: {
          type: Boolean,
@@ -166,7 +166,7 @@ index 98770b073b7e6..53e3e9d12dd8d 100644
        },
  
        /** @private */
-@@ -207,13 +207,13 @@ class AppElement extends mixinBehaviors
+@@ -208,13 +208,13 @@ class AppElement extends mixinBehaviors
        /** @private */
        middleSlotPromoEnabled_: {
          type: Boolean,
@@ -199,10 +199,10 @@ index 7983b6f723a1d..8b92bbdd5db6a 100644
  
    :host(:not([single-colored])) #logo {
 diff --git a/chrome/browser/resources/new_tab_page/logo.js b/chrome/browser/resources/new_tab_page/logo.js
-index 6d0928f5615ae..89c3bc96bb0df 100644
+index ca05c1ec50aff..e8616ce395974 100644
 --- a/chrome/browser/resources/new_tab_page/logo.js
 +++ b/chrome/browser/resources/new_tab_page/logo.js
-@@ -84,7 +84,7 @@ class LogoElement extends mixinBehaviors
+@@ -87,7 +87,7 @@ class LogoElement extends mixinBehaviors
  
        /** @private */
        showDoodle_: {
@@ -212,10 +212,10 @@ index 6d0928f5615ae..89c3bc96bb0df 100644
        },
  
 diff --git a/chrome/browser/shell_integration_linux.cc b/chrome/browser/shell_integration_linux.cc
-index 9f551a89e4a9d..88e1c13862582 100644
+index fead1b1505937..a6389075f3dba 100644
 --- a/chrome/browser/shell_integration_linux.cc
 +++ b/chrome/browser/shell_integration_linux.cc
-@@ -455,7 +455,7 @@ std::string GetIconName() {
+@@ -468,7 +468,7 @@ std::string GetIconName() {
  #if BUILDFLAG(GOOGLE_CHROME_BRANDING)
    return "google-chrome";
  #else  // BUILDFLAG(CHROMIUM_BRANDING)
@@ -251,7 +251,7 @@ index 99ca051c7042f..043d357a6ffeb 100644
  
  GURL GetServerURL(bool may_redirect) {
 diff --git a/chrome/common/channel_info_posix.cc b/chrome/common/channel_info_posix.cc
-index 240a5dfde9682..3e1b4baaaab2c 100644
+index 5cd53f84f44bb..494e9e80aaed2 100644
 --- a/chrome/common/channel_info_posix.cc
 +++ b/chrome/common/channel_info_posix.cc
 @@ -120,7 +120,7 @@ std::string GetDesktopName(base::Environment* env) {
@@ -262,9 +262,9 @@ index 240a5dfde9682..3e1b4baaaab2c 100644
 +  return "chromium-gost.desktop";
  #endif
  }
- #endif  // defined(OS_LINUX) || BUILDFLAG(IS_CHROMEOS_LACROS)
+ #endif  // BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS_LACROS)
 diff --git a/chrome/common/chrome_constants.cc b/chrome/common/chrome_constants.cc
-index cc31b307db635..ad77208b83ed2 100644
+index 6fec2c15bfc7c..6346bd47d21c8 100644
 --- a/chrome/common/chrome_constants.cc
 +++ b/chrome/common/chrome_constants.cc
 @@ -15,7 +15,7 @@
@@ -394,12 +394,12 @@ index 0c12e8bda3856..c071d69f7a7bd 100644
        net::x509_util::CreateSecCertificateArrayForX509Certificate(certificate));
    if (!cert_chain)
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
-index b9de2bb2138d5..fabcdf0e9a419 100644
+index 6df863b5fbc90..1245d3ba22e50 100644
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
-@@ -128,6 +128,10 @@
+@@ -129,6 +129,10 @@
  #include "services/service_manager/public/cpp/interface_provider.h"
- #endif  // defined(OS_ANDROID)
+ #endif  // BUILDFLAG(IS_ANDROID)
  
 +#ifndef NO_GOSTSSL
 +#include "net/ssl/ssl_platform_key_util.h"
@@ -408,7 +408,7 @@ index b9de2bb2138d5..fabcdf0e9a419 100644
  #if BUILDFLAG(ENABLE_PLUGINS)
  #include "content/browser/plugin_private_storage_helper.h"
  #endif  // BUILDFLAG(ENABLE_PLUGINS)
-@@ -611,6 +615,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
+@@ -612,6 +616,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
        scoped_refptr<net::X509Certificate> cert,
        scoped_refptr<net::SSLPrivateKey> private_key) override {
      DCHECK_CURRENTLY_ON(BrowserThread::UI);
@@ -421,10 +421,10 @@ index b9de2bb2138d5..fabcdf0e9a419 100644
  
      if (cert && private_key) {
 diff --git a/content/browser/utility_process_host.cc b/content/browser/utility_process_host.cc
-index 48492fa4df561..08424a3bbf9e2 100644
+index 80eb2af98d588..cc9944198403e 100644
 --- a/content/browser/utility_process_host.cc
 +++ b/content/browser/utility_process_host.cc
-@@ -219,6 +219,9 @@ bool UtilityProcessHost::StartProcess() {
+@@ -224,6 +224,9 @@ bool UtilityProcessHost::StartProcess() {
  
      // Browser command-line switches to propagate to the utility process.
      static const char* const kSwitchNames[] = {
@@ -435,7 +435,7 @@ index 48492fa4df561..08424a3bbf9e2 100644
        network::switches::kForceEffectiveConnectionType,
        network::switches::kHostResolverRules,
 diff --git a/content/common/user_agent.cc b/content/common/user_agent.cc
-index 2fd614fcfee60..d70fc69697a38 100644
+index 0975ef2d57725..2557cd557ce61 100644
 --- a/content/common/user_agent.cc
 +++ b/content/common/user_agent.cc
 @@ -344,7 +344,7 @@ std::string BuildUserAgentFromOSAndProduct(const std::string& os_info,
@@ -448,7 +448,7 @@ index 2fd614fcfee60..d70fc69697a38 100644
    return user_agent;
  }
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
-index ef046e995c12f..f3412dff618da 100644
+index 4f00e42155fa6..6d0ef30cafd50 100644
 --- a/net/base/net_error_list.h
 +++ b/net/base/net_error_list.h
 @@ -22,6 +22,11 @@
@@ -464,10 +464,10 @@ index ef046e995c12f..f3412dff618da 100644
  // indicate a fatal error.  Typically this error will be generated as a
  // notification to wait for some external notification that the IO operation
 diff --git a/net/cert/cert_verify_proc.cc b/net/cert/cert_verify_proc.cc
-index 9c06a71483f9e..9ae98205e0929 100644
+index 05c22dc9aad8b..5136b4aebcae5 100644
 --- a/net/cert/cert_verify_proc.cc
 +++ b/net/cert/cert_verify_proc.cc
-@@ -497,6 +497,12 @@ scoped_refptr<CertVerifyProc> CertVerifyProc::CreateBuiltinVerifyProc(
+@@ -499,6 +499,12 @@ scoped_refptr<CertVerifyProc> CertVerifyProc::CreateBuiltinVerifyProc(
  
  CertVerifyProc::CertVerifyProc() {}
  
@@ -480,7 +480,7 @@ index 9c06a71483f9e..9ae98205e0929 100644
  CertVerifyProc::~CertVerifyProc() = default;
  
  int CertVerifyProc::Verify(X509Certificate* cert,
-@@ -529,6 +535,23 @@ int CertVerifyProc::Verify(X509Certificate* cert,
+@@ -531,6 +537,23 @@ int CertVerifyProc::Verify(X509Certificate* cert,
        VerifyInternal(cert, hostname, ocsp_response, sct_list, flags, crl_set,
                       additional_trust_anchors, verify_result, net_log);
  
@@ -505,10 +505,10 @@ index 9c06a71483f9e..9ae98205e0929 100644
    // in the chain. Also fills in the has_* booleans for the digest algorithms
    // present in the chain.
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index 1a22270806b04..4742f703ea978 100644
+index 6989ba8b6f7c5..4921d2fb70552 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
-@@ -1563,6 +1563,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
+@@ -1553,6 +1553,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
        }
      }
    }
@@ -525,7 +525,7 @@ index 1a22270806b04..4742f703ea978 100644
  }
  
 diff --git a/net/socket/socket.h b/net/socket/socket.h
-index beecf2325a153..7f3f0488afdf8 100644
+index bb451516d67ac..7765ad1903739 100644
 --- a/net/socket/socket.h
 +++ b/net/socket/socket.h
 @@ -21,6 +21,10 @@ class IOBuffer;
@@ -567,7 +567,7 @@ index fcfc88b342aed..318e2278dfd34 100644
  
  SSLClientContext::~SSLClientContext() {
 diff --git a/net/socket/ssl_client_socket.h b/net/socket/ssl_client_socket.h
-index 2863e2eccdb22..f824f6497cca5 100644
+index a49095cb178b6..07061a823f40f 100644
 --- a/net/socket/ssl_client_socket.h
 +++ b/net/socket/ssl_client_socket.h
 @@ -184,6 +184,10 @@ class NET_EXPORT SSLClientContext : public SSLConfigService::Observer,
@@ -582,7 +582,7 @@ index 2863e2eccdb22..f824f6497cca5 100644
    void NotifySSLConfigChanged(bool is_cert_database_change);
    void NotifySSLConfigForServerChanged(const HostPortPair& server);
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 11dd93489e7bf..58c85124979e4 100644
+index 28dbb77d62efc..05aae4e170f91 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
 @@ -440,6 +440,18 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
@@ -636,7 +636,7 @@ index 11dd93489e7bf..58c85124979e4 100644
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -1168,6 +1205,82 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
+@@ -1175,6 +1212,82 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
  
    start_cert_verification_time_ = base::TimeTicks::Now();
  
@@ -719,7 +719,7 @@ index 11dd93489e7bf..58c85124979e4 100644
    base::StringPiece ech_name_override = GetECHNameOverride();
    if (!ech_name_override.empty()) {
      // If ECH was offered but not negotiated, BoringSSL will ask to verify a
-@@ -1669,6 +1782,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1676,6 +1789,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
@@ -753,10 +753,10 @@ index 60a3464088502..6289541240494 100644
    // The given hostname will be compared with the name(s) in the server's
    // certificate during the SSL handshake.  |ssl_config| specifies the SSL
 diff --git a/net/spdy/spdy_session.cc b/net/spdy/spdy_session.cc
-index f2b859f910394..70d07c458ad86 100644
+index 03ac8e7b94b3b..5f2a56b44490b 100644
 --- a/net/spdy/spdy_session.cc
 +++ b/net/spdy/spdy_session.cc
-@@ -1694,6 +1694,11 @@ void SpdySession::RemovePooledAlias(const SpdySessionKey& alias_key) {
+@@ -1715,6 +1715,11 @@ void SpdySession::RemovePooledAlias(const SpdySessionKey& alias_key) {
  }
  
  bool SpdySession::HasAcceptableTransportSecurity() const {
@@ -1074,10 +1074,10 @@ index fcefd7f0178eb..ef84c6021ae29 100644
  bssl::UniquePtr<EVP_PKEY> GetClientCertPublicKey(
      const X509Certificate* certificate);
 diff --git a/sandbox/policy/mac/common.sb b/sandbox/policy/mac/common.sb
-index 84c7e99b329eb..8fa5d3c06b474 100644
+index 1c5319884c0e8..091cf1fd3b9f9 100644
 --- a/sandbox/policy/mac/common.sb
 +++ b/sandbox/policy/mac/common.sb
-@@ -121,6 +121,22 @@
+@@ -155,6 +155,22 @@
    (subpath "/usr/lib")
  )
  
@@ -1137,10 +1137,10 @@ index 1e5cafe772b71..a754aa2e4cdde 100644
  
    // Enable image load policies.
 diff --git a/services/network/network_context.cc b/services/network/network_context.cc
-index 4a3f4fe1fb97a..ef8362e55ab5d 100644
+index abcf825d8049a..733b0247d2486 100644
 --- a/services/network/network_context.cc
 +++ b/services/network/network_context.cc
-@@ -1151,7 +1151,7 @@ void NetworkContext::SetDocumentReportingEndpoints(
+@@ -1165,7 +1165,7 @@ void NetworkContext::SetDocumentReportingEndpoints(
  
  void NetworkContext::SendReportsAndRemoveSource(
      const base::UnguessableToken& reporting_source) {
@@ -1242,7 +1242,7 @@ index 36b03122c755e..45d679795cd0e 100644
    HeapMojoReceiver<mojom::blink::ReportingObserver, ReportingContext> receiver_;
  };
 diff --git a/third_party/boringssl/BUILD.generated.gni b/third_party/boringssl/BUILD.generated.gni
-index fed3f02e8edee..a404841cd0ecb 100644
+index 5e574730e2ddf..e1442cc68c6cd 100644
 --- a/third_party/boringssl/BUILD.generated.gni
 +++ b/third_party/boringssl/BUILD.generated.gni
 @@ -5,6 +5,8 @@
