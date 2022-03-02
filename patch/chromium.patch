@@ -64,7 +64,7 @@ index 9e2c48f5bc733..c2cd16de48bce 100644
      }
  
 -    if (is_chrome_branded && !is_mac) {
-+    if (true && !is_mac) {
++    if (true) {
        public_deps = [ ":preinstalled_apps" ]
      }
  
