@@ -7,7 +7,7 @@ cd %CHROMIUM_PATH%
 call gn gen out\RELEASE --args="is_debug=false is_official_build=true enable_resource_allowlist_generation=false symbol_level=0 %CHROMIUM_FLAGS% %CHROMIUM_PRIVATE_ARGS%"
 del %CHROMIUM_PATH%\out\RELEASE\chrome.7z
 del %CHROMIUM_PATH%\out\RELEASE\*.manifest
-call ninja -C out\RELEASE mini_installer
+call ninja -C out\RELEASE mini_installer -k 0
 
 set PATH=%SEVENZIP_PATH%;%PATH%
 cd %CHROMIUM_GOST_REPO%\build_windows
