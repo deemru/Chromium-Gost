@@ -14,10 +14,10 @@ cd %CHROMIUM_GOST_REPO%\build_windows
 rmdir /s /q RELEASEARM
 mkdir RELEASEARM
 cd RELEASEARM
-copy %CHROMIUM_PATH%\out\RELEASEARM\mini_installer.exe chromium-gost-%CHROMIUM_TAG%-windows-arm-installer.exe
+copy %CHROMIUM_PATH%\out\RELEASEARM\mini_installer.exe chromium-gost-%CHROMIUM_TAG%-windows-arm64-installer.exe
 7z x %CHROMIUM_PATH%\out\RELEASEARM\chrome.7z
 move Chrome-bin\chrome.exe Chrome-bin\%CHROMIUM_TAG%
 move Chrome-bin\%CHROMIUM_TAG% chromium-gost-%CHROMIUM_TAG%
-7z a -mm=Deflate -mfb=258 -mpass=15 -r chromium-gost-%CHROMIUM_TAG%-windows-arm.zip chromium-gost-%CHROMIUM_TAG%
+7z a -mm=Deflate -mfb=258 -mpass=15 -r chromium-gost-%CHROMIUM_TAG%-windows-arm64.zip chromium-gost-%CHROMIUM_TAG%
 
 if "%1"=="" cmd
