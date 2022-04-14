@@ -1,4 +1,4 @@
-From 658ec8db84ba8b3765fbbdb5f0dc3bb4ecb72795 Mon Sep 17 00:00:00 2001
+From 30afd4da10058c210b5966d8cf3035c1b07e705f Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Thu, 31 Mar 2022 23:51:28 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -19,20 +19,20 @@ Subject: [PATCH] chromium GOSTSSL
  chrome/common/chrome_constants.cc             |   2 +-
  .../chromium-browser/chromium-browser.info    |  10 +-
  .../installer/linux/rpm/chrome.spec.template  |   4 +
- .../app_shim/certificate_viewer.mm            |  46 +++++++
+ .../app_shim/certificate_viewer.mm            |  46 ++++++
  content/browser/storage_partition_impl.cc     |   9 ++
- content/browser/utility_process_host.cc       |   3 +
+ content/browser/utility_process_host.cc       |   4 +
  content/common/user_agent.cc                  |   2 +-
  net/base/net_error_list.h                     |   5 +
- net/cert/cert_verify_proc.cc                  |  23 ++++
+ net/cert/cert_verify_proc.cc                  |  23 +++
  net/http/http_network_transaction.cc          |   9 ++
  net/socket/socket.h                           |   4 +
  net/socket/ssl_client_socket.cc               |   9 ++
  net/socket/ssl_client_socket.h                |   4 +
- net/socket/ssl_client_socket_impl.cc          | 125 ++++++++++++++++++
+ net/socket/ssl_client_socket_impl.cc          | 134 ++++++++++++++++++
  net/socket/ssl_client_socket_impl.h           |   3 +
  net/spdy/spdy_session.cc                      |   5 +
- net/ssl/client_cert_store_mac.cc              |  31 +++++
+ net/ssl/client_cert_store_mac.cc              |  31 ++++
  net/ssl/client_cert_store_nss.cc              |  33 +++++
  net/ssl/client_cert_store_win.cc              |  32 +++++
  net/ssl/openssl_ssl_util.cc                   |   4 +
@@ -44,13 +44,13 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.cc  |   8 ++
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 40 files changed, 523 insertions(+), 31 deletions(-)
+ 40 files changed, 533 insertions(+), 31 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
-index 0cfd59aa05b0d..7c69ac645c935 100644
+index 51555df59f2bf..a325cde869487 100644
 --- a/chrome/BUILD.gn
 +++ b/chrome/BUILD.gn
-@@ -1564,7 +1564,7 @@ group("extra_resources") {
+@@ -1567,7 +1567,7 @@ group("extra_resources") {
    ]
  }
  
@@ -59,7 +59,7 @@ index 0cfd59aa05b0d..7c69ac645c935 100644
    if (!is_mac) {
      _preinstalled_apps_target_type = "copy"
    } else {
-@@ -1607,7 +1607,7 @@ if (!is_android) {
+@@ -1610,7 +1610,7 @@ if (!is_android) {
        deps = [ ":resource_allowlist" ]
      }
  
@@ -419,15 +419,16 @@ index 6cbe5f15ce3c9..67346c55f4905 100644
  
      if (cert && private_key) {
 diff --git a/content/browser/utility_process_host.cc b/content/browser/utility_process_host.cc
-index 80eb2af98d588..cc9944198403e 100644
+index 80eb2af98d588..93982f8a3d287 100644
 --- a/content/browser/utility_process_host.cc
 +++ b/content/browser/utility_process_host.cc
-@@ -224,6 +224,9 @@ bool UtilityProcessHost::StartProcess() {
+@@ -224,6 +224,10 @@ bool UtilityProcessHost::StartProcess() {
  
      // Browser command-line switches to propagate to the utility process.
      static const char* const kSwitchNames[] = {
 +#ifndef NO_GOSTSSL
 +      "ciphers",
++      "tlsmode",
 +#endif // GOSTSSL
        network::switches::kAdditionalTrustTokenKeyCommitments,
        network::switches::kForceEffectiveConnectionType,
@@ -580,7 +581,7 @@ index a49095cb178b6..07061a823f40f 100644
    void NotifySSLConfigChanged(bool is_cert_database_change);
    void NotifySSLConfigForServerChanged(const HostPortPair& server);
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 78e30e2b055d4..6df48f0eb5035 100644
+index 78e30e2b055d4..8dfded0b44476 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
 @@ -442,6 +442,18 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
@@ -589,7 +590,7 @@ index 78e30e2b055d4..6df48f0eb5035 100644
  
 +#ifndef NO_GOSTSSL
 +extern "C" {
-+void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size, const char * ciphers );
++void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size, const char * ciphers, const char * tlsmode );
 +void gostssl_certhook( void * cert, int size );
 +void gostssl_verifyhook( void * s, const char * host, unsigned * is_gost );
 +int gostssl_is_msspi( SSL * s );
@@ -602,7 +603,7 @@ index 78e30e2b055d4..6df48f0eb5035 100644
  int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
    // this has never worked for layered sockets. CHECK to detect any consumers
-@@ -460,6 +472,31 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
+@@ -460,6 +472,40 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
      return rv;
    }
  
@@ -614,9 +615,12 @@ index 78e30e2b055d4..6df48f0eb5035 100644
 +      cert = (const void *)CRYPTO_BUFFER_data(client_cert_.get()->cert_buffer());
 +      len = (int)CRYPTO_BUFFER_len(client_cert_.get()->cert_buffer());
 +    }
++    static bool once = false;
 +    static _LIBCPP_NO_DESTROY std::string ciphers;
-+    if( ciphers == "" )
++    static _LIBCPP_NO_DESTROY std::string tlsmode;
++    if( once == false )
 +    {
++      once = true;
 +      base::CommandLine * command_line = base::CommandLine::ForCurrentProcess();
 +      if( command_line->HasSwitch( "ciphers" ) )
 +        ciphers = command_line->GetSwitchValueASCII( "ciphers" );
@@ -626,15 +630,21 @@ index 78e30e2b055d4..6df48f0eb5035 100644
 +        ciphers += ":";
 +        ciphers += "C030:C02F:C028:C027:C014:C013:009D:009C:003D:003C:0035:002F:000A";
 +      }
++      if( command_line->HasSwitch( "tlsmode" ) )
++        tlsmode = command_line->GetSwitchValueASCII( "tlsmode" );
++      if( tlsmode == "" )
++      {
++        tlsmode = "2";
++      }
 +    }
-+    gostssl_newsession( ssl_.get(), &context_->seqnum_, sizeof( context_->seqnum_ ), cert, len, ciphers.c_str() );
++    gostssl_newsession( ssl_.get(), &context_->seqnum_, sizeof( context_->seqnum_ ), cert, len, ciphers.c_str(), tlsmode.c_str() );
 +  }
 +#endif // GOSTSSL
 +
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -1177,6 +1214,82 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
+@@ -1177,6 +1223,82 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
  
    start_cert_verification_time_ = base::TimeTicks::Now();
  
@@ -717,7 +727,7 @@ index 78e30e2b055d4..6df48f0eb5035 100644
    base::StringPiece ech_name_override = GetECHNameOverride();
    if (!ech_name_override.empty()) {
      // If ECH was offered but not negotiated, BoringSSL will ask to verify a
-@@ -1677,6 +1790,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1677,6 +1799,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  

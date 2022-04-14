@@ -45,7 +45,7 @@ DLLEXPORT void gostssl_certhook( void * cert, int size );
 DLLEXPORT void gostssl_verifyhook( void * s, const char * host, unsigned * is_gost );
 DLLEXPORT void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost );
 DLLEXPORT void gostssl_isgostcerthook( void * cert, int size, int * is_gost );
-DLLEXPORT void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size, const char * ciphers );
+DLLEXPORT void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size, const char * ciphers, const char * tlsmode );
 DLLEXPORT int gostssl_is_msspi( SSL * s );
 DLLEXPORT char gostssl_certificate_info( const char * cert, size_t size, const char ** info, size_t * len );
 
@@ -131,6 +131,7 @@ struct GostSSL_Worker
         h = NULL;
         s = NULL;
         host_status = GOSTSSL_HOST_AUTO;
+        tlsmode = 2;
     }
 
     ~GostSSL_Worker()
@@ -145,6 +146,7 @@ struct GostSSL_Worker
     std::string host_string;
     std::vector<char> boring_hello;
     std::vector<char> server_proxy;
+    int tlsmode;
 };
 
 static int gostssl_read_cb( GostSSL_Worker * w, void * buf, int len )
@@ -310,7 +312,7 @@ typedef enum
 }
 WORKER_DB_ACTION;
 
-static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, const char * cachestring = NULL, const void * cert = NULL, int size = 0, const char * ciphers = NULL )
+static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, const char * cachestring = NULL, const void * cert = NULL, int size = 0, const char * ciphers = NULL, const char * tlsmode = NULL )
 {
     GostSSL_Worker * w = NULL;
 
@@ -332,6 +334,12 @@ static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, con
 
         msspi_set_cert_cb( w->h, (msspi_cert_cb)gostssl_cert_cb );
         msspi_set_cipherlist( w->h, ciphers );
+        w->tlsmode = atoi( tlsmode );
+        if( w->tlsmode == 1 )
+            w->host_status = GOSTSSL_HOST_YES;
+        else
+        if( w->tlsmode == -1 )
+            w->host_status = GOSTSSL_HOST_NO;
         w->s = (SSL *)s;
 
         if( s->hostname.get() )
@@ -402,9 +410,12 @@ int gostssl_tls_gost_required( SSL * s, const SSL_CIPHER * cipher )
           cipher == tls_C106 ||
           cipher == tls_FF85 ) )
     {
+        if( w->tlsmode != 2 && w->tlsmode != 0 )
+           return 0;
+
         boring_ERR_clear_error();
 #if 1 // experimental stuff
-        if( w->boring_hello.size() && w->server_proxy.size() && msspi_set_input( w->h, w->boring_hello.data(), w->boring_hello.size() ) )
+        if( w->tlsmode == 2 && w->boring_hello.size() && w->server_proxy.size() && msspi_set_input( w->h, w->boring_hello.data(), w->boring_hello.size() ) )
         {
             w->host_status = GOSTSSL_HOST_PROBING;
             boring_ERR_put_error( ERR_LIB_SSL, 0, SSL_R_TLS_GOST_PROXY, __FILE__, __LINE__ );
@@ -567,7 +578,7 @@ int gostssl_shutdown( SSL * s, int * is_gost )
 
 #define B2C(x) ( x < 0xA ? x + '0' : x + 'A' - 10 )
 
-void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size, const char * ciphers )
+void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size, const char * ciphers, const char * tlsmode )
 {
     BYTE * bb = (BYTE *)cachestring;
     std::vector<BYTE> cc;
@@ -580,7 +591,7 @@ void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const vo
         cc[i * 2 + 1] = B2C( Fx );
     }
     cc[len * 2] = 0;
-    workers_api( s, WDB_NEW, (char *)&cc[0], cert, size, ciphers );
+    workers_api( s, WDB_NEW, (char *)&cc[0], cert, size, ciphers, tlsmode );
 }
 
 int gostssl_connect( SSL * s, int * is_gost )
