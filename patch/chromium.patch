@@ -1,4 +1,4 @@
-From 30afd4da10058c210b5966d8cf3035c1b07e705f Mon Sep 17 00:00:00 2001
+From 7f1d7ef4031ac8bad0a49d471c943d5dd6420753 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Thu, 31 Mar 2022 23:51:28 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -47,10 +47,10 @@ Subject: [PATCH] chromium GOSTSSL
  40 files changed, 533 insertions(+), 31 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
-index 51555df59f2bf..a325cde869487 100644
+index 92e68bb4c0b5d..0e5d7e3eb3f69 100644
 --- a/chrome/BUILD.gn
 +++ b/chrome/BUILD.gn
-@@ -1567,7 +1567,7 @@ group("extra_resources") {
+@@ -1519,7 +1519,7 @@ group("extra_resources") {
    ]
  }
  
@@ -59,7 +59,7 @@ index 51555df59f2bf..a325cde869487 100644
    if (!is_mac) {
      _preinstalled_apps_target_type = "copy"
    } else {
-@@ -1610,7 +1610,7 @@ if (!is_android) {
+@@ -1562,7 +1562,7 @@ if (!is_android) {
        deps = [ ":resource_allowlist" ]
      }
  
@@ -131,10 +131,10 @@ index caf9274d34ca8..4fde039b949f2 100644
    if (result.empty())
      *error_message = "Can't find native messaging host " + host_name;
 diff --git a/chrome/browser/history/top_sites_factory.cc b/chrome/browser/history/top_sites_factory.cc
-index f999604508d0c..64510ca320a9e 100644
+index 770e212779546..3f7322773a52f 100644
 --- a/chrome/browser/history/top_sites_factory.cc
 +++ b/chrome/browser/history/top_sites_factory.cc
-@@ -53,7 +53,7 @@ struct RawPrepopulatedPage {
+@@ -52,7 +52,7 @@ struct RawPrepopulatedPage {
                           // roughly match favicon).
  };
  
@@ -143,7 +143,7 @@ index f999604508d0c..64510ca320a9e 100644
  // Android does not use prepopulated pages.
  const RawPrepopulatedPage kRawPrepopulatedPages[] = {
      {
-@@ -68,7 +68,7 @@ const RawPrepopulatedPage kRawPrepopulatedPages[] = {
+@@ -67,7 +67,7 @@ const RawPrepopulatedPage kRawPrepopulatedPages[] = {
  void InitializePrepopulatedPageList(
      Profile* profile,
      history::PrepopulatedPageList* prepopulated_pages) {
@@ -153,10 +153,10 @@ index f999604508d0c..64510ca320a9e 100644
    PrefService* pref_service = profile->GetPrefs();
    bool hide_web_store_icon = pref_service->GetBoolean(prefs::kHideWebStoreIcon);
 diff --git a/chrome/browser/resources/new_tab_page/app.ts b/chrome/browser/resources/new_tab_page/app.ts
-index 36149143dd09c..9db0433b0022d 100644
+index 1c9eba8a91693..3c9f440191ca6 100644
 --- a/chrome/browser/resources/new_tab_page/app.ts
 +++ b/chrome/browser/resources/new_tab_page/app.ts
-@@ -185,7 +185,7 @@ export class AppElement extends PolymerElement {
+@@ -183,7 +183,7 @@ export class AppElement extends PolymerElement {
  
        oneGoogleBarEnabled_: {
          type: Boolean,
@@ -165,7 +165,7 @@ index 36149143dd09c..9db0433b0022d 100644
        },
  
        shortcutsEnabled_: {
-@@ -201,12 +201,12 @@ export class AppElement extends PolymerElement {
+@@ -199,12 +199,12 @@ export class AppElement extends PolymerElement {
  
        middleSlotPromoEnabled_: {
          type: Boolean,
@@ -197,7 +197,7 @@ index db7d51f0a2d20..16cb24dd0a643 100644
  
    :host(:not([single-colored])) #logo {
 diff --git a/chrome/browser/resources/new_tab_page/logo.ts b/chrome/browser/resources/new_tab_page/logo.ts
-index 26b51bfcf45fa..c9547157fa462 100644
+index 830d9f261c2e7..e446e3d2e1f3a 100644
 --- a/chrome/browser/resources/new_tab_page/logo.ts
 +++ b/chrome/browser/resources/new_tab_page/logo.ts
 @@ -74,7 +74,7 @@ export class LogoElement extends PolymerElement {
@@ -223,10 +223,10 @@ index 070acc504b606..51a681370ecb5 100644
  }
  
 diff --git a/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc b/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
-index c7ee5bc6c9fd4..5dc440e9bc9a2 100644
+index 6f1975db36a60..7fee12132cac4 100644
 --- a/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
 +++ b/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
-@@ -126,7 +126,7 @@ void BrowserAppMenuButton::UpdateTextAndHighlightColor() {
+@@ -127,7 +127,7 @@ void BrowserAppMenuButton::UpdateTextAndHighlightColor() {
      text = l10n_util::GetStringUTF16(IDS_APP_MENU_BUTTON_UPDATE);
    } else {
      tooltip_message_id = IDS_APPMENU_TOOLTIP_ALERT;
@@ -236,10 +236,10 @@ index c7ee5bc6c9fd4..5dc440e9bc9a2 100644
  
    absl::optional<SkColor> color;
 diff --git a/chrome/browser/ui/webui/whats_new/whats_new_util.cc b/chrome/browser/ui/webui/whats_new/whats_new_util.cc
-index 99ca051c7042f..043d357a6ffeb 100644
+index 4b01269cef059..c9608eae5b943 100644
 --- a/chrome/browser/ui/webui/whats_new/whats_new_util.cc
 +++ b/chrome/browser/ui/webui/whats_new/whats_new_util.cc
-@@ -71,7 +71,7 @@ bool ShouldShowForState(PrefService* local_state) {
+@@ -83,7 +83,7 @@ bool ShouldShowForState(PrefService* local_state) {
    // potentially displaying multiple times in a given milestone, e.g. for
    // multiple profile relaunches (see https://crbug.com/1274313).
    local_state->SetInteger(prefs::kLastWhatsNewVersion, CHROME_VERSION_MAJOR);
@@ -392,10 +392,10 @@ index 0c12e8bda3856..c071d69f7a7bd 100644
        net::x509_util::CreateSecCertificateArrayForX509Certificate(certificate));
    if (!cert_chain)
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
-index 6cbe5f15ce3c9..67346c55f4905 100644
+index 2c0c05a740a29..ff26169a0756e 100644
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
-@@ -129,6 +129,10 @@
+@@ -132,6 +132,10 @@
  #include "services/service_manager/public/cpp/interface_provider.h"
  #endif  // BUILDFLAG(IS_ANDROID)
  
@@ -406,7 +406,7 @@ index 6cbe5f15ce3c9..67346c55f4905 100644
  #if BUILDFLAG(ENABLE_PLUGINS)
  #include "content/browser/plugin_private_storage_helper.h"
  #endif  // BUILDFLAG(ENABLE_PLUGINS)
-@@ -616,6 +620,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
+@@ -619,6 +623,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
        scoped_refptr<net::X509Certificate> cert,
        scoped_refptr<net::SSLPrivateKey> private_key) override {
      DCHECK_CURRENTLY_ON(BrowserThread::UI);
@@ -419,7 +419,7 @@ index 6cbe5f15ce3c9..67346c55f4905 100644
  
      if (cert && private_key) {
 diff --git a/content/browser/utility_process_host.cc b/content/browser/utility_process_host.cc
-index 80eb2af98d588..93982f8a3d287 100644
+index 955a54ad65986..62c41f60f7c91 100644
 --- a/content/browser/utility_process_host.cc
 +++ b/content/browser/utility_process_host.cc
 @@ -224,6 +224,10 @@ bool UtilityProcessHost::StartProcess() {
@@ -434,10 +434,10 @@ index 80eb2af98d588..93982f8a3d287 100644
        network::switches::kForceEffectiveConnectionType,
        network::switches::kHostResolverRules,
 diff --git a/content/common/user_agent.cc b/content/common/user_agent.cc
-index 62a9ca207c452..66f3261b57ecc 100644
+index bf5418337713d..dbb29ac29cef4 100644
 --- a/content/common/user_agent.cc
 +++ b/content/common/user_agent.cc
-@@ -345,7 +345,7 @@ std::string BuildUserAgentFromOSAndProduct(const std::string& os_info,
+@@ -343,7 +343,7 @@ std::string BuildUserAgentFromOSAndProduct(const std::string& os_info,
    std::string user_agent;
    base::StringAppendF(&user_agent,
                        "Mozilla/5.0 (%s) AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -447,7 +447,7 @@ index 62a9ca207c452..66f3261b57ecc 100644
    return user_agent;
  }
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
-index 4f00e42155fa6..6d0ef30cafd50 100644
+index 9c5b91f714ab5..3c3bb81979cb6 100644
 --- a/net/base/net_error_list.h
 +++ b/net/base/net_error_list.h
 @@ -22,6 +22,11 @@
@@ -581,10 +581,10 @@ index a49095cb178b6..07061a823f40f 100644
    void NotifySSLConfigChanged(bool is_cert_database_change);
    void NotifySSLConfigForServerChanged(const HostPortPair& server);
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 78e30e2b055d4..8dfded0b44476 100644
+index b806e065022fc..9308ea0d879e8 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
-@@ -442,6 +442,18 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
+@@ -441,6 +441,18 @@ int SSLClientSocketImpl::ExportKeyingMaterial(const base::StringPiece& label,
    return OK;
  }
  
@@ -603,7 +603,7 @@ index 78e30e2b055d4..8dfded0b44476 100644
  int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
    // this has never worked for layered sockets. CHECK to detect any consumers
-@@ -460,6 +472,40 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
+@@ -459,6 +471,40 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
      return rv;
    }
  
@@ -644,7 +644,7 @@ index 78e30e2b055d4..8dfded0b44476 100644
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -1177,6 +1223,82 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
+@@ -1179,6 +1225,82 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
  
    start_cert_verification_time_ = base::TimeTicks::Now();
  
@@ -727,7 +727,7 @@ index 78e30e2b055d4..8dfded0b44476 100644
    base::StringPiece ech_name_override = GetECHNameOverride();
    if (!ech_name_override.empty()) {
      // If ECH was offered but not negotiated, BoringSSL will ask to verify a
-@@ -1677,6 +1799,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1679,6 +1801,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
@@ -777,10 +777,10 @@ index 03ac8e7b94b3b..5f2a56b44490b 100644
    CHECK(GetSSLInfo(&ssl_info));
  
 diff --git a/net/ssl/client_cert_store_mac.cc b/net/ssl/client_cert_store_mac.cc
-index 7255c0757936d..65976edd2b300 100644
+index 3797f13533034..e35a6e14a03e5 100644
 --- a/net/ssl/client_cert_store_mac.cc
 +++ b/net/ssl/client_cert_store_mac.cc
-@@ -295,6 +295,12 @@ void AddIdentity(ScopedCFTypeRef<SecIdentityRef> sec_identity,
+@@ -308,6 +308,12 @@ void AddIdentity(ScopedCFTypeRef<SecIdentityRef> sec_identity,
    }
  }
  
@@ -793,7 +793,7 @@ index 7255c0757936d..65976edd2b300 100644
  ClientCertIdentityList GetClientCertsOnBackgroundThread(
      const SSLCertRequestInfo& request) {
    std::string server_domain = request.host_and_port.host();
-@@ -385,6 +391,31 @@ ClientCertIdentityList GetClientCertsOnBackgroundThread(
+@@ -398,6 +404,31 @@ ClientCertIdentityList GetClientCertsOnBackgroundThread(
    GetClientCertsImpl(std::move(preferred_identity),
                       std::move(regular_identities), request, true,
                       &selected_identities);
@@ -1145,7 +1145,7 @@ index 1e5cafe772b71..a754aa2e4cdde 100644
  
    // Enable image load policies.
 diff --git a/third_party/blink/renderer/core/frame/reporting_context.cc b/third_party/blink/renderer/core/frame/reporting_context.cc
-index 8c21cc8466420..13407c97ddd9b 100644
+index 31932fcdd4b06..7f8c91f014a0a 100644
 --- a/third_party/blink/renderer/core/frame/reporting_context.cc
 +++ b/third_party/blink/renderer/core/frame/reporting_context.cc
 @@ -53,7 +53,9 @@ const char ReportingContext::kSupplementName[] = "ReportingContext";
@@ -1201,7 +1201,7 @@ index 8c21cc8466420..13407c97ddd9b 100644
  
  }  // namespace blink
 diff --git a/third_party/blink/renderer/core/frame/reporting_context.h b/third_party/blink/renderer/core/frame/reporting_context.h
-index 36b03122c755e..45d679795cd0e 100644
+index 1160d186a68d7..39de81cc3ddda 100644
 --- a/third_party/blink/renderer/core/frame/reporting_context.h
 +++ b/third_party/blink/renderer/core/frame/reporting_context.h
 @@ -5,6 +5,7 @@
@@ -1212,7 +1212,7 @@ index 36b03122c755e..45d679795cd0e 100644
  #include "third_party/blink/public/mojom/frame/reporting_observer.mojom-blink.h"
  #include "third_party/blink/public/mojom/reporting/reporting.mojom-blink.h"
  #include "third_party/blink/renderer/core/core_export.h"
-@@ -55,8 +56,10 @@ class CORE_EXPORT ReportingContext : public GarbageCollected<ReportingContext>,
+@@ -56,8 +57,10 @@ class CORE_EXPORT ReportingContext : public GarbageCollected<ReportingContext>,
    // Counts the use of a report type via UseCounter.
    void CountReport(Report*);
  
@@ -1223,7 +1223,7 @@ index 36b03122c755e..45d679795cd0e 100644
  
    void NotifyInternal(Report* report);
    // Send |report| via the Reporting API to |endpoint|.
-@@ -66,10 +69,12 @@ class CORE_EXPORT ReportingContext : public GarbageCollected<ReportingContext>,
+@@ -67,10 +70,12 @@ class CORE_EXPORT ReportingContext : public GarbageCollected<ReportingContext>,
    HeapHashMap<String, Member<HeapLinkedHashSet<Member<Report>>>> report_buffer_;
    Member<ExecutionContext> execution_context_;
  
@@ -1237,7 +1237,7 @@ index 36b03122c755e..45d679795cd0e 100644
    HeapMojoReceiver<mojom::blink::ReportingObserver, ReportingContext> receiver_;
  };
 diff --git a/third_party/boringssl/BUILD.generated.gni b/third_party/boringssl/BUILD.generated.gni
-index b8a0fbf20249e..7a7fa050ab1ad 100644
+index 5fe1e0fee093a..ff3d197d662be 100644
 --- a/third_party/boringssl/BUILD.generated.gni
 +++ b/third_party/boringssl/BUILD.generated.gni
 @@ -5,6 +5,8 @@

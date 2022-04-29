@@ -85,8 +85,18 @@ static const SSL_CIPHER * tls_C105 = NULL;
 static const SSL_CIPHER * tls_C106 = NULL;
 static const SSL_CIPHER * tls_FF85 = NULL;
 
+static int g_tlsmode = 2;
+
 int gostssl_init()
 {
+    if( g_tlsmode == -1 )
+        return 0;
+
+    static int init_once = 0;
+
+    if( init_once == 1 )
+        return 1;
+
     MSSPI_HANDLE h = msspi_open( NULL, (msspi_read_cb)(uintptr_t)1, (msspi_write_cb)(uintptr_t)1 );
     if( !h )
         return 0;
@@ -111,6 +121,7 @@ int gostssl_init()
         NULL == ( tls_FF85 = boring_SSL_get_cipher_by_value( 0xFF85 ) ) )
         return 0;
 
+    init_once = 1;
     return 1;
 }
 
@@ -335,6 +346,7 @@ static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, con
         msspi_set_cert_cb( w->h, (msspi_cert_cb)gostssl_cert_cb );
         msspi_set_cipherlist( w->h, ciphers );
         w->tlsmode = atoi( tlsmode );
+        g_tlsmode = w->tlsmode;
         if( w->tlsmode == 1 )
             w->host_status = GOSTSSL_HOST_YES;
         else
