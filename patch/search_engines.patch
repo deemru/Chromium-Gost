@@ -1,0 +1,37 @@
+diff --git a/components/search_engines/template_url_prepopulate_data.cc b/components/search_engines/template_url_prepopulate_data.cc
+index e38343c2217b850105027414d00d2e37553825ba..88441eb0d49707eb6e9788949be385773f398981 100644
+--- a/components/search_engines/template_url_prepopulate_data.cc
++++ b/components/search_engines/template_url_prepopulate_data.cc
+@@ -28,6 +28,8 @@ namespace {
+ 
+ // Default (for countries with no better engine set)
+ const PrepopulatedEngine* const engines_default[] = {
++    &yandex_ru,
++    &mail_ru,
+     &google,
+     &bing,
+     &yahoo,
+@@ -794,9 +796,9 @@ const PrepopulatedEngine* const engines_RS[] = {
+ 
+ // Russia
+ const PrepopulatedEngine* const engines_RU[] = {
+-    &google,
+     &yandex_ru,
+     &mail_ru,
++    &google,
+     &bing,
+     &duckduckgo,
+ };
+diff --git a/components/search_engines/prepopulated_engines.json b/components/search_engines/prepopulated_engines.json
+index 13572d43554c1c7b3f2ad110366cbdb4955b7b18..addf0506c4515656684e30a0542d6e60ab9880f1 100644
+--- a/components/search_engines/prepopulated_engines.json
++++ b/components/search_engines/prepopulated_engines.json
+@@ -28,7 +28,7 @@
+     // Increment this if you change the data in ways that mean users with
+     // existing data should get a new version. Otherwise, existing data may
+     // continue to be used and updates made here will not always appear.
+-    "kCurrentDataVersion": 128
++    "kCurrentDataVersion": 129
+   },
+ 
+   // The following engines are included in country lists and are added to the
