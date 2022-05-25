@@ -1,4 +1,4 @@
-From 78a9429372c35f455a5250ccdec3add7d1ada123 Mon Sep 17 00:00:00 2001
+From be8bed2dbd625ec23ee185633b5056856b1ae44f Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 20 Oct 2021 11:51:56 +0300
 Subject: [PATCH] boringssl GOSTSSL
@@ -110,10 +110,10 @@ index e630121e3..986c1aa0d 100644
      OPENSSL_PUT_ERROR(SSL, SSL_R_UNSUPPORTED_PROTOCOL);
      ssl_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_PROTOCOL_VERSION);
 diff --git a/ssl/internal.h b/ssl/internal.h
-index 8f68fc5e7..351e8a4e5 100644
+index 0087e7f7b..457a08848 100644
 --- a/ssl/internal.h
 +++ b/ssl/internal.h
-@@ -542,6 +542,13 @@ BSSL_NAMESPACE_BEGIN
+@@ -534,6 +534,13 @@ BSSL_NAMESPACE_BEGIN
  #define SSL_kPSK 0x00000004u
  #define SSL_kGENERIC 0x00000008u
  
@@ -127,7 +127,7 @@ index 8f68fc5e7..351e8a4e5 100644
  // Bits for |algorithm_auth| (server authentication).
  #define SSL_aRSA 0x00000001u
  #define SSL_aECDSA 0x00000002u
-@@ -3383,6 +3390,35 @@ void ssl_set_read_error(SSL *ssl);
+@@ -3375,6 +3382,35 @@ void ssl_set_read_error(SSL *ssl);
  
  BSSL_NAMESPACE_END
  
