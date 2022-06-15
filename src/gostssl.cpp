@@ -260,7 +260,8 @@ void gostssl_isgostcerthook( void * cert, int size, int * is_gost )
 
     LPSTR pszObjId = certctx->pCertInfo->SignatureAlgorithm.pszObjId;
 
-    if( 0 == strcmp( pszObjId, szOID_CP_GOST_R3411_R3410EL ) ||
+    if( g_tlsmode == 1 ||
+        0 == strcmp( pszObjId, szOID_CP_GOST_R3411_R3410EL ) ||
         0 == strcmp( pszObjId, szOID_CP_GOST_R3411_12_256_R3410 ) ||
         0 == strcmp( pszObjId, szOID_CP_GOST_R3411_12_512_R3410 ) )
         *is_gost = 1;
