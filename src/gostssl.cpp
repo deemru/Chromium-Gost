@@ -92,23 +92,12 @@ int gostssl_init()
     if( g_tlsmode == -1 )
         return 0;
 
-    static int init_once = 0;
+    static int init_status = -1;
 
-    if( init_once == 1 )
-        return 1;
+    if( init_status != -1 )
+        return init_status;
 
-    MSSPI_HANDLE h = msspi_open( NULL, (msspi_read_cb)(uintptr_t)1, (msspi_write_cb)(uintptr_t)1 );
-    if( !h )
-        return 0;
-
-    msspi_close( h );
-
-    HCRYPTPROV hProv;
-
-    if( !CryptAcquireContext( &hProv, NULL, NULL, PROV_GOST_2001_DH, CRYPT_VERIFYCONTEXT | CRYPT_SILENT ) )
-        return 0;
-
-    CryptReleaseContext( hProv, 0 );
+    init_status = 0;
 
     if( NULL == ( tls_0081 = boring_SSL_get_cipher_by_value( 0x0081 ) ) ||
         NULL == ( tls_C100 = boring_SSL_get_cipher_by_value( 0xC100 ) ) ||
@@ -119,10 +108,42 @@ int gostssl_init()
         NULL == ( tls_C105 = boring_SSL_get_cipher_by_value( 0xC105 ) ) ||
         NULL == ( tls_C106 = boring_SSL_get_cipher_by_value( 0xC106 ) ) ||
         NULL == ( tls_FF85 = boring_SSL_get_cipher_by_value( 0xFF85 ) ) )
-        return 0;
+        return init_status;
 
-    init_once = 1;
-    return 1;
+    char cipher_0x0081 = msspi_is_cipher_supported( 0x0081 );
+    char cipher_0xC100 = msspi_is_cipher_supported( 0xC100 );
+    char cipher_0xC101 = msspi_is_cipher_supported( 0xC101 );
+    char cipher_0xC102 = msspi_is_cipher_supported( 0xC102 );
+    char cipher_0xC103 = msspi_is_cipher_supported( 0xC103 );
+    char cipher_0xC104 = msspi_is_cipher_supported( 0xC104 );
+    char cipher_0xC105 = msspi_is_cipher_supported( 0xC105 );
+    char cipher_0xC106 = msspi_is_cipher_supported( 0xC106 );
+    char cipher_0xFF85 = msspi_is_cipher_supported( 0xFF85 );
+
+    bool cipher_tls10 = cipher_0x0081 || cipher_0xFF85;
+    bool cipher_tls11 = cipher_tls10;
+    bool cipher_tls12 = cipher_tls11 || cipher_0xC100 || cipher_0xC101 || cipher_0xC102;
+    bool cipher_tls13 = cipher_0xC103 || cipher_0xC104 || cipher_0xC105 || cipher_0xC106;
+    bool cipher_any = cipher_tls10 || cipher_tls11 || cipher_tls12 || cipher_tls13;
+
+    char tls10 = msspi_is_version_supported( TLS1_VERSION );
+    char tls11 = msspi_is_version_supported( TLS1_1_VERSION );
+    char tls12 = msspi_is_version_supported( TLS1_2_VERSION );
+    char tls13 = msspi_is_version_supported( TLS1_3_VERSION );
+
+    if( tls10 && cipher_tls10 )
+        init_status |= ( 1 << 0 );
+    if( tls11 && cipher_tls11 )
+        init_status |= ( 1 << 1 );
+    if( tls12 && cipher_tls12 )
+        init_status |= ( 1 << 2 );
+    if( tls13 && cipher_tls13 )
+        init_status |= ( 1 << 3 );
+
+    if( init_status == 0 && cipher_any )
+        init_status = 1;
+
+    return init_status;
 }
 
 typedef enum
@@ -164,7 +185,7 @@ static int gostssl_read_cb( GostSSL_Worker * w, void * buf, int len )
 {
     if( w->server_proxy.size() )
     {
-        if( w->server_proxy.size() > len )
+        if( (int)w->server_proxy.size() > len )
             return 0;
         len = w->server_proxy.size();
         memcpy( buf, w->server_proxy.data(), len );
@@ -596,7 +617,7 @@ void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const vo
     BYTE * bb = (BYTE *)cachestring;
     std::vector<BYTE> cc;
     cc.resize( len * 2 + 1 );
-    for( int i = 0; i < len; i++ )
+    for( size_t i = 0; i < len; i++ )
     {
         BYTE xF = ( bb[i] ) >> 4;
         BYTE Fx = ( bb[i] ) & 0xF;
@@ -783,7 +804,6 @@ void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, in
          pcert;
          pcert = CertFindCertificateInStore( hStore, PKCS_7_ASN_ENCODING | X509_ASN_ENCODING, 0, CERT_FIND_ANY, 0, pcert ) )
     {
-        BYTE bUsage;
         DWORD dw = 0;
         // basic TLS client cert filtering
         if(    CertVerifyTimeValidity( NULL, pcert->pCertInfo ) == 0
