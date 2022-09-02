@@ -1,4 +1,4 @@
-From 181d035ced6af614adae800007e74c3227c31b7d Mon Sep 17 00:00:00 2001
+From 5ea04e4275d4ad39dbd21bda0220659c60e95370 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 20 Oct 2021 11:51:56 +0300
 Subject: [PATCH] boringssl GOSTSSL
@@ -15,10 +15,10 @@ Subject: [PATCH] boringssl GOSTSSL
  8 files changed, 464 insertions(+)
 
 diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
-index b990b4134..51d9259e0 100644
+index 0e54ab9ef..264137556 100644
 --- a/include/openssl/ssl.h
 +++ b/include/openssl/ssl.h
-@@ -5430,6 +5430,11 @@ BSSL_NAMESPACE_END
+@@ -5435,6 +5435,11 @@ BSSL_NAMESPACE_END
  
  #endif
  
@@ -94,7 +94,7 @@ index 47434de34..b3067e09f 100644
  }
  
 diff --git a/ssl/handshake_client.cc b/ssl/handshake_client.cc
-index bb2462ffb..b2fff9c8a 100644
+index 636d16642..5e3b5efcd 100644
 --- a/ssl/handshake_client.cc
 +++ b/ssl/handshake_client.cc
 @@ -699,6 +699,14 @@ static enum ssl_hs_wait_t do_read_server_hello(SSL_HANDSHAKE *hs) {
@@ -167,7 +167,7 @@ index 2400f903e..9e6abc09c 100644
  // Opaque C types.
  //
 diff --git a/ssl/s3_both.cc b/ssl/s3_both.cc
-index d0fc6c04e..eb4fff8e0 100644
+index cb831f2e9..1c5d83aab 100644
 --- a/ssl/s3_both.cc
 +++ b/ssl/s3_both.cc
 @@ -339,6 +339,14 @@ int tls_flush_flight(SSL *ssl) {
@@ -202,7 +202,7 @@ index d73055fbf..90a08c307 100644
    }
  
 diff --git a/ssl/ssl_cipher.cc b/ssl/ssl_cipher.cc
-index 628dddc86..21ff636e3 100644
+index 7c4c034ac..8f33a956a 100644
 --- a/ssl/ssl_cipher.cc
 +++ b/ssl/ssl_cipher.cc
 @@ -208,6 +208,20 @@ static constexpr SSL_CIPHER kCiphers[] = {
