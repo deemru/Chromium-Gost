@@ -2,7 +2,6 @@
 
 cd $(dirname $0)
 . ./chromium-gost-env.sh
-export PATH=$DEPOT_TOOLS_PATH:$PATH
 
 cd $CHROMIUM_PATH/out/RELEASE
 unlink *.tar.bz2
