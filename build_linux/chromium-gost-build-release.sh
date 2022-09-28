@@ -2,7 +2,6 @@
 
 cd $(dirname $0)
 . ./chromium-gost-env.sh
-export PATH=$DEPOT_TOOLS_PATH:$PATH
 
 cd $CHROMIUM_PATH
 gn gen out/RELEASE --args="is_debug=false symbol_level=0 strip_debug_info=true is_official_build=true enable_linux_installer=true $CHROMIUM_FLAGS $CHROMIUM_PRIVATE_ARGS"

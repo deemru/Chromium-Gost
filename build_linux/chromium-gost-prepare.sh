@@ -3,7 +3,7 @@
 cd $(dirname $0)
 git submodule update --init --recursive --depth 1
 . ./chromium-gost-env.sh
-export PATH=$DEPOT_TOOLS_PATH:$PATH
+
 export GOST_BRANCH=GOSTSSL-$CHROMIUM_TAG
 
 cd $CHROMIUM_PATH/.git || exit
