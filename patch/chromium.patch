@@ -1,10 +1,11 @@
-From f5a1a30674f43b2618dacb1314f5c01461e65bca Mon Sep 17 00:00:00 2001
+From bd145de041911bead95bd2a67cb45e7e537f268f Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Fri, 2 Sep 2022 12:46:00 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
  chrome/BUILD.gn                               |   4 +-
+ chrome/app/app-Info.plist                     |   2 -
  chrome/app/app-entitlements.plist             |   6 +
  chrome/app/theme/chromium/BRANDING            |  16 +--
  .../native_process_launcher_posix.cc          |  12 ++
@@ -44,7 +45,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.cc  |   8 ++
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 40 files changed, 533 insertions(+), 31 deletions(-)
+ 41 files changed, 533 insertions(+), 33 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
 index 36b6fc1d94957..7858543020c61 100644
@@ -68,6 +69,19 @@ index 36b6fc1d94957..7858543020c61 100644
        public_deps = [ ":preinstalled_apps" ]
      }
  
+diff --git a/chrome/app/app-Info.plist b/chrome/app/app-Info.plist
+index ba0f300814475..4b5e1636873c4 100644
+--- a/chrome/app/app-Info.plist
++++ b/chrome/app/app-Info.plist
+@@ -241,8 +241,6 @@
+ 	<string>1</string>
+ 	<key>LSMinimumSystemVersion</key>
+ 	<string>${CHROMIUM_MIN_SYSTEM_VERSION}</string>
+-	<key>LSRequiresNativeExecution</key>
+-	<true/>
+ 	<key>NSPrincipalClass</key>
+ 	<string>BrowserCrApplication</string>
+ 	<key>NSSupportsAutomaticGraphicsSwitching</key>
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
 index 5223754108237..aae9bd8eba5df 100644
 --- a/chrome/app/app-entitlements.plist
