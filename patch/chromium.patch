@@ -1,6 +1,6 @@
-From bd145de041911bead95bd2a67cb45e7e537f268f Mon Sep 17 00:00:00 2001
+From 64a88e4e3a18efdd1c8e7c97c10e5fe4837a8b6d Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
-Date: Fri, 2 Sep 2022 12:46:00 +0300
+Date: Thu, 24 Nov 2022 01:56:23 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
@@ -48,10 +48,10 @@ Subject: [PATCH] chromium GOSTSSL
  41 files changed, 533 insertions(+), 33 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
-index 36b6fc1d94957..7858543020c61 100644
+index 58879beacaeed..2150508d1b1f4 100644
 --- a/chrome/BUILD.gn
 +++ b/chrome/BUILD.gn
-@@ -1517,7 +1517,7 @@ group("extra_resources") {
+@@ -1523,7 +1523,7 @@ group("extra_resources") {
    ]
  }
  
@@ -60,7 +60,7 @@ index 36b6fc1d94957..7858543020c61 100644
    if (!is_mac) {
      _preinstalled_apps_target_type = "copy"
    } else {
-@@ -1561,7 +1561,7 @@ if (!is_android) {
+@@ -1567,7 +1567,7 @@ if (!is_android) {
        deps = [ ":resource_allowlist" ]
      }
  
@@ -167,10 +167,10 @@ index e1396167288b8..2e9b5042e7a03 100644
    PrefService* pref_service = profile->GetPrefs();
    bool hide_web_store_icon = pref_service->GetBoolean(prefs::kHideWebStoreIcon);
 diff --git a/chrome/browser/resources/new_tab_page/app.ts b/chrome/browser/resources/new_tab_page/app.ts
-index 1b277f3a52a62..f21ae198f7f81 100644
+index d38edb6e4945b..f486cf3406f90 100644
 --- a/chrome/browser/resources/new_tab_page/app.ts
 +++ b/chrome/browser/resources/new_tab_page/app.ts
-@@ -187,7 +187,7 @@ export class AppElement extends PolymerElement {
+@@ -193,7 +193,7 @@ export class AppElement extends PolymerElement {
  
        oneGoogleBarEnabled_: {
          type: Boolean,
@@ -179,7 +179,7 @@ index 1b277f3a52a62..f21ae198f7f81 100644
        },
  
        shortcutsEnabled_: {
-@@ -208,12 +208,12 @@ export class AppElement extends PolymerElement {
+@@ -214,12 +214,12 @@ export class AppElement extends PolymerElement {
  
        middleSlotPromoEnabled_: {
          type: Boolean,
@@ -211,7 +211,7 @@ index 50d8b40a61455..4ce66bfc93faf 100644
  
    :host(:not([single-colored])) #logo {
 diff --git a/chrome/browser/resources/new_tab_page/logo.ts b/chrome/browser/resources/new_tab_page/logo.ts
-index c94b48b039a4c..d0620e1ddecb2 100644
+index 3215506ae2476..e6dae52ec12c9 100644
 --- a/chrome/browser/resources/new_tab_page/logo.ts
 +++ b/chrome/browser/resources/new_tab_page/logo.ts
 @@ -74,7 +74,7 @@ export class LogoElement extends PolymerElement {
@@ -224,10 +224,10 @@ index c94b48b039a4c..d0620e1ddecb2 100644
        },
  
 diff --git a/chrome/browser/shell_integration_linux.cc b/chrome/browser/shell_integration_linux.cc
-index 0f7018d1d203c..eeab4a95d7e73 100644
+index 97cd44d3f6ea2..3009431cb3570 100644
 --- a/chrome/browser/shell_integration_linux.cc
 +++ b/chrome/browser/shell_integration_linux.cc
-@@ -466,7 +466,7 @@ std::string GetIconName() {
+@@ -504,7 +504,7 @@ std::string GetIconName() {
  #if BUILDFLAG(GOOGLE_CHROME_BRANDING)
    return "google-chrome";
  #else  // BUILDFLAG(CHROMIUM_BRANDING)
@@ -237,10 +237,10 @@ index 0f7018d1d203c..eeab4a95d7e73 100644
  }
  
 diff --git a/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc b/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
-index d33e1129fd40c..e08b157abfa3a 100644
+index e4bd4ca4f3ffd..a42ed4f82e071 100644
 --- a/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
 +++ b/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
-@@ -132,7 +132,7 @@ void BrowserAppMenuButton::UpdateTextAndHighlightColor() {
+@@ -153,7 +153,7 @@ void BrowserAppMenuButton::UpdateTextAndHighlightColor() {
      text = l10n_util::GetStringUTF16(IDS_APP_MENU_BUTTON_UPDATE);
    } else {
      tooltip_message_id = IDS_APPMENU_TOOLTIP_ALERT;
@@ -409,10 +409,10 @@ index d249482052790..523f3951f5c2e 100644
        net::x509_util::CreateSecCertificateArrayForX509Certificate(certificate));
    if (!cert_chain)
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
-index ac917a5bdcdf2..d04d954dd3f5b 100644
+index fe77d59121ff3..b471bf6025fb5 100644
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
-@@ -144,6 +144,10 @@
+@@ -145,6 +145,10 @@
  #include "services/service_manager/public/cpp/interface_provider.h"
  #endif  // BUILDFLAG(IS_ANDROID)
  
@@ -423,7 +423,7 @@ index ac917a5bdcdf2..d04d954dd3f5b 100644
  #if BUILDFLAG(ENABLE_LIBRARY_CDMS)
  #include "content/browser/media/media_license_manager.h"
  #endif  // BUILDFLAG(ENABLE_LIBRARY_CDMS)
-@@ -607,6 +611,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
+@@ -608,6 +612,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
        scoped_refptr<net::X509Certificate> cert,
        scoped_refptr<net::SSLPrivateKey> private_key) override {
      DCHECK_CURRENTLY_ON(BrowserThread::UI);
@@ -436,7 +436,7 @@ index ac917a5bdcdf2..d04d954dd3f5b 100644
  
      if (cert && private_key) {
 diff --git a/content/browser/utility_process_host.cc b/content/browser/utility_process_host.cc
-index 171b8440c2558..a8b27e2b5ef54 100644
+index 1bb75bb14aa1a..3426584d6654f 100644
 --- a/content/browser/utility_process_host.cc
 +++ b/content/browser/utility_process_host.cc
 @@ -233,6 +233,10 @@ bool UtilityProcessHost::StartProcess() {
@@ -464,7 +464,7 @@ index e135cc5a09fc7..2e1455cd0f0db 100644
    return user_agent;
  }
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
-index 772d69998f3a1..f45a554177dcb 100644
+index 20997e9af12b7..926f3be5a08cf 100644
 --- a/net/base/net_error_list.h
 +++ b/net/base/net_error_list.h
 @@ -22,6 +22,11 @@
@@ -480,10 +480,10 @@ index 772d69998f3a1..f45a554177dcb 100644
  // indicate a fatal error.  Typically this error will be generated as a
  // notification to wait for some external notification that the IO operation
 diff --git a/net/cert/cert_verify_proc.cc b/net/cert/cert_verify_proc.cc
-index 4ef8c12076c3a..b4a5e22db2bde 100644
+index 4443323d356c2..30b9080939b6e 100644
 --- a/net/cert/cert_verify_proc.cc
 +++ b/net/cert/cert_verify_proc.cc
-@@ -540,6 +540,12 @@ scoped_refptr<CertVerifyProc> CertVerifyProc::CreateBuiltinVerifyProc(
+@@ -547,6 +547,12 @@ scoped_refptr<CertVerifyProc> CertVerifyProc::CreateBuiltinWithChromeRootStore(
  
  CertVerifyProc::CertVerifyProc() = default;
  
@@ -496,7 +496,7 @@ index 4ef8c12076c3a..b4a5e22db2bde 100644
  CertVerifyProc::~CertVerifyProc() = default;
  
  int CertVerifyProc::Verify(X509Certificate* cert,
-@@ -572,6 +578,23 @@ int CertVerifyProc::Verify(X509Certificate* cert,
+@@ -579,6 +585,23 @@ int CertVerifyProc::Verify(X509Certificate* cert,
        VerifyInternal(cert, hostname, ocsp_response, sct_list, flags, crl_set,
                       additional_trust_anchors, verify_result, net_log);
  
@@ -521,10 +521,10 @@ index 4ef8c12076c3a..b4a5e22db2bde 100644
    // in the chain. Also fills in the has_* booleans for the digest algorithms
    // present in the chain.
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index b153691c20931..d94c69b178f43 100644
+index 84f5b7e301914..40edc8f01f0a6 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
-@@ -1572,6 +1572,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
+@@ -1574,6 +1574,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
        }
      }
    }
@@ -778,10 +778,10 @@ index 9f38ffa7a8a3d..3fc38acae5b21 100644
    // The given hostname will be compared with the name(s) in the server's
    // certificate during the SSL handshake.  |ssl_config| specifies the SSL
 diff --git a/net/spdy/spdy_session.cc b/net/spdy/spdy_session.cc
-index f7b4dd4221af6..a51d950a6965d 100644
+index 5d6354ac2a488..3b058c8540e17 100644
 --- a/net/spdy/spdy_session.cc
 +++ b/net/spdy/spdy_session.cc
-@@ -1676,6 +1676,11 @@ void SpdySession::RemovePooledAlias(const SpdySessionKey& alias_key) {
+@@ -1661,6 +1661,11 @@ void SpdySession::RemovePooledAlias(const SpdySessionKey& alias_key) {
  }
  
  bool SpdySession::HasAcceptableTransportSecurity() const {
@@ -794,7 +794,7 @@ index f7b4dd4221af6..a51d950a6965d 100644
    CHECK(GetSSLInfo(&ssl_info));
  
 diff --git a/net/ssl/client_cert_store_mac.cc b/net/ssl/client_cert_store_mac.cc
-index 6368ca8b267e0..50980b69477b0 100644
+index 9fd0aa7676860..2d04aca45f008 100644
 --- a/net/ssl/client_cert_store_mac.cc
 +++ b/net/ssl/client_cert_store_mac.cc
 @@ -296,6 +296,12 @@ void AddIdentity(ScopedCFTypeRef<SecIdentityRef> sec_identity,
@@ -1126,10 +1126,10 @@ index e212e97e0bd6e..f8eb884b4a670 100644
  ; This is read by CFPrefs calling getpwuid in a loop. libinfo then fails to
  ; contact any of the opendirectoryd mach services, and falls back to
 diff --git a/sandbox/win/src/process_mitigations.cc b/sandbox/win/src/process_mitigations.cc
-index d00f115e4e41b..6e3f6522d579d 100644
+index 192a80484245d..a0c9cda16da8a 100644
 --- a/sandbox/win/src/process_mitigations.cc
 +++ b/sandbox/win/src/process_mitigations.cc
-@@ -232,6 +232,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
+@@ -262,6 +262,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags starting_flags,
      // Verify caller is not accidentally setting both mutually exclusive
      // policies.
      DCHECK(!(flags & MITIGATION_DYNAMIC_CODE_DISABLE_WITH_OPT_OUT));
@@ -1137,15 +1137,15 @@ index d00f115e4e41b..6e3f6522d579d 100644
      PROCESS_MITIGATION_DYNAMIC_CODE_POLICY policy = {};
      policy.ProhibitDynamicCode = true;
  
-@@ -240,6 +241,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
-         ERROR_ACCESS_DENIED != ::GetLastError()) {
+@@ -270,6 +271,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags starting_flags,
        return false;
      }
+     applied_flags |= MITIGATION_DYNAMIC_CODE_DISABLE;
 +#endif // GOSTSSL
    }
  
    if (version < base::win::Version::WIN10)
-@@ -262,6 +264,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
+@@ -292,6 +294,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags starting_flags,
  
    // Enable binary signing policies.
    if (flags & MITIGATION_FORCE_MS_SIGNED_BINS) {
@@ -1153,16 +1153,16 @@ index d00f115e4e41b..6e3f6522d579d 100644
      PROCESS_MITIGATION_BINARY_SIGNATURE_POLICY policy = {};
      // Allow only MS signed binaries.
      policy.MicrosoftSignedOnly = true;
-@@ -274,6 +277,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags flags) {
-         ERROR_ACCESS_DENIED != ::GetLastError()) {
+@@ -304,6 +307,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags starting_flags,
        return false;
      }
+     applied_flags |= MITIGATION_FORCE_MS_SIGNED_BINS;
 +#endif // GOSTSSL
    }
  
    // Enable image load policies.
 diff --git a/third_party/blink/renderer/core/frame/reporting_context.cc b/third_party/blink/renderer/core/frame/reporting_context.cc
-index 9016601bb2d67..a593212d1aef5 100644
+index dc32fd90d945a..6474fd321bde6 100644
 --- a/third_party/blink/renderer/core/frame/reporting_context.cc
 +++ b/third_party/blink/renderer/core/frame/reporting_context.cc
 @@ -53,7 +53,9 @@ const char ReportingContext::kSupplementName[] = "ReportingContext";
@@ -1218,7 +1218,7 @@ index 9016601bb2d67..a593212d1aef5 100644
  
  }  // namespace blink
 diff --git a/third_party/blink/renderer/core/frame/reporting_context.h b/third_party/blink/renderer/core/frame/reporting_context.h
-index 1160d186a68d7..39de81cc3ddda 100644
+index 68e9fc988a2d6..e28a1c1eb275a 100644
 --- a/third_party/blink/renderer/core/frame/reporting_context.h
 +++ b/third_party/blink/renderer/core/frame/reporting_context.h
 @@ -5,6 +5,7 @@
@@ -1254,7 +1254,7 @@ index 1160d186a68d7..39de81cc3ddda 100644
    HeapMojoReceiver<mojom::blink::ReportingObserver, ReportingContext> receiver_;
  };
 diff --git a/third_party/boringssl/BUILD.generated.gni b/third_party/boringssl/BUILD.generated.gni
-index 57f77f6b02276..ec393cbbb93ab 100644
+index 71fed77bf5baf..b2611315a190e 100644
 --- a/third_party/boringssl/BUILD.generated.gni
 +++ b/third_party/boringssl/BUILD.generated.gni
 @@ -5,6 +5,8 @@
