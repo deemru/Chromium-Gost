@@ -1,4 +1,4 @@
-From 64a88e4e3a18efdd1c8e7c97c10e5fe4837a8b6d Mon Sep 17 00:00:00 2001
+From 56e5935f3f824987595d2bec5b86c471d841d9b5 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Thu, 24 Nov 2022 01:56:23 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -14,6 +14,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../browser/resources/new_tab_page/logo.html  |   5 +-
  chrome/browser/resources/new_tab_page/logo.ts |   2 +-
  chrome/browser/shell_integration_linux.cc     |   2 +-
+ .../ui/startup/startup_browser_creator.cc     |   2 +-
  .../views/toolbar/browser_app_menu_button.cc  |   2 +-
  .../ui/webui/whats_new/whats_new_util.cc      |   2 +-
  chrome/common/channel_info_posix.cc           |   2 +-
@@ -45,7 +46,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.cc  |   8 ++
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 41 files changed, 533 insertions(+), 33 deletions(-)
+ 42 files changed, 534 insertions(+), 34 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
 index 58879beacaeed..2150508d1b1f4 100644
@@ -236,6 +237,19 @@ index 97cd44d3f6ea2..3009431cb3570 100644
  #endif
  }
  
+diff --git a/chrome/browser/ui/startup/startup_browser_creator.cc b/chrome/browser/ui/startup/startup_browser_creator.cc
+index 4be4bcf255485..a9525d7b9330f 100644
+--- a/chrome/browser/ui/startup/startup_browser_creator.cc
++++ b/chrome/browser/ui/startup/startup_browser_creator.cc
+@@ -860,7 +860,7 @@ void StartupBrowserCreator::RegisterLocalStatePrefs(
+   registry->RegisterBooleanPref(prefs::kCommandLineFlagSecurityWarningsEnabled,
+                                 true);
+ #endif
+-  registry->RegisterBooleanPref(prefs::kSuppressUnsupportedOSWarning, false);
++  registry->RegisterBooleanPref(prefs::kSuppressUnsupportedOSWarning, true);
+   registry->RegisterBooleanPref(prefs::kWasRestarted, false);
+ 
+ #if BUILDFLAG(IS_WIN)
 diff --git a/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc b/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
 index e4bd4ca4f3ffd..a42ed4f82e071 100644
 --- a/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
