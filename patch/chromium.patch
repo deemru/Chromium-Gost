@@ -473,7 +473,7 @@ index e135cc5a09fc7..2e1455cd0f0db 100644
    base::StringAppendF(&user_agent,
                        "Mozilla/5.0 (%s) AppleWebKit/537.36 (KHTML, like Gecko) "
 -                      "%s Safari/537.36",
-+                      "%s Safari/537.36 (Chromium GOST)",
++                      "%s (Chromium GOST) Safari/537.36",
                        os_info.c_str(), product.c_str());
    return user_agent;
  }
