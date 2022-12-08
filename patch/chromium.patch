@@ -1,4 +1,4 @@
-From 56e5935f3f824987595d2bec5b86c471d841d9b5 Mon Sep 17 00:00:00 2001
+From a6ae6092af57e5fab11ac015ef167264fc63d6be Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Thu, 24 Nov 2022 01:56:23 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -465,18 +465,18 @@ index 1bb75bb14aa1a..3426584d6654f 100644
        network::switches::kForceEffectiveConnectionType,
        network::switches::kHostResolverRules,
 diff --git a/content/common/user_agent.cc b/content/common/user_agent.cc
-index e135cc5a09fc7..2e1455cd0f0db 100644
+index e135cc5a09fc7..706a27b5a53da 100644
 --- a/content/common/user_agent.cc
 +++ b/content/common/user_agent.cc
-@@ -383,7 +383,7 @@ std::string BuildUserAgentFromOSAndProduct(const std::string& os_info,
+@@ -382,7 +382,7 @@ std::string BuildUserAgentFromOSAndProduct(const std::string& os_info,
+   // compatible with Safari, we hope!!
    std::string user_agent;
    base::StringAppendF(&user_agent,
-                       "Mozilla/5.0 (%s) AppleWebKit/537.36 (KHTML, like Gecko) "
--                      "%s Safari/537.36",
-+                      "%s (Chromium GOST) Safari/537.36",
+-                      "Mozilla/5.0 (%s) AppleWebKit/537.36 (KHTML, like Gecko) "
++                      "Mozilla/5.0 (%s; Chromium GOST) AppleWebKit/537.36 (KHTML, like Gecko) "
+                       "%s Safari/537.36",
                        os_info.c_str(), product.c_str());
    return user_agent;
- }
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
 index 20997e9af12b7..926f3be5a08cf 100644
 --- a/net/base/net_error_list.h
