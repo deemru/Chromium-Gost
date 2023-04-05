@@ -1,4 +1,4 @@
-From 20c9f57f3d1b37b51a6e61a4193de42f5687dd58 Mon Sep 17 00:00:00 2001
+From 13a05d034d815bd31045a2a94fc3db0275782b86 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Thu, 24 Nov 2022 01:56:23 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -29,7 +29,8 @@ Subject: [PATCH] chromium GOSTSSL
  content/common/user_agent.cc                  |   2 +-
  net/base/net_error_list.h                     |   5 +
  net/cert/cert_verify_proc.cc                  |  23 +++
- net/cert/x509_cert_types.cc                   |   6 +
+ net/cert/x509_cert_types.cc                   |  25 ++++
+ net/cert/x509_cert_types.h                    |   2 +
  net/http/http_network_transaction.cc          |   9 ++
  net/socket/socket.h                           |   4 +
  net/socket/ssl_client_socket.cc               |   9 ++
@@ -49,7 +50,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.cc  |   8 ++
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 45 files changed, 558 insertions(+), 39 deletions(-)
+ 46 files changed, 579 insertions(+), 39 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
 index a4003417d110b..66f6f11cae894 100644
@@ -103,7 +104,7 @@ index 5223754108237..aae9bd8eba5df 100644
  </dict>
  </plist>
 diff --git a/chrome/app/resources/generated_resources_ru.xtb b/chrome/app/resources/generated_resources_ru.xtb
-index 71972aecfacbc..5b977baa8f691 100644
+index 0746e82d3412a..5b49748d7d236 100644
 --- a/chrome/app/resources/generated_resources_ru.xtb
 +++ b/chrome/app/resources/generated_resources_ru.xtb
 @@ -4592,7 +4592,7 @@
@@ -616,16 +617,42 @@ index c1c3a60b009e4..692515ec205e3 100644
    // in the chain. Also fills in the has_* booleans for the digest algorithms
    // present in the chain.
 diff --git a/net/cert/x509_cert_types.cc b/net/cert/x509_cert_types.cc
-index 9263cc3e4ce65..4d7f1e0432f39 100644
+index 9263cc3e4ce65..da6095e2aa191 100644
 --- a/net/cert/x509_cert_types.cc
 +++ b/net/cert/x509_cert_types.cc
-@@ -85,7 +85,13 @@ bool CertPrincipal::ParseDistinguishedName(
+@@ -37,6 +37,18 @@ bool CertPrincipal::ParseDistinguishedName(
+                                                            &common_name)) {
+           return false;
+         }
++      } else if (name_attribute.type == der::Input(kTypeSurnameOid)) {
++        if (sur_name.empty() &&
++            !name_attribute.ValueAsStringWithUnsafeOptions(string_handling,
++                                                           &sur_name)) {
++          return false;
++        }
++      } else if (name_attribute.type == der::Input(kTypeGivenNameOid)) {
++        if (given_name.empty() &&
++            !name_attribute.ValueAsStringWithUnsafeOptions(string_handling,
++                                                           &given_name)) {
++          return false;
++        }
+       } else if (name_attribute.type == der::Input(kTypeLocalityNameOid)) {
+         if (locality_name.empty() &&
+             !name_attribute.ValueAsStringWithUnsafeOptions(string_handling,
+@@ -85,7 +97,20 @@ bool CertPrincipal::ParseDistinguishedName(
  
  std::string CertPrincipal::GetDisplayName() const {
    if (!common_name.empty())
 +  {
 +    if (!organization_names.empty())
-+      return common_name + " (" + organization_names[0] + ")";
++    {
++      std::string name = common_name;
++      std::string organization_name = organization_names[0];
++      if (common_name == organization_name)
++        if (!sur_name.empty() && !given_name.empty())
++          name = sur_name + " " + given_name;
++      return name + " (" + organization_name + ")";
++    }
 +    if (!organization_unit_names.empty())
 +      return common_name + " (" + organization_unit_names[0] + ")";
      return common_name;
@@ -633,6 +660,19 @@ index 9263cc3e4ce65..4d7f1e0432f39 100644
    if (!organization_names.empty())
      return organization_names[0];
    if (!organization_unit_names.empty())
+diff --git a/net/cert/x509_cert_types.h b/net/cert/x509_cert_types.h
+index 13ab5629f31d8..4e25bc110efd7 100644
+--- a/net/cert/x509_cert_types.h
++++ b/net/cert/x509_cert_types.h
+@@ -39,6 +39,8 @@ struct NET_EXPORT CertPrincipal {
+   // Note that some of them can have several values.
+ 
+   std::string common_name;
++  std::string sur_name;
++  std::string given_name;
+   std::string locality_name;
+   std::string state_or_province_name;
+   std::string country_name;
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
 index d8c1a38e247fe..5b21ce8db4a9d 100644
 --- a/net/http/http_network_transaction.cc
