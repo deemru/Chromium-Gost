@@ -1,4 +1,4 @@
-From 7559295fc98138292461d2b0788b4c8e6a4db2de Mon Sep 17 00:00:00 2001
+From 84d07155ac61da561b5ae3f6b830b529913c928d Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Thu, 24 Nov 2022 01:56:23 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -6,7 +6,7 @@ Subject: [PATCH] chromium GOSTSSL
 ---
  chrome/BUILD.gn                               |   4 +-
  chrome/app/app-Info.plist                     |   2 -
- chrome/app/app-entitlements.plist             |   6 +
+ chrome/app/app-entitlements.plist             |   8 ++
  chrome/app/generated_resources.grd            |   3 -
  .../app/resources/generated_resources_ru.xtb  |   2 +-
  chrome/app/theme/chromium/BRANDING            |  16 +--
@@ -58,7 +58,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.cc  |   8 ++
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 54 files changed, 612 insertions(+), 52 deletions(-)
+ 54 files changed, 614 insertions(+), 52 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
 index 5d54960da4162..06e7d42d496a4 100644
@@ -96,10 +96,10 @@ index ff644f12dd89f..a76aace9f8248 100644
  	<string>BrowserCrApplication</string>
  	<key>NSSupportsAutomaticGraphicsSwitching</key>
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
-index 5223754108237..aae9bd8eba5df 100644
+index 5223754108237..177064aa6ecf7 100644
 --- a/chrome/app/app-entitlements.plist
 +++ b/chrome/app/app-entitlements.plist
-@@ -14,5 +14,11 @@
+@@ -14,5 +14,13 @@
  	<true/>
  	<key>com.apple.security.personal-information.location</key>
  	<true/>
@@ -108,6 +108,8 @@ index 5223754108237..aae9bd8eba5df 100644
 +	<key>com.apple.security.cs.allow-unsigned-executable-memory</key>
 +	<true/>
 +	<key>com.apple.security.cs.disable-library-validation</key>
++	<true/>
++	<key>com.apple.security.cs.allow-jit</key>
 +	<true/>
  </dict>
  </plist>
@@ -130,7 +132,7 @@ index c530459cf57ef..d9ed4f5236a72 100644
        <message name="IDS_NTP_CUSTOM_LINKS_ADD_SHORTCUT_TOOLTIP" desc="The tooltip for adding a custom link shortcut. (On the New Tab Page)">
          Add shortcut
 diff --git a/chrome/app/resources/generated_resources_ru.xtb b/chrome/app/resources/generated_resources_ru.xtb
-index ab8069649713f..e71eba373ad30 100644
+index 223324b241ccf..8519cc495fe10 100644
 --- a/chrome/app/resources/generated_resources_ru.xtb
 +++ b/chrome/app/resources/generated_resources_ru.xtb
 @@ -4641,7 +4641,7 @@
@@ -590,7 +592,7 @@ index 7fe8cd3536017..fd07cd04fe9d3 100644
    data->suggestions_url_post_params = s.ColumnString(18);
    data->image_url_post_params = s.ColumnString(19);
 diff --git a/components/search_engines/prepopulated_engines.json b/components/search_engines/prepopulated_engines.json
-index 45bce68735d40..29c3a674925ed 100644
+index 45bce68735d40..5b51b117c0e02 100644
 --- a/components/search_engines/prepopulated_engines.json
 +++ b/components/search_engines/prepopulated_engines.json
 @@ -556,7 +556,7 @@
@@ -648,7 +650,7 @@ index 45bce68735d40..29c3a674925ed 100644
        "image_url": "https://yandex.ua/images/search/?rpt=imageview",
        "image_url_post_params": "upfile={google:imageThumbnail},original_width={google:imageOriginalWidth},original_height={google:imageOriginalHeight},prg=1",
 diff --git a/components/search_engines/search_terms_data.cc b/components/search_engines/search_terms_data.cc
-index 26c2e0f077f91..cd9e36e63f1be 100644
+index 26c2e0f077f91..217af88830d25 100644
 --- a/components/search_engines/search_terms_data.cc
 +++ b/components/search_engines/search_terms_data.cc
 @@ -165,7 +165,7 @@ std::string SearchTermsData::GoogleImageSearchSource() const {
@@ -700,7 +702,7 @@ index f073ec0f35e19..15abd4d5eab30 100644
      if (string_value) {
        contextual_search_url = *string_value;
 diff --git a/components/search_engines/template_url_prepopulate_data.cc b/components/search_engines/template_url_prepopulate_data.cc
-index dbd10daed117a..f0a2e4ba8f539 100644
+index dbd10daed117a..2be2b9df5bcdb 100644
 --- a/components/search_engines/template_url_prepopulate_data.cc
 +++ b/components/search_engines/template_url_prepopulate_data.cc
 @@ -1331,6 +1331,12 @@ std::vector<std::unique_ptr<TemplateURLData>> GetPrepopulationSetFromCountryID(
