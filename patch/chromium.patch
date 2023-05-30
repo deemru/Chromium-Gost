@@ -1,4 +1,4 @@
-From b3f17b7f921e7de49b3a209dead9bfb3e5c7d63b Mon Sep 17 00:00:00 2001
+From c4967a018d600c81e353bf12f7f9c5815d359d1e Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 31 May 2023 01:06:37 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -897,7 +897,7 @@ index 2dd6d3c9567f2..5b33d9b3611e9 100644
    std::string state_or_province_name;
    std::string country_name;
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index d8bade0a8fd54..81108d3d09536 100644
+index d8bade0a8fd54..64499ea6d9d44 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
 @@ -1593,6 +1593,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
@@ -908,7 +908,7 @@ index d8bade0a8fd54..81108d3d09536 100644
 +#ifndef NO_GOSTSSL
 +  if( error == ERR_TLS_GOST_REQUIRED )
 +  {
-+    ResetConnectionAndRequestForResend();
++    ResetConnectionAndRequestForResend(RetryReason::kWrongVersionOnEarlyData);
 +    return OK;
 +  }
 +#endif // GOSTSSL
