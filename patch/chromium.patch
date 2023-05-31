@@ -1,4 +1,4 @@
-From c4967a018d600c81e353bf12f7f9c5815d359d1e Mon Sep 17 00:00:00 2001
+From be2c4cd91ac9cef6921c6b31ce3da9f473f67d43 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 31 May 2023 01:06:37 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -53,12 +53,13 @@ Subject: [PATCH] chromium GOSTSSL
  net/ssl/ssl_cipher_suite_names.cc             |  64 +++++++++
  net/ssl/ssl_platform_key_util.cc              |  22 +++
  net/ssl/ssl_platform_key_util.h               |   7 +
+ sandbox/policy/features.cc                    |   4 +-
  sandbox/policy/mac/common.sb                  |  16 +++
  sandbox/win/src/process_mitigations.cc        |   4 +
  .../renderer/core/frame/reporting_context.cc  |   8 ++
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 54 files changed, 614 insertions(+), 52 deletions(-)
+ 55 files changed, 616 insertions(+), 54 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
 index 38b1cdc80c9ed..a9e20610e3564 100644
@@ -1475,6 +1476,28 @@ index 5e26c931141dd..5e31c3572b134 100644
  // Returns the public key of |certificate| as an |EVP_PKEY| or nullptr on error.
  bssl::UniquePtr<EVP_PKEY> GetClientCertPublicKey(
      const X509Certificate* certificate);
+diff --git a/sandbox/policy/features.cc b/sandbox/policy/features.cc
+index 6ec69f7653369..c3d05bcff4e37 100644
+--- a/sandbox/policy/features.cc
++++ b/sandbox/policy/features.cc
+@@ -25,7 +25,7 @@ BASE_FEATURE(kNetworkServiceSandbox,
+ // disallow any syscalls.
+ BASE_FEATURE(kNetworkServiceSyscallFilter,
+              "NetworkServiceSyscallFilter",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             base::FEATURE_DISABLED_BY_DEFAULT);
+ // Enables a fine-grained file path allowlist for the network service.
+ // Only has an effect if IsNetworkSandboxEnabled() returns true.
+ // If the network service sandbox is enabled and |kNetworkServiceFileAllowlist|
+@@ -33,7 +33,7 @@ BASE_FEATURE(kNetworkServiceSyscallFilter,
+ // allow everything.
+ BASE_FEATURE(kNetworkServiceFileAllowlist,
+              "NetworkServiceFileAllowlist",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             base::FEATURE_DISABLED_BY_DEFAULT);
+ #endif  // BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
+ #endif  // !BUILDFLAG(IS_MAC) && !BUILDFLAG(IS_FUCHSIA)
+ 
 diff --git a/sandbox/policy/mac/common.sb b/sandbox/policy/mac/common.sb
 index 05dd5c3c3068e..94025087ae339 100644
 --- a/sandbox/policy/mac/common.sb
