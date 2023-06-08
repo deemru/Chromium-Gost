@@ -1,4 +1,4 @@
-From c9c7067798864e3285d1d7345d81ac7a707cd02f Mon Sep 17 00:00:00 2001
+From 24f6d72e8164e91080b98c5900a73af22f4265d3 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Fri, 21 Apr 2023 00:13:54 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -840,7 +840,7 @@ index caea5c1262aa5..853f7b2396e95 100644
    // in the chain. Also fills in the has_* booleans for the digest algorithms
    // present in the chain.
 diff --git a/net/cert/x509_cert_types.cc b/net/cert/x509_cert_types.cc
-index 9263cc3e4ce65..da6095e2aa191 100644
+index 9263cc3e4ce65..d7d14edb86254 100644
 --- a/net/cert/x509_cert_types.cc
 +++ b/net/cert/x509_cert_types.cc
 @@ -37,6 +37,18 @@ bool CertPrincipal::ParseDistinguishedName(
@@ -873,7 +873,7 @@ index 9263cc3e4ce65..da6095e2aa191 100644
 +      std::string organization_name = organization_names[0];
 +      if (common_name == organization_name)
 +        if (!sur_name.empty() && !given_name.empty())
-+          name = sur_name + " " + given_name;
++          name = sur_name + " " + given_name + " (ЮЛ)";
 +      return name + " (" + organization_name + ")";
 +    }
 +    if (!organization_unit_names.empty())
