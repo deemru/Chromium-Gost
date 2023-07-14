@@ -1,6 +1,6 @@
-From cfa10bfad357b1bc288896c67ebc956d41c4d0cb Mon Sep 17 00:00:00 2001
+From 3196e8f9711d3ae42bfc068a6346f79bab9443d1 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
-Date: Wed, 20 Oct 2021 11:51:56 +0300
+Date: Fri, 14 Jul 2023 15:32:39 +0300
 Subject: [PATCH] boringssl GOSTSSL
 
 ---
@@ -10,15 +10,15 @@ Subject: [PATCH] boringssl GOSTSSL
  ssl/internal.h          |  36 +++++++
  ssl/s3_both.cc          |   8 ++
  ssl/ssl_buffer.cc       |   5 +
- ssl/ssl_cipher.cc       | 145 +++++++++++++++++++++++++++
+ ssl/ssl_cipher.cc       | 182 ++++++++++++++++++++++++++++++++++
  ssl/ssl_lib.cc          | 212 ++++++++++++++++++++++++++++++++++++++++
- 8 files changed, 464 insertions(+)
+ 8 files changed, 501 insertions(+)
 
 diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
-index b5bec5c22..740973a5c 100644
+index 53aa9b453..0725bf8d5 100644
 --- a/include/openssl/ssl.h
 +++ b/include/openssl/ssl.h
-@@ -5429,6 +5429,11 @@ BSSL_NAMESPACE_END
+@@ -5558,6 +5558,11 @@ BSSL_NAMESPACE_END
  
  #endif
  
@@ -31,10 +31,10 @@ index b5bec5c22..740973a5c 100644
  #define SSL_R_ATTEMPT_TO_REUSE_SESSION_IN_DIFFERENT_CONTEXT 101
  #define SSL_R_BAD_ALERT 102
 diff --git a/ssl/extensions.cc b/ssl/extensions.cc
-index ba9236035..e175e5c8e 100644
+index 5ee280221..77e299c77 100644
 --- a/ssl/extensions.cc
 +++ b/ssl/extensions.cc
-@@ -490,6 +490,34 @@ bool tls12_add_verify_sigalgs(const SSL_HANDSHAKE *hs, CBB *out) {
+@@ -488,6 +488,34 @@ bool tls12_add_verify_sigalgs(const SSL_HANDSHAKE *hs, CBB *out) {
        return false;
      }
    }
@@ -69,7 +69,7 @@ index ba9236035..e175e5c8e 100644
    return true;
  }
  
-@@ -2563,6 +2591,23 @@ static bool ext_supported_groups_add_clienthello(const SSL_HANDSHAKE *hs,
+@@ -2561,6 +2589,23 @@ static bool ext_supported_groups_add_clienthello(const SSL_HANDSHAKE *hs,
      }
    }
  
@@ -94,10 +94,10 @@ index ba9236035..e175e5c8e 100644
  }
  
 diff --git a/ssl/handshake_client.cc b/ssl/handshake_client.cc
-index e7dca1beb..ed9c886da 100644
+index 971ebd0b1..53bfff2cf 100644
 --- a/ssl/handshake_client.cc
 +++ b/ssl/handshake_client.cc
-@@ -701,6 +701,14 @@ static enum ssl_hs_wait_t do_read_server_hello(SSL_HANDSHAKE *hs) {
+@@ -709,6 +709,14 @@ static enum ssl_hs_wait_t do_read_server_hello(SSL_HANDSHAKE *hs) {
      return ssl_hs_error;
    }
  
@@ -113,10 +113,10 @@ index e7dca1beb..ed9c886da 100644
      OPENSSL_PUT_ERROR(SSL, SSL_R_UNSUPPORTED_PROTOCOL);
      ssl_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_PROTOCOL_VERSION);
 diff --git a/ssl/internal.h b/ssl/internal.h
-index e71dd0c08..a335e4808 100644
+index 2f8ce575f..c206769fb 100644
 --- a/ssl/internal.h
 +++ b/ssl/internal.h
-@@ -532,6 +532,13 @@ BSSL_NAMESPACE_BEGIN
+@@ -553,6 +553,13 @@ BSSL_NAMESPACE_BEGIN
  #define SSL_kPSK 0x00000004u
  #define SSL_kGENERIC 0x00000008u
  
@@ -130,7 +130,7 @@ index e71dd0c08..a335e4808 100644
  // Bits for |algorithm_auth| (server authentication).
  #define SSL_aRSA 0x00000001u
  #define SSL_aECDSA 0x00000002u
-@@ -3404,6 +3411,35 @@ void ssl_set_read_error(SSL *ssl);
+@@ -3442,6 +3449,35 @@ void ssl_set_read_error(SSL *ssl);
  
  BSSL_NAMESPACE_END
  
@@ -167,7 +167,7 @@ index e71dd0c08..a335e4808 100644
  // Opaque C types.
  //
 diff --git a/ssl/s3_both.cc b/ssl/s3_both.cc
-index eb9da0da7..b01b46dc5 100644
+index 6d33c6d7d..002c46367 100644
 --- a/ssl/s3_both.cc
 +++ b/ssl/s3_both.cc
 @@ -339,6 +339,14 @@ int tls_flush_flight(SSL *ssl) {
@@ -202,10 +202,10 @@ index 2ca14efae..1359e37e7 100644
    }
  
 diff --git a/ssl/ssl_cipher.cc b/ssl/ssl_cipher.cc
-index 391944af3..f701fdbf4 100644
+index abf5e3d4a..f092f4311 100644
 --- a/ssl/ssl_cipher.cc
 +++ b/ssl/ssl_cipher.cc
-@@ -208,6 +208,20 @@ static constexpr SSL_CIPHER kCiphers[] = {
+@@ -197,6 +197,20 @@ static constexpr SSL_CIPHER kCiphers[] = {
       SSL_HANDSHAKE_MAC_DEFAULT,
      },
  
@@ -226,7 +226,7 @@ index 391944af3..f701fdbf4 100644
      // PSK cipher suites.
  
      // Cipher 8C
-@@ -424,6 +438,94 @@ static constexpr SSL_CIPHER kCiphers[] = {
+@@ -425,6 +439,94 @@ static constexpr SSL_CIPHER kCiphers[] = {
  
      // ChaCha20-Poly1305 cipher suites.
  
@@ -321,7 +321,7 @@ index 391944af3..f701fdbf4 100644
      // Cipher CCA8
      {
       TLS1_TXT_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
-@@ -460,6 +562,22 @@ static constexpr SSL_CIPHER kCiphers[] = {
+@@ -461,6 +563,22 @@ static constexpr SSL_CIPHER kCiphers[] = {
       SSL_HANDSHAKE_MAC_SHA256,
      },
  
@@ -344,32 +344,90 @@ index 391944af3..f701fdbf4 100644
  };
  
  Span<const SSL_CIPHER> AllCiphers() {
-@@ -1204,6 +1322,24 @@ bool ssl_create_cipher_list(UniquePtr<SSLCipherPreferenceList> *out_cipher_list,
-   ssl_cipher_apply_rule(0, ~0u, ~0u, SSL_3DES, ~0u, 0, CIPHER_ADD, -1, false,
-                         &head, &tail);
+@@ -1146,6 +1264,21 @@ bool ssl_create_cipher_list(UniquePtr<SSLCipherPreferenceList> *out_cipher_list,
+       TLS1_CK_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 & 0xffff,
+       TLS1_CK_ECDHE_RSA_WITH_AES_256_GCM_SHA384 & 0xffff,
+   };
++#ifndef NO_GOSTSSL
++  static const uint16_t kGOSTCiphers[] = {
++      0xC100, // TLS_GOSTR341112_256_WITH_KUZNYECHIK_CTR_OMAC
++      0xC101, // TLS_GOSTR341112_256_WITH_MAGMA_CTR_OMAC
++      0xC102, // TLS_GOSTR341112_256_WITH_28147_CNT_IMIT_IANA
++      0xFF85, // TLS_GOSTR341112_256_WITH_28147_CNT_IMIT
++      0x0081, // TLS_GOSTR341001_WITH_28147_CNT_IMIT
++  };
++  static const uint16_t kGOST13Ciphers[] = {
++      0xC103, // TLS_GOSTR341112_256_WITH_KUZNYECHIK_MGM_L
++      0xC105, // TLS_GOSTR341112_256_WITH_KUZNYECHIK_MGM_S
++      0xC104, // TLS_GOSTR341112_256_WITH_MAGMA_MGM_L
++      0xC106, // TLS_GOSTR341112_256_WITH_MAGMA_MGM_S
++  };
++#endif // GOSTSSL
+   static const uint16_t kChaChaCiphers[] = {
+       TLS1_CK_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256 & 0xffff,
+       TLS1_CK_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256 & 0xffff,
+@@ -1170,6 +1303,10 @@ bool ssl_create_cipher_list(UniquePtr<SSLCipherPreferenceList> *out_cipher_list,
+ 
+   // Set up a linked list of ciphers.
+   CIPHER_ORDER co_list[OPENSSL_ARRAY_SIZE(kAESCiphers) +
++#ifndef NO_GOSTSSL
++                       OPENSSL_ARRAY_SIZE(kGOSTCiphers) +
++                       OPENSSL_ARRAY_SIZE(kGOST13Ciphers) +
++#endif // GOSTSSL
+                        OPENSSL_ARRAY_SIZE(kChaChaCiphers) +
+                        OPENSSL_ARRAY_SIZE(kLegacyCiphers)];
+   for (size_t i = 0; i < OPENSSL_ARRAY_SIZE(co_list); i++) {
+@@ -1187,6 +1324,16 @@ bool ssl_create_cipher_list(UniquePtr<SSLCipherPreferenceList> *out_cipher_list,
+   // TODO(crbug.com/boringssl/29): We should also set up equipreference groups
+   // as a server.
+   size_t num = 0;
++#ifndef NO_GOSTSSL
++  for (uint16_t id : kGOST13Ciphers) {
++    co_list[num++].cipher = SSL_get_cipher_by_value(id);
++    assert(co_list[num - 1].cipher != nullptr);
++  }
++  for (uint16_t id : kGOSTCiphers) {
++    co_list[num++].cipher = SSL_get_cipher_by_value(id);
++    assert(co_list[num - 1].cipher != nullptr);
++  }
++#endif // GOSTSSL
+   if (has_aes_hw) {
+     for (uint16_t id : kAESCiphers) {
+       co_list[num++].cipher = SSL_get_cipher_by_value(id);
+@@ -1212,6 +1359,32 @@ bool ssl_create_cipher_list(UniquePtr<SSLCipherPreferenceList> *out_cipher_list,
+                     OPENSSL_ARRAY_SIZE(kCiphers),
+                 "Not all ciphers are included in the cipher order");
  
 +#ifndef NO_GOSTSSL
 +  if( gostssl() )
 +  {
-+      ssl_cipher_apply_rule( 0, ~0u, ~0u, SSL_eGOST, ~0u, 0, CIPHER_ADD, -1, 0, &head, &tail );
++    if( ( gostssl() & ( 1 << 3 ) ) == 0 )
++    {
++      ssl_cipher_apply_rule( 0x0300C103, nullptr, CIPHER_KILL, -1, 0, &head, &tail );
++      ssl_cipher_apply_rule( 0x0300C104, nullptr, CIPHER_KILL, -1, 0, &head, &tail );
++      ssl_cipher_apply_rule( 0x0300C105, nullptr, CIPHER_KILL, -1, 0, &head, &tail );
++      ssl_cipher_apply_rule( 0x0300C106, nullptr, CIPHER_KILL, -1, 0, &head, &tail );
++    }
 +  }
 +  else
 +  {
-+      ssl_cipher_apply_rule( 0, ~0u, ~0u, SSL_eGOST, ~0u, 0, CIPHER_KILL, -1, 0, &head, &tail );
-+  }
-+  if( ( gostssl() & ( 1 << 3 ) ) == 0 )
-+  {
-+    ssl_cipher_apply_rule( 0x0300C103, ~0u, ~0u, ~0u, ~0u, 0, CIPHER_KILL, -1, 0, &head, &tail );
-+    ssl_cipher_apply_rule( 0x0300C104, ~0u, ~0u, ~0u, ~0u, 0, CIPHER_KILL, -1, 0, &head, &tail );
-+    ssl_cipher_apply_rule( 0x0300C105, ~0u, ~0u, ~0u, ~0u, 0, CIPHER_KILL, -1, 0, &head, &tail );
-+    ssl_cipher_apply_rule( 0x0300C106, ~0u, ~0u, ~0u, ~0u, 0, CIPHER_KILL, -1, 0, &head, &tail );
++    ssl_cipher_apply_rule( 0x0300C100, nullptr, CIPHER_KILL, -1, 0, &head, &tail );
++    ssl_cipher_apply_rule( 0x0300C101, nullptr, CIPHER_KILL, -1, 0, &head, &tail );
++    ssl_cipher_apply_rule( 0x0300C102, nullptr, CIPHER_KILL, -1, 0, &head, &tail );
++    ssl_cipher_apply_rule( 0x0300FF85, nullptr, CIPHER_KILL, -1, 0, &head, &tail );
++    ssl_cipher_apply_rule( 0x03000081, nullptr, CIPHER_KILL, -1, 0, &head, &tail );
++
++    ssl_cipher_apply_rule( 0x0300C103, nullptr, CIPHER_KILL, -1, 0, &head, &tail );
++    ssl_cipher_apply_rule( 0x0300C104, nullptr, CIPHER_KILL, -1, 0, &head, &tail );
++    ssl_cipher_apply_rule( 0x0300C105, nullptr, CIPHER_KILL, -1, 0, &head, &tail );
++    ssl_cipher_apply_rule( 0x0300C106, nullptr, CIPHER_KILL, -1, 0, &head, &tail );
 +  }
 +#endif // GOSTSSL
 +
-   // Temporarily enable everything else for sorting
-   ssl_cipher_apply_rule(0, ~0u, ~0u, ~0u, ~0u, 0, CIPHER_ADD, -1, false, &head,
-                         &tail);
-@@ -1417,6 +1553,9 @@ int SSL_CIPHER_get_kx_nid(const SSL_CIPHER *cipher) {
+   // If the rule_string begins with DEFAULT, apply the default rule before
+   // using the (possibly available) additional rules.
+   const char *rule_p = rule_str;
+@@ -1413,6 +1586,9 @@ int SSL_CIPHER_get_kx_nid(const SSL_CIPHER *cipher) {
      case SSL_kRSA:
        return NID_kx_rsa;
      case SSL_kECDHE:
@@ -379,7 +437,7 @@ index 391944af3..f701fdbf4 100644
        return NID_kx_ecdhe;
      case SSL_kPSK:
        return NID_kx_psk;
-@@ -1432,6 +1571,9 @@ int SSL_CIPHER_get_auth_nid(const SSL_CIPHER *cipher) {
+@@ -1428,6 +1604,9 @@ int SSL_CIPHER_get_auth_nid(const SSL_CIPHER *cipher) {
      case SSL_aRSA:
        return NID_auth_rsa;
      case SSL_aECDSA:
@@ -389,7 +447,7 @@ index 391944af3..f701fdbf4 100644
        return NID_auth_ecdsa;
      case SSL_aPSK:
        return NID_auth_psk;
-@@ -1554,6 +1696,9 @@ int SSL_CIPHER_get_bits(const SSL_CIPHER *cipher, int *out_alg_bits) {
+@@ -1543,6 +1722,9 @@ int SSL_CIPHER_get_bits(const SSL_CIPHER *cipher, int *out_alg_bits) {
  
      case SSL_AES256:
      case SSL_AES256GCM:
@@ -400,10 +458,10 @@ index 391944af3..f701fdbf4 100644
        alg_bits = 256;
        strength_bits = 256;
 diff --git a/ssl/ssl_lib.cc b/ssl/ssl_lib.cc
-index 86e8eb33e..3b79f3854 100644
+index 838761af5..6251c85d3 100644
 --- a/ssl/ssl_lib.cc
 +++ b/ssl/ssl_lib.cc
-@@ -511,6 +511,152 @@ static int ssl_session_cmp(const SSL_SESSION *a, const SSL_SESSION *b) {
+@@ -522,6 +522,152 @@ static int ssl_session_cmp(const SSL_SESSION *a, const SSL_SESSION *b) {
    return OPENSSL_memcmp(a->session_id, b->session_id, a->session_id_length);
  }
  
@@ -556,7 +614,7 @@ index 86e8eb33e..3b79f3854 100644
  ssl_ctx_st::ssl_ctx_st(const SSL_METHOD *ssl_method)
      : method(ssl_method->method),
        x509_method(ssl_method->x509_method),
-@@ -705,6 +851,11 @@ SSL_CONFIG::~SSL_CONFIG() {
+@@ -718,6 +864,11 @@ SSL_CONFIG::~SSL_CONFIG() {
  }
  
  void SSL_free(SSL *ssl) {
@@ -568,7 +626,7 @@ index 86e8eb33e..3b79f3854 100644
    Delete(ssl);
  }
  
-@@ -834,6 +985,15 @@ int SSL_provide_quic_data(SSL *ssl, enum ssl_encryption_level_t level,
+@@ -847,6 +998,15 @@ int SSL_provide_quic_data(SSL *ssl, enum ssl_encryption_level_t level,
  
  int SSL_do_handshake(SSL *ssl) {
    ssl_reset_error_state(ssl);
@@ -584,7 +642,7 @@ index 86e8eb33e..3b79f3854 100644
  
    if (ssl->do_handshake == NULL) {
      OPENSSL_PUT_ERROR(SSL, SSL_R_CONNECTION_TYPE_NOT_SET);
-@@ -852,6 +1012,18 @@ int SSL_do_handshake(SSL *ssl) {
+@@ -865,6 +1025,18 @@ int SSL_do_handshake(SSL *ssl) {
    ssl_do_info_callback(
        ssl, ssl->server ? SSL_CB_ACCEPT_EXIT : SSL_CB_CONNECT_EXIT, ret);
    if (ret <= 0) {
@@ -603,7 +661,7 @@ index 86e8eb33e..3b79f3854 100644
      return ret;
    }
  
-@@ -1016,6 +1188,15 @@ static int ssl_read_impl(SSL *ssl) {
+@@ -1029,6 +1201,15 @@ static int ssl_read_impl(SSL *ssl) {
  }
  
  int SSL_read(SSL *ssl, void *buf, int num) {
@@ -619,7 +677,7 @@ index 86e8eb33e..3b79f3854 100644
    int ret = SSL_peek(ssl, buf, num);
    if (ret <= 0) {
      return ret;
-@@ -1031,6 +1212,15 @@ int SSL_read(SSL *ssl, void *buf, int num) {
+@@ -1044,6 +1225,15 @@ int SSL_read(SSL *ssl, void *buf, int num) {
  }
  
  int SSL_peek(SSL *ssl, void *buf, int num) {
@@ -635,7 +693,7 @@ index 86e8eb33e..3b79f3854 100644
    if (ssl->quic_method != nullptr) {
      OPENSSL_PUT_ERROR(SSL, ERR_R_SHOULD_NOT_HAVE_BEEN_CALLED);
      return -1;
-@@ -1051,6 +1241,15 @@ int SSL_peek(SSL *ssl, void *buf, int num) {
+@@ -1064,6 +1254,15 @@ int SSL_peek(SSL *ssl, void *buf, int num) {
  
  int SSL_write(SSL *ssl, const void *buf, int num) {
    ssl_reset_error_state(ssl);
@@ -651,7 +709,7 @@ index 86e8eb33e..3b79f3854 100644
  
    if (ssl->quic_method != nullptr) {
      OPENSSL_PUT_ERROR(SSL, ERR_R_SHOULD_NOT_HAVE_BEEN_CALLED);
-@@ -1123,6 +1322,15 @@ int SSL_key_update(SSL *ssl, int request_type) {
+@@ -1136,6 +1335,15 @@ int SSL_key_update(SSL *ssl, int request_type) {
  
  int SSL_shutdown(SSL *ssl) {
    ssl_reset_error_state(ssl);
@@ -667,7 +725,7 @@ index 86e8eb33e..3b79f3854 100644
  
    if (ssl->do_handshake == NULL) {
      OPENSSL_PUT_ERROR(SSL, SSL_R_UNINITIALIZED);
-@@ -2429,6 +2637,10 @@ EVP_PKEY *SSL_CTX_get0_privatekey(const SSL_CTX *ctx) {
+@@ -2454,6 +2662,10 @@ EVP_PKEY *SSL_CTX_get0_privatekey(const SSL_CTX *ctx) {
  }
  
  const SSL_CIPHER *SSL_get_current_cipher(const SSL *ssl) {
