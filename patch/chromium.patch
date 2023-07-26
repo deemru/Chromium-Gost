@@ -1185,7 +1185,7 @@ index b78a351516293..0c4b4a4343cc9 100644
 +      gostssl_verifyhook((void*)ssl_.get(), host_and_port_.host().c_str(), &gost_status, 1);
 +      if (gost_status)
 +      {
-+        if (gost_status == CRYPT_E_REVOCATION_OFFLINE)
++        if (gost_status != 1)
 +        {
 +          base::ThreadPool::PostTask(FROM_HERE, { base::TaskPriority::USER_VISIBLE, base::MayBlock() },
 +            base::BindOnce(&SSLClientSocketImpl::VerifyGOSTTask, base::Unretained(this), base::SequencedTaskRunner::GetCurrentDefault()));
