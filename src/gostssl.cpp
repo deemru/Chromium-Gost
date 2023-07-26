@@ -42,7 +42,7 @@ void gostssl_server_proxy( SSL * s, const char * data, size_t len );
 
 // Hooks
 DLLEXPORT void gostssl_certhook( void * cert, int size );
-DLLEXPORT void gostssl_verifyhook( void * s, const char * host, unsigned * is_gost );
+DLLEXPORT void gostssl_verifyhook( void * s, const char * host, unsigned * is_gost, char offline );
 DLLEXPORT void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost );
 DLLEXPORT void gostssl_isgostcerthook( void * cert, int size, int * is_gost );
 DLLEXPORT void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size, const char * ciphers, const char * tlsmode );
@@ -164,6 +164,7 @@ struct GostSSL_Worker
         s = NULL;
         host_status = GOSTSSL_HOST_AUTO;
         tlsmode = 2;
+        connected = false;
     }
 
     ~GostSSL_Worker()
@@ -179,6 +180,7 @@ struct GostSSL_Worker
     std::vector<char> boring_hello;
     std::vector<char> server_proxy;
     int tlsmode;
+    bool connected;
 };
 
 static int gostssl_read_cb( GostSSL_Worker * w, void * buf, int len )
@@ -641,6 +643,9 @@ int gostssl_connect( SSL * s, int * is_gost )
 
     *is_gost = TRUE;
 
+    if( w->connected ) // handshake finished, cert verify left
+      return boring_set_connected_final_cb( w->s );
+
     int ret = msspi_connect( w->h );
 
     if( ret == 1 )
@@ -714,9 +719,10 @@ int gostssl_connect( SSL * s, int * is_gost )
 
         w->host_status = GOSTSSL_HOST_YES;
         host_status_set( w->host_string, GOSTSSL_HOST_YES );
+        w->connected = true;
 
         char ssl_ret = boring_set_connected_cb( w->s, alpn, alpn_len, version, cipher_id, &servercerts_bufs[0], &servercerts_lens[0], servercerts_count );
-        if( !ssl_ret )
+        if( ssl_ret != 1 )
             return -1;
 
         return 1;
@@ -730,7 +736,7 @@ void gostssl_free( SSL * s )
     workers_api( s, WDB_FREE );
 }
 
-void gostssl_verifyhook( void * s, const char * host, unsigned * gost_status )
+void gostssl_verifyhook( void * s, const char * host, unsigned * gost_status, char offline )
 {
     *gost_status = 0;
 
@@ -740,6 +746,7 @@ void gostssl_verifyhook( void * s, const char * host, unsigned * gost_status )
         return;
 
     msspi_set_hostname( w->h, host );
+    msspi_set_verify_offline( w->h, offline );
 
     unsigned verify_status = msspi_verify( w->h );
 
