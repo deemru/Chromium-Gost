@@ -1,4 +1,4 @@
-From c85d575b2432dff04eb8365efbe6ee1872ff8873 Mon Sep 17 00:00:00 2001
+From 87c6aa63ad9d37d412cefc5690c9a7e86293df0c Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 13 Sep 2023 10:41:52 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -19,6 +19,7 @@ Subject: [PATCH] chromium GOSTSSL
  chrome/browser/search/search.cc               |   2 +
  chrome/browser/shell_integration_linux.cc     |   2 +-
  .../ui/startup/startup_browser_creator.cc     |   4 +-
+ chrome/browser/ui/ui_features.cc              |   2 +-
  .../browser/ui/views/certificate_selector.cc  |  20 +-
  .../views/toolbar/browser_app_menu_button.cc  |   2 +-
  .../ui/webui/whats_new/whats_new_util.cc      |   2 +-
@@ -59,7 +60,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.cc  |   8 +
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 55 files changed, 687 insertions(+), 54 deletions(-)
+ 56 files changed, 688 insertions(+), 55 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
 index 61f07f7360477..66519c6e7cc2c 100644
@@ -331,6 +332,19 @@ index 7b6897beb2db2..7caae82eafdd4 100644
    registry->RegisterBooleanPref(prefs::kWasRestarted, false);
  
  #if BUILDFLAG(IS_WIN)
+diff --git a/chrome/browser/ui/ui_features.cc b/chrome/browser/ui/ui_features.cc
+index 5aa67c3a622ee..45e477d0e2ede 100644
+--- a/chrome/browser/ui/ui_features.cc
++++ b/chrome/browser/ui/ui_features.cc
+@@ -25,7 +25,7 @@ BASE_FEATURE(kDesktopPWAsAppHomePage,
+ #endif  // !BUILDFLAG(IS_CHROMEOS) && !BUILDFLAG(IS_ANDROID)
+ 
+ // Enables Chrome Labs menu in the toolbar. See https://crbug.com/1145666
+-BASE_FEATURE(kChromeLabs, "ChromeLabs", base::FEATURE_ENABLED_BY_DEFAULT);
++BASE_FEATURE(kChromeLabs, "ChromeLabs", base::FEATURE_DISABLED_BY_DEFAULT);
+ const char kChromeLabsActivationParameterName[] =
+     "chrome_labs_activation_percentage";
+ const base::FeatureParam<int> kChromeLabsActivationPercentage{
 diff --git a/chrome/browser/ui/views/certificate_selector.cc b/chrome/browser/ui/views/certificate_selector.cc
 index 32f7a63a43f99..46cfd099c8879 100644
 --- a/chrome/browser/ui/views/certificate_selector.cc
@@ -508,7 +522,7 @@ index e968b5fd711d6..92edea048bd0f 100644
  case $CHANNEL in
    stable )
 diff --git a/components/remote_cocoa/app_shim/certificate_viewer.mm b/components/remote_cocoa/app_shim/certificate_viewer.mm
-index f2ac67c3143bc..475f489734730 100644
+index f2ac67c3143bc..3733f43691c98 100644
 --- a/components/remote_cocoa/app_shim/certificate_viewer.mm
 +++ b/components/remote_cocoa/app_shim/certificate_viewer.mm
 @@ -14,10 +14,56 @@
