@@ -1,0 +1,132 @@
+From 8a8ab66f173efacd97c9e3c544bd2e258fdfffec Mon Sep 17 00:00:00 2001
+From: Dmitrii Pichulin <deem@deem.ru>
+Date: Wed, 8 Nov 2023 18:10:26 +0300
+Subject: [PATCH] Revert "Remove Download Bubble flags"
+
+revert 3629ca9973f6460137c40ddca7e1fdffd045c3a7 && 118 -> -1
+---
+ chrome/browser/about_flags.cc       | 10 ++++++++++
+ chrome/browser/flag-metadata.json   | 10 ++++++++++
+ chrome/browser/flag_descriptions.cc | 10 ++++++++++
+ chrome/browser/flag_descriptions.h  |  6 ++++++
+ tools/metrics/histograms/enums.xml  |  4 ++++
+ 5 files changed, 40 insertions(+)
+
+diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
+index 32e2e14cdb2d9..2f672cc60ef71 100644
+--- a/chrome/browser/about_flags.cc
++++ b/chrome/browser/about_flags.cc
+@@ -9940,6 +9940,16 @@ const FeatureEntry kFeatureEntries[] = {
+          "IsolateSandboxedIframes" /* trial name */)},
+ #endif
+ 
++    {"download-bubble", flag_descriptions::kDownloadBubbleName,
++     flag_descriptions::kDownloadBubbleDescription,
++     kOsLinux | kOsLacros | kOsMac | kOsWin,
++     FEATURE_VALUE_TYPE(safe_browsing::kDownloadBubble)},
++
++    {"download-bubble-v2", flag_descriptions::kDownloadBubbleV2Name,
++     flag_descriptions::kDownloadBubbleV2Description,
++     kOsLinux | kOsLacros | kOsMac | kOsWin,
++     FEATURE_VALUE_TYPE(safe_browsing::kDownloadBubbleV2)},
++
+     {"download-warning-improvements",
+      flag_descriptions::kDownloadWarningImprovementsName,
+      flag_descriptions::kDownloadWarningImprovementsDescription,
+diff --git a/chrome/browser/flag-metadata.json b/chrome/browser/flag-metadata.json
+index 60d6876953def..8506a63fe8503 100644
+--- a/chrome/browser/flag-metadata.json
++++ b/chrome/browser/flag-metadata.json
+@@ -1903,6 +1903,16 @@
+     "owners": [ "shaktisahu", "qinmin" ],
+     "expiry_milestone": 96
+   },
++  {
++    "name": "download-bubble",
++    "owners": [ "chlily", "chrome-counter-abuse-alerts@google.com" ],
++    "expiry_milestone": -1
++  },
++  {
++    "name": "download-bubble-v2",
++    "owners": [ "chlily", "chrome-counter-abuse-alerts@google.com" ],
++    "expiry_milestone": -1
++  },
+   {
+     "name": "download-later",
+     "owners": [ "xingliu", "dtrainor" ],
+diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
+index d33d6d04c130e..a6868fe3e7fb9 100644
+--- a/chrome/browser/flag_descriptions.cc
++++ b/chrome/browser/flag_descriptions.cc
+@@ -1254,6 +1254,16 @@ const char kExperimentalRgbKeyboardPatternsName[] =
+ const char kExperimentalRgbKeyboardPatternsDescription[] =
+     "Enable experimental RGB Keyboard patterns support on supported devices.";
+ 
++const char kDownloadBubbleName[] = "Enable download bubble";
++const char kDownloadBubbleDescription[] =
++    "Enables the download bubble instead of the download shelf.";
++
++const char kDownloadBubbleV2Name[] = "Enable download bubble V2";
++const char kDownloadBubbleV2Description[] =
++    "Adds features to the download bubble not available on the download shelf. "
++    "Only works if the base download bubble flag download-bubble is also "
++    "enabled.";
++
+ const char kDownloadRangeName[] = "Enable download range support";
+ const char kDownloadRangeDescription[] =
+     "Enables arbitrary download range request support.";
+diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
+index 89d8ca8a55114..a372632c29aaa 100644
+--- a/chrome/browser/flag_descriptions.h
++++ b/chrome/browser/flag_descriptions.h
+@@ -743,6 +743,12 @@ extern const char kMemlogStackModeDescription[];
+ extern const char kMemlogStackModeNative[];
+ extern const char kMemlogStackModeNativeWithThreadNames[];
+ 
++extern const char kDownloadBubbleName[];
++extern const char kDownloadBubbleDescription[];
++
++extern const char kDownloadBubbleV2Name[];
++extern const char kDownloadBubbleV2Description[];
++
+ extern const char kDownloadRangeName[];
+ extern const char kDownloadRangeDescription[];
+ 
+diff --git a/tools/metrics/histograms/enums.xml b/tools/metrics/histograms/enums.xml
+index 75e5eeb9cc761..4821d346cb457 100644
+--- a/tools/metrics/histograms/enums.xml
++++ b/tools/metrics/histograms/enums.xml
+@@ -61165,6 +61165,7 @@ from previous Chrome versions.
+   <int value="-1983891525" label="DecodeJpeg420ImagesToYUV:disabled"/>
+   <int value="-1983569861" label="WebXROrientationSensorDevice:disabled"/>
+   <int value="-1982700103" label="EnableAppsGridGapFeature:enabled"/>
++  <int value="-1982298556" label="DownloadBubble:disabled"/>
+   <int value="-1982080540" label="DurableClientHintsCache:disabled"/>
+   <int value="-1981692093"
+       label="SafeBrowsingPasswordProtectionForSignedInUsers:enabled"/>
+@@ -62653,6 +62654,7 @@ from previous Chrome versions.
+   <int value="-1262302650" label="StorageBuckets:disabled"/>
+   <int value="-1262152606" label="disable-lock-screen-apps"/>
+   <int value="-1261972671" label="OmniboxDocumentProvider:disabled"/>
++  <int value="-1261699926" label="DownloadBubbleV2:disabled"/>
+   <int value="-1261263046"
+       label="RemoveUsageOfDeprecatedGaiaSigninEndpoint:disabled"/>
+   <int value="-1261110018" label="AllowDisableTouchpadHapticFeedback:disabled"/>
+@@ -62801,6 +62803,7 @@ from previous Chrome versions.
+   <int value="-1195034892" label="ContinuousSearch:disabled"/>
+   <int value="-1194747282" label="kNearbySharingSelfShare:enabled"/>
+   <int value="-1194129602" label="ClientSideDetectionModelOnAndroid:disabled"/>
++  <int value="-1193375480" label="DownloadBubble:enabled"/>
+   <int value="-1192790333" label="ArcUseHighMemoryDalvikProfile:disabled"/>
+   <int value="-1192334995" label="CrOSLateBootAudioHFPOffload:enabled"/>
+   <int value="-1191671217" label="TabGroupsNewBadgePromo:disabled"/>
+@@ -63406,6 +63409,7 @@ from previous Chrome versions.
+   <int value="-892428689" label="ManualPasswordGenerationAndroid:enabled"/>
+   <int value="-892297699" label="EditContext:enabled"/>
+   <int value="-891856063" label="MidiManagerAndroid:enabled"/>
++  <int value="-890224928" label="DownloadBubbleV2:enabled"/>
+   <int value="-889670978" label="AssistantRoutines:disabled"/>
+   <int value="-888336510" label="NtpSingleRowShortcuts:enabled"/>
+   <int value="-887101831" label="StoreHoursAndroid:disabled"/>
+-- 
+
