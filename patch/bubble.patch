@@ -1,6 +1,6 @@
-From 8a8ab66f173efacd97c9e3c544bd2e258fdfffec Mon Sep 17 00:00:00 2001
+From c31f42efa3d7a8c12d580a6b3eaf6c727deaa7ac Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
-Date: Wed, 8 Nov 2023 18:10:26 +0300
+Date: Wed, 6 Dec 2023 03:04:30 +0300
 Subject: [PATCH] Revert "Remove Download Bubble flags"
 
 revert 3629ca9973f6460137c40ddca7e1fdffd045c3a7 && 118 -> -1
@@ -13,10 +13,10 @@ revert 3629ca9973f6460137c40ddca7e1fdffd045c3a7 && 118 -> -1
  5 files changed, 40 insertions(+)
 
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
-index 32e2e14cdb2d9..2f672cc60ef71 100644
+index 8736a91998f6b..016ec681fc039 100644
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -9940,6 +9940,16 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -9874,6 +9874,16 @@ const FeatureEntry kFeatureEntries[] = {
           "IsolateSandboxedIframes" /* trial name */)},
  #endif
  
@@ -34,12 +34,12 @@ index 32e2e14cdb2d9..2f672cc60ef71 100644
       flag_descriptions::kDownloadWarningImprovementsName,
       flag_descriptions::kDownloadWarningImprovementsDescription,
 diff --git a/chrome/browser/flag-metadata.json b/chrome/browser/flag-metadata.json
-index 60d6876953def..8506a63fe8503 100644
+index 400505f9d64e6..4776eceaebe70 100644
 --- a/chrome/browser/flag-metadata.json
 +++ b/chrome/browser/flag-metadata.json
-@@ -1903,6 +1903,16 @@
-     "owners": [ "shaktisahu", "qinmin" ],
-     "expiry_milestone": 96
+@@ -1797,6 +1797,16 @@
+     "owners": [ "afakhry@chromium.org", "tbuckley@chromium.org" ],
+     "expiry_milestone": 85
    },
 +  {
 +    "name": "download-bubble",
@@ -52,13 +52,13 @@ index 60d6876953def..8506a63fe8503 100644
 +    "expiry_milestone": -1
 +  },
    {
-     "name": "download-later",
-     "owners": [ "xingliu", "dtrainor" ],
+     "name": "download-notification-service-unified-api",
+     "owners": ["shaktisahu@chromium.org", "qinmin@chromium.org"],
 diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
-index d33d6d04c130e..a6868fe3e7fb9 100644
+index f92c5df0fc600..50c28156c7a17 100644
 --- a/chrome/browser/flag_descriptions.cc
 +++ b/chrome/browser/flag_descriptions.cc
-@@ -1254,6 +1254,16 @@ const char kExperimentalRgbKeyboardPatternsName[] =
+@@ -1210,6 +1210,16 @@ const char kExperimentalRgbKeyboardPatternsName[] =
  const char kExperimentalRgbKeyboardPatternsDescription[] =
      "Enable experimental RGB Keyboard patterns support on supported devices.";
  
@@ -76,10 +76,10 @@ index d33d6d04c130e..a6868fe3e7fb9 100644
  const char kDownloadRangeDescription[] =
      "Enables arbitrary download range request support.";
 diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
-index 89d8ca8a55114..a372632c29aaa 100644
+index 71eae84724eab..454e229f483b2 100644
 --- a/chrome/browser/flag_descriptions.h
 +++ b/chrome/browser/flag_descriptions.h
-@@ -743,6 +743,12 @@ extern const char kMemlogStackModeDescription[];
+@@ -726,6 +726,12 @@ extern const char kMemlogStackModeDescription[];
  extern const char kMemlogStackModeNative[];
  extern const char kMemlogStackModeNativeWithThreadNames[];
  
@@ -93,10 +93,10 @@ index 89d8ca8a55114..a372632c29aaa 100644
  extern const char kDownloadRangeDescription[];
  
 diff --git a/tools/metrics/histograms/enums.xml b/tools/metrics/histograms/enums.xml
-index 75e5eeb9cc761..4821d346cb457 100644
+index 83291c4f39d57..a5bd9072580b1 100644
 --- a/tools/metrics/histograms/enums.xml
 +++ b/tools/metrics/histograms/enums.xml
-@@ -61165,6 +61165,7 @@ from previous Chrome versions.
+@@ -61833,6 +61833,7 @@ from previous Chrome versions.
    <int value="-1983891525" label="DecodeJpeg420ImagesToYUV:disabled"/>
    <int value="-1983569861" label="WebXROrientationSensorDevice:disabled"/>
    <int value="-1982700103" label="EnableAppsGridGapFeature:enabled"/>
@@ -104,7 +104,7 @@ index 75e5eeb9cc761..4821d346cb457 100644
    <int value="-1982080540" label="DurableClientHintsCache:disabled"/>
    <int value="-1981692093"
        label="SafeBrowsingPasswordProtectionForSignedInUsers:enabled"/>
-@@ -62653,6 +62654,7 @@ from previous Chrome versions.
+@@ -63343,6 +63344,7 @@ from previous Chrome versions.
    <int value="-1262302650" label="StorageBuckets:disabled"/>
    <int value="-1262152606" label="disable-lock-screen-apps"/>
    <int value="-1261972671" label="OmniboxDocumentProvider:disabled"/>
@@ -112,7 +112,7 @@ index 75e5eeb9cc761..4821d346cb457 100644
    <int value="-1261263046"
        label="RemoveUsageOfDeprecatedGaiaSigninEndpoint:disabled"/>
    <int value="-1261110018" label="AllowDisableTouchpadHapticFeedback:disabled"/>
-@@ -62801,6 +62803,7 @@ from previous Chrome versions.
+@@ -63492,6 +63494,7 @@ from previous Chrome versions.
    <int value="-1195034892" label="ContinuousSearch:disabled"/>
    <int value="-1194747282" label="kNearbySharingSelfShare:enabled"/>
    <int value="-1194129602" label="ClientSideDetectionModelOnAndroid:disabled"/>
@@ -120,7 +120,7 @@ index 75e5eeb9cc761..4821d346cb457 100644
    <int value="-1192790333" label="ArcUseHighMemoryDalvikProfile:disabled"/>
    <int value="-1192334995" label="CrOSLateBootAudioHFPOffload:enabled"/>
    <int value="-1191671217" label="TabGroupsNewBadgePromo:disabled"/>
-@@ -63406,6 +63409,7 @@ from previous Chrome versions.
+@@ -64109,6 +64112,7 @@ from previous Chrome versions.
    <int value="-892428689" label="ManualPasswordGenerationAndroid:enabled"/>
    <int value="-892297699" label="EditContext:enabled"/>
    <int value="-891856063" label="MidiManagerAndroid:enabled"/>
