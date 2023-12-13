@@ -110,26 +110,26 @@ int gostssl_init()
         NULL == ( tls_FF85 = boring_SSL_get_cipher_by_value( 0xFF85 ) ) )
         return init_status;
 
+    char tls10 = msspi_is_version_supported( TLS1_VERSION );
+    char tls11 = msspi_is_version_supported( TLS1_1_VERSION );
+    char tls12 = msspi_is_version_supported( TLS1_2_VERSION );
+    char tls13 = msspi_is_version_supported( TLS1_3_VERSION );
+
     char cipher_0x0081 = msspi_is_cipher_supported( 0x0081 );
-    char cipher_0xC100 = msspi_is_cipher_supported( 0xC100 );
-    char cipher_0xC101 = msspi_is_cipher_supported( 0xC101 );
-    char cipher_0xC102 = msspi_is_cipher_supported( 0xC102 );
-    char cipher_0xC103 = msspi_is_cipher_supported( 0xC103 );
-    char cipher_0xC104 = msspi_is_cipher_supported( 0xC104 );
-    char cipher_0xC105 = msspi_is_cipher_supported( 0xC105 );
-    char cipher_0xC106 = msspi_is_cipher_supported( 0xC106 );
     char cipher_0xFF85 = msspi_is_cipher_supported( 0xFF85 );
+    char cipher_0xC100 = tls12 ? msspi_is_cipher_supported( 0xC100 ) : 0;
+    char cipher_0xC101 = tls12 ? msspi_is_cipher_supported( 0xC101 ) : 0;
+    char cipher_0xC102 = tls12 ? msspi_is_cipher_supported( 0xC102 ) : 0;
+    char cipher_0xC103 = tls13 ? msspi_is_cipher_supported( 0xC103 ) : 0;
+    char cipher_0xC104 = tls13 ? msspi_is_cipher_supported( 0xC104 ) : 0;
+    char cipher_0xC105 = tls13 ? msspi_is_cipher_supported( 0xC105 ) : 0;
+    char cipher_0xC106 = tls13 ? msspi_is_cipher_supported( 0xC106 ) : 0;
 
     bool cipher_tls10 = cipher_0x0081 || cipher_0xFF85;
     bool cipher_tls11 = cipher_tls10;
     bool cipher_tls12 = cipher_tls11 || cipher_0xC100 || cipher_0xC101 || cipher_0xC102;
     bool cipher_tls13 = cipher_0xC103 || cipher_0xC104 || cipher_0xC105 || cipher_0xC106;
     bool cipher_any = cipher_tls10 || cipher_tls11 || cipher_tls12 || cipher_tls13;
-
-    char tls10 = msspi_is_version_supported( TLS1_VERSION );
-    char tls11 = msspi_is_version_supported( TLS1_1_VERSION );
-    char tls12 = msspi_is_version_supported( TLS1_2_VERSION );
-    char tls13 = msspi_is_version_supported( TLS1_3_VERSION );
 
     if( tls10 && cipher_tls10 )
         init_status |= ( 1 << 0 );
