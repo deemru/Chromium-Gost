@@ -87,6 +87,11 @@ static const SSL_CIPHER * tls_FF85 = NULL;
 
 static int g_tlsmode = 2;
 
+#define TLS_FLAG_V1_0 ( 1 << 0 )
+#define TLS_FLAG_V1_1 ( 1 << 1 )
+#define TLS_FLAG_V1_2 ( 1 << 2 )
+#define TLS_FLAG_V1_3 ( 1 << 3 )
+
 int gostssl_init()
 {
     if( g_tlsmode == -1 )
@@ -132,16 +137,16 @@ int gostssl_init()
     bool cipher_any = cipher_tls10 || cipher_tls11 || cipher_tls12 || cipher_tls13;
 
     if( tls10 && cipher_tls10 )
-        init_status |= ( 1 << 0 );
+        init_status |= TLS_FLAG_V1_0;
     if( tls11 && cipher_tls11 )
-        init_status |= ( 1 << 1 );
+        init_status |= TLS_FLAG_V1_1;
     if( tls12 && cipher_tls12 )
-        init_status |= ( 1 << 2 );
+        init_status |= TLS_FLAG_V1_2;
     if( tls13 && cipher_tls13 )
-        init_status |= ( 1 << 3 );
+        init_status |= TLS_FLAG_V1_3;
 
     if( init_status == 0 && cipher_any )
-        init_status = 1;
+        init_status = TLS_FLAG_V1_0;
 
     return init_status;
 }
@@ -366,6 +371,28 @@ static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, con
         w->host_string += ":";
         w->host_string += cachestring ? cachestring : "*";
         w->host_status = host_status_get( w->host_string );
+
+        int tls_flags = gostssl_init();
+        if( tls_flags && tls_flags != TLS_FLAG_V1_0 )
+        {
+            int min = TLS1_3_VERSION;
+            if( tls_flags & TLS_FLAG_V1_0 )
+                min = TLS1_VERSION;
+            else if( tls_flags & TLS_FLAG_V1_1 )
+                min = TLS1_1_VERSION;
+            else if( tls_flags & TLS_FLAG_V1_2 )
+                min = TLS1_2_VERSION;
+
+            int max = TLS1_VERSION;
+            if( tls_flags & TLS_FLAG_V1_3 )
+                min = TLS1_3_VERSION;
+            else if( tls_flags & TLS_FLAG_V1_2 )
+                min = TLS1_2_VERSION;
+            else if( tls_flags & TLS_FLAG_V1_1 )
+                min = TLS1_1_VERSION;
+
+            msspi_set_version( w->h, min, max );
+        }
 
         msspi_set_cert_cb( w->h, (msspi_cert_cb)gostssl_cert_cb );
         msspi_set_cipherlist( w->h, ciphers );
