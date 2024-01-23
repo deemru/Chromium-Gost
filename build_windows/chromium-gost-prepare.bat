@@ -19,7 +19,6 @@ call git show-ref --quiet refs/heads/%GOST_BRANCH% && call git branch -D %GOST_B
 call git checkout -b %GOST_BRANCH% tags/%CHROMIUM_TAG%
 call git branch -D temp
 call gclient sync --with_branch_heads -D
-call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\bubble.patch || goto :finish
 call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\chromium.patch || goto :finish
 
 perl -pi -e "s/Chromium/Chromium-Gost/g" chrome\app\chromium_strings.grd
