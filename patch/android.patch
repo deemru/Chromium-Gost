@@ -1,0 +1,94 @@
+From f267edd4736fd5bfd7b6d6e571201cdc8687d23f Mon Sep 17 00:00:00 2001
+From: crypto-das <55387659+crypto-das@users.noreply.github.com>
+Date: Fri, 2 Feb 2024 12:24:34 +0000
+Subject: [PATCH] Android CSP integration
+
+---
+ chrome/android/BUILD.gn                            | 12 ++++++++++++
+ chrome/android/chrome_public_apk_tmpl.gni          |  6 ++++++
+ .../chrome/browser/ChromeTabbedActivity.java       | 14 ++++++++++++++
+ 3 files changed, 32 insertions(+)
+
+diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
+index 30415d6d82652..9060a61c6627c 100644
+--- a/chrome/android/BUILD.gn
++++ b/chrome/android/BUILD.gn
+@@ -282,8 +282,20 @@ if (current_toolchain == default_toolchain) {
+     srcjar_deps = [ ":chrome_android_java_google_api_keys_srcjar" ]
+   }
+ 
++  android_aar_prebuilt("cprocsp_base_java") {
++    aar_path = "//third_party/cprocsp/libs/csp-base.aar"
++    info_path = "//third_party/cprocsp/libs/csp-base.info"
++  }
++
++  android_aar_prebuilt("cprocsp_gui_java") {
++    aar_path = "//third_party/cprocsp/libs/csp-gui.aar"
++    info_path = "//third_party/cprocsp/libs/csp-gui.info"
++  }
++
+   android_library("chrome_java") {
+     deps = [
++      ":cprocsp_base_java",
++      ":cprocsp_gui_java",
+       ":base_module_java",
+       ":chrome_app_java_resources",
+       ":chrome_public_apk_template_resources",
+diff --git a/chrome/android/chrome_public_apk_tmpl.gni b/chrome/android/chrome_public_apk_tmpl.gni
+index 2ed75910b0d62..290473a8ace4e 100644
+--- a/chrome/android/chrome_public_apk_tmpl.gni
++++ b/chrome/android/chrome_public_apk_tmpl.gni
+@@ -733,6 +733,12 @@ template("chrome_common_apk_or_module_tmpl") {
+       }
+     }
+ 
++    deps += [ "//chrome/android:cprocsp_shared_java" ]
++    loadable_modules += [
++      "//third_party/cprocsp/jniLibs/arm64-v8a/libcspjni.so",
++      "//third_party/cprocsp/jniLibs/arm64-v8a/libsupport.so"
++    ]
++
+     forward_variables_from(invoker,
+                            "*",
+                            TESTONLY_AND_VISIBILITY + [
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
+index 43782c4bdc1e3..bd03ca3bb1c87 100644
+--- a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
+@@ -263,12 +263,23 @@ import java.util.Map;
+ import java.util.Set;
+ import java.util.concurrent.atomic.AtomicBoolean;
+ 
++import ru.CryptoPro.JCSP.NCSPConfig;
++
+ /**
+  * This is the main activity for ChromeMobile when not running in document mode. All the tabs are
+  * accessible via a chrome specific tab switching UI.
+  */
+ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent>
+         implements MismatchedIndicesHandler {
++    private static final String APP_LOGGER_TAG = "CSP";
++
++    private boolean initCSPProviders() {
++        int initCode   = NCSPConfig.init(this);
++        boolean initOk = initCode == NCSPConfig.CSP_INIT_OK;
++
++        return initOk;
++    }
++
+     private static final String TAG = "ChromeTabbedActivity";
+ 
+     protected static final String WINDOW_INDEX = "window_index";
+@@ -562,6 +573,9 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
+                     }
+                     minimizeAppAndCloseTabOnBackPress(getActivityTab());
+                 });
++	if (!initCSPProviders()) {
++            Log.i(APP_LOGGER_TAG, "Couldn't initialize CSP.");
++        }
+     }
+ 
+     @Override
+-- 
+2.34.1
+
