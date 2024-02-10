@@ -1,14 +1,3 @@
-From 3c3db58d8846cdac8fad400a4d6b403bc884a074 Mon Sep 17 00:00:00 2001
-From: crypto-das <55387659+crypto-das@users.noreply.github.com>
-Date: Fri, 2 Feb 2024 13:05:29 +0000
-Subject: [PATCH] Android CSP integration
-
----
- chrome/android/BUILD.gn                       | 12 +++++++++
- chrome/android/chrome_public_apk_tmpl.gni     |  6 +++++
- .../chrome/browser/ChromeTabbedActivity.java  | 14 ++++++++++
- 3 files changed, 32 insertions(+)
-
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 index 271d8ffbb5b7b..18073719f9e95 100644
 --- a/chrome/android/BUILD.gn
@@ -35,14 +24,17 @@ index 271d8ffbb5b7b..18073719f9e95 100644
        ":chrome_app_java_resources",
        ":chrome_public_apk_template_resources",
 diff --git a/chrome/android/chrome_public_apk_tmpl.gni b/chrome/android/chrome_public_apk_tmpl.gni
-index 54c50b54bb7ca..2e08dd0a95453 100644
+index 54c50b54bb7ca..0f00e512bc425 100644
 --- a/chrome/android/chrome_public_apk_tmpl.gni
 +++ b/chrome/android/chrome_public_apk_tmpl.gni
-@@ -729,6 +729,12 @@ template("chrome_common_apk_or_module_tmpl") {
+@@ -729,6 +729,15 @@ template("chrome_common_apk_or_module_tmpl") {
        }
      }
  
-+    deps += [ "//chrome/android:cprocsp_shared_java" ]
++    deps += [
++      "//chrome/android:cprocsp_base_java",
++      "//chrome/android:cprocsp_gui_java"
++    ]
 +    loadable_modules += [
 +      "//third_party/cprocsp/jniLibs/arm64-v8a/libcspjni.so",
 +      "//third_party/cprocsp/jniLibs/arm64-v8a/libsupport.so"
@@ -88,3 +80,32 @@ index 74e852c79190b..2f5afed5e07f2 100644
      }
  
      @Override
+diff --git a/chrome/browser/search_engines/ui_thread_search_terms_data.h b/chrome/browser/search_engines/ui_thread_search_terms_data.h
+index 89658e9aa7b7e..8ad2461605751 100644
+--- a/chrome/browser/search_engines/ui_thread_search_terms_data.h
++++ b/chrome/browser/search_engines/ui_thread_search_terms_data.h
+@@ -28,7 +28,7 @@ class UIThreadSearchTermsData : public SearchTermsData {
+   std::string GoogleImageSearchSource() const override;
+ 
+ #if BUILDFLAG(IS_ANDROID)
+-  std::string GetYandexReferralID() const override;
++//  std::string GetYandexReferralID() const override;
+   std::string GetMailRUReferralID() const override;
+ #endif
+ 
+diff --git a/chrome/browser/search_engines/ui_thread_search_terms_data_android.cc b/chrome/browser/search_engines/ui_thread_search_terms_data_android.cc
+index 1278f9e64ed1f..79b5c56dfb04a 100644
+--- a/chrome/browser/search_engines/ui_thread_search_terms_data_android.cc
++++ b/chrome/browser/search_engines/ui_thread_search_terms_data_android.cc
+@@ -30,9 +30,11 @@ std::string UIThreadSearchTermsData::GetSearchClient() const {
+   return SearchTermsDataAndroid::search_client_.Get();
+ }
+ 
++#if 0
+ std::string UIThreadSearchTermsData::GetYandexReferralID() const {
+   return LocaleManager::GetYandexReferralID();
+ }
++#endif
+ 
+ std::string UIThreadSearchTermsData::GetMailRUReferralID() const {
+   return LocaleManager::GetMailRUReferralID();
