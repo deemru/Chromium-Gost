@@ -43,6 +43,23 @@ index 54c50b54bb7ca..0f00e512bc425 100644
      forward_variables_from(invoker,
                             "*",
                             TESTONLY_AND_VISIBILITY + [
+diff --git a/chrome/android/java/res_chromium_base/values/channel_constants.xml b/chrome/android/java/res_chromium_base/values/channel_constants.xml
+index cc1f2a30cb3c5..3953c9ad3800f 100644
+--- a/chrome/android/java/res_chromium_base/values/channel_constants.xml
++++ b/chrome/android/java/res_chromium_base/values/channel_constants.xml
+@@ -7,8 +7,8 @@ found in the LICENSE file.
+ 
+ <resources xmlns:android="http://schemas.android.com/apk/res/android">
+     <!-- The application name displayed to the user. -->
+-    <string name="app_name" translatable="false">Chromium</string>
+-    <string name="bookmark_widget_title" translatable="false">Chromium bookmarks</string>
+-    <string name="search_widget_title" translatable="false">Chromium search</string>
+-    <string name="quick_action_search_widget_title" translatable="false">Chromium quick action search</string>
++    <string name="app_name" translatable="false">Chromium-Gost</string>
++    <string name="bookmark_widget_title" translatable="false">Chromium-Gost bookmarks</string>
++    <string name="search_widget_title" translatable="false">Chromium-Gost search</string>
++    <string name="quick_action_search_widget_title" translatable="false">Chromium-Gost quick action search</string>
+ </resources>
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
 index 74e852c79190b..2f5afed5e07f2 100644
 --- a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
@@ -80,32 +97,16 @@ index 74e852c79190b..2f5afed5e07f2 100644
      }
  
      @Override
-diff --git a/chrome/browser/search_engines/ui_thread_search_terms_data.h b/chrome/browser/search_engines/ui_thread_search_terms_data.h
-index 89658e9aa7b7e..8ad2461605751 100644
---- a/chrome/browser/search_engines/ui_thread_search_terms_data.h
-+++ b/chrome/browser/search_engines/ui_thread_search_terms_data.h
-@@ -28,7 +28,7 @@ class UIThreadSearchTermsData : public SearchTermsData {
-   std::string GoogleImageSearchSource() const override;
- 
- #if BUILDFLAG(IS_ANDROID)
--  std::string GetYandexReferralID() const override;
-+//  std::string GetYandexReferralID() const override;
-   std::string GetMailRUReferralID() const override;
- #endif
- 
 diff --git a/chrome/browser/search_engines/ui_thread_search_terms_data_android.cc b/chrome/browser/search_engines/ui_thread_search_terms_data_android.cc
-index 1278f9e64ed1f..79b5c56dfb04a 100644
+index 1278f9e64ed1f..caf77c47e85b9 100644
 --- a/chrome/browser/search_engines/ui_thread_search_terms_data_android.cc
 +++ b/chrome/browser/search_engines/ui_thread_search_terms_data_android.cc
-@@ -30,9 +30,11 @@ std::string UIThreadSearchTermsData::GetSearchClient() const {
-   return SearchTermsDataAndroid::search_client_.Get();
+@@ -31,7 +31,7 @@ std::string UIThreadSearchTermsData::GetSearchClient() const {
  }
  
-+#if 0
  std::string UIThreadSearchTermsData::GetYandexReferralID() const {
-   return LocaleManager::GetYandexReferralID();
+-  return LocaleManager::GetYandexReferralID();
++  return "5476077";
  }
-+#endif
  
  std::string UIThreadSearchTermsData::GetMailRUReferralID() const {
-   return LocaleManager::GetMailRUReferralID();

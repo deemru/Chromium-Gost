@@ -25,16 +25,23 @@ git am --3way --ignore-space-change < $CHROMIUM_GOST_REPO/patch/android.patch ||
 
 perl -pi -e "s/Chromium/Chromium-Gost/g" chrome/app/chromium_strings.grd
 perl -pi -e "s/Chromium/Chromium-Gost/g" chrome/app/resources/chromium_strings*.xtb
-cp -f $CHROMIUM_GOST_REPO/extra/exit_0.sh chrome/installer/linux/common/repo.cron
-cp -f $CHROMIUM_GOST_REPO/extra/exit_0.sh chrome/installer/linux/common/rpmrepo.cron
 
 cp -f $CHROMIUM_GOST_REPO/extra/product_logo/*.png chrome/app/theme/chromium/
-cp -f $CHROMIUM_GOST_REPO/extra/product_logo/*.png chrome/app/theme/chromium/linux/
 cp -f $CHROMIUM_GOST_REPO/extra/product_logo/product_logo_16.png chrome/app/theme/default_100_percent/chromium/product_logo_16.png
 cp -f $CHROMIUM_GOST_REPO/extra/product_logo/product_logo_32.png chrome/app/theme/default_100_percent/chromium/product_logo_32.png
 cp -f $CHROMIUM_GOST_REPO/extra/product_logo/product_logo_32.png chrome/app/theme/default_200_percent/chromium/product_logo_16.png
 cp -f $CHROMIUM_GOST_REPO/extra/product_logo/product_logo_64.png chrome/app/theme/default_200_percent/chromium/product_logo_32.png
-cp -f $CHROMIUM_GOST_REPO/extra/product_logo/product_logo_32.xpm chrome/app/theme/chromium/linux/product_logo_32.xpm
+
+cp -f $CHROMIUM_GOST_REPO/extra/res_chromium_base/mipmap-hdpi/app_icon.png chrome/android/java/res_chromium_base/mipmap-hdpi/app_icon.png
+cp -f $CHROMIUM_GOST_REPO/extra/res_chromium_base/mipmap-hdpi/layered_app_icon.png chrome/android/java/res_chromium_base/mipmap-hdpi/layered_app_icon.png
+cp -f $CHROMIUM_GOST_REPO/extra/res_chromium_base/mipmap-mdpi/app_icon.png chrome/android/java/res_chromium_base/mipmap-mdpi/app_icon.png
+cp -f $CHROMIUM_GOST_REPO/extra/res_chromium_base/mipmap-mdpi/layered_app_icon.png chrome/android/java/res_chromium_base/mipmap-mdpi/layered_app_icon.png
+cp -f $CHROMIUM_GOST_REPO/extra/res_chromium_base/mipmap-xhdpi/app_icon.png chrome/android/java/res_chromium_base/mipmap-xhdpi/app_icon.png
+cp -f $CHROMIUM_GOST_REPO/extra/res_chromium_base/mipmap-xhdpi/layered_app_icon.png chrome/android/java/res_chromium_base/mipmap-xhdpi/layered_app_icon.png
+cp -f $CHROMIUM_GOST_REPO/extra/res_chromium_base/mipmap-xxhdpi/app_icon.png chrome/android/java/res_chromium_base/mipmap-xxhdpi/app_icon.png
+cp -f $CHROMIUM_GOST_REPO/extra/res_chromium_base/mipmap-xxhdpi/layered_app_icon.png chrome/android/java/res_chromium_base/mipmap-xxhdpi/layered_app_icon.png
+cp -f $CHROMIUM_GOST_REPO/extra/res_chromium_base/mipmap-xxxhdpi/app_icon.png chrome/android/java/res_chromium_base/mipmap-xxxhdpi/app_icon.png
+cp -f $CHROMIUM_GOST_REPO/extra/res_chromium_base/mipmap-xxxhdpi/layered_app_icon.png chrome/android/java/res_chromium_base/mipmap-xxxhdpi/layered_app_icon.png
 
 cp -f $CHROMIUM_GOST_REPO/extra/favicon_ntp_16.png chrome/app/theme/default_100_percent/common/favicon_ntp.png
 cp -f $CHROMIUM_GOST_REPO/extra/favicon_ntp_32.png chrome/app/theme/default_200_percent/common/favicon_ntp.png
