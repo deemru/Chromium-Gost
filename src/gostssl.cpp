@@ -55,9 +55,18 @@ DLLEXPORT char gostssl_certificate_info( const char * cert, size_t size, const c
 #include <windows.h>
 #else
 #define LEGACY_FORMAT_MESSAGE_IMPL
+#define UNIX
+#ifdef __APPLE__
+#ifndef SIZEOF_VOID_P
+#ifdef __LP64__
+#define SIZEOF_VOID_P 8
+#else /*__LP64__*/
+#define SIZEOF_VOID_P 4
+#endif /*__LP64__*/
+#endif /*SIZEOF_VOID_P*/
+#endif /*__APPLE__*/
 #include "CSP_WinDef.h"
 #include "CSP_WinCrypt.h"
-#define UNIX
 #endif // WIN32
 #include "WinCryptEx.h"
 
