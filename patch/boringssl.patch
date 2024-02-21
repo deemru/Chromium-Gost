@@ -1,4 +1,4 @@
-From 46e52c83742905e3a6dadcbbc3d8f8ef334c7334 Mon Sep 17 00:00:00 2001
+From c9e96f80fb3eb6c5c3c9f32c419d6b261e584cca Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Fri, 14 Jul 2023 15:32:39 +0300
 Subject: [PATCH] boringssl GOSTSSL
@@ -15,10 +15,10 @@ Subject: [PATCH] boringssl GOSTSSL
  8 files changed, 513 insertions(+)
 
 diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
-index e500dd76e..e6c0b9c80 100644
+index 2e19253c2..ef6cf4e98 100644
 --- a/include/openssl/ssl.h
 +++ b/include/openssl/ssl.h
-@@ -5620,6 +5620,11 @@ BSSL_NAMESPACE_END
+@@ -5624,6 +5624,11 @@ BSSL_NAMESPACE_END
  
  #endif
  
