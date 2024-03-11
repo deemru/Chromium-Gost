@@ -1,4 +1,4 @@
-From c89375433248b736a3fdbfd1d4aa1c8c4c0f744d Mon Sep 17 00:00:00 2001
+From 95c05cd2d1a37253933e137cfa744ff52c3af7f5 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Tue, 23 Jan 2024 21:43:47 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -55,12 +55,12 @@ Subject: [PATCH] chromium GOSTSSL
  net/ssl/ssl_platform_key_util.cc              |  22 ++
  net/ssl/ssl_platform_key_util.h               |   7 +
  sandbox/policy/features.cc                    |   4 +-
- sandbox/policy/mac/common.sb                  |  16 ++
+ sandbox/policy/mac/common.sb                  |  17 ++
  sandbox/win/src/process_mitigations.cc        |   4 +
  .../renderer/core/frame/reporting_context.cc  |   8 +
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 56 files changed, 690 insertions(+), 55 deletions(-)
+ 56 files changed, 691 insertions(+), 55 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
 index ef32e9c1315f9..51eee92a53f8f 100644
@@ -134,7 +134,7 @@ index 6ac137571b75b..5eec7833a7f14 100644
        <message name="IDS_NTP_CUSTOM_LINKS_ADD_SHORTCUT_TOOLTIP" desc="The tooltip for adding a custom link shortcut. (On the New Tab Page)">
          Add shortcut
 diff --git a/chrome/app/resources/generated_resources_ru.xtb b/chrome/app/resources/generated_resources_ru.xtb
-index ca6e7e7f071d8..78d13a90f8e02 100644
+index aac76dde57599..1bde4e69a4b5d 100644
 --- a/chrome/app/resources/generated_resources_ru.xtb
 +++ b/chrome/app/resources/generated_resources_ru.xtb
 @@ -5417,7 +5417,7 @@
@@ -1598,10 +1598,10 @@ index 0f26ffe600efd..c180fd9c81a2f 100644
  #endif  // !BUILDFLAG(IS_MAC) && !BUILDFLAG(IS_FUCHSIA)
  
 diff --git a/sandbox/policy/mac/common.sb b/sandbox/policy/mac/common.sb
-index 22d749bce3bc8..ad2cf0d680b7f 100644
+index 22d749bce3bc8..ec0e554f148b7 100644
 --- a/sandbox/policy/mac/common.sb
 +++ b/sandbox/policy/mac/common.sb
-@@ -191,6 +191,22 @@
+@@ -191,6 +191,23 @@
    (subpath "/usr/lib")
  )
  
@@ -1612,6 +1612,7 @@ index 22d749bce3bc8..ad2cf0d680b7f 100644
 +  (subpath "/private/etc/opt/cprocsp")
 +  (subpath "/private/var/opt/cprocsp")
 +  (subpath "/Applications/CryptoPro")
++  (subpath "/Applications/CryptoPro_ECP.app")
 +  (subpath "/Library")
 +)
 +
