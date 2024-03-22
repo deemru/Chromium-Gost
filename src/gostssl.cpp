@@ -392,11 +392,11 @@ static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, con
 
             int max = TLS1_VERSION;
             if( tls_flags & TLS_FLAG_V1_3 )
-                min = TLS1_3_VERSION;
+                max = TLS1_3_VERSION;
             else if( tls_flags & TLS_FLAG_V1_2 )
-                min = TLS1_2_VERSION;
+                max = TLS1_2_VERSION;
             else if( tls_flags & TLS_FLAG_V1_1 )
-                min = TLS1_1_VERSION;
+                max = TLS1_1_VERSION;
 
             msspi_set_version( w->h, min, max );
         }
