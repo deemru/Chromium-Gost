@@ -23,6 +23,7 @@ jobs:
 
     - name: Build
       run: |
+        git submodule update --init --recursive --depth 1
         CHROMIUM_TAG=$(cat VERSION)
         BORINGSSL_REVISION=$(curl -s https://raw.githubusercontent.com/chromium/chromium/$CHROMIUM_TAG/DEPS | grep "'boringssl_revision':" | awk -F"'" '{print $4}')
         git clone https://github.com/google/boringssl.git
