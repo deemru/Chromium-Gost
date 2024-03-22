@@ -1,0 +1,39 @@
+name: "CodeQL"
+
+on: [push, pull_request]
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['cpp']
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+
+    - name: Build
+      run: |
+        CHROMIUM_TAG=$(cat VERSION)
+        BORINGSSL_REVISION=$(curl -s https://raw.githubusercontent.com/chromium/chromium/$CHROMIUM_TAG/DEPS | grep "'boringssl_revision':" | awk -F"'" '{print $4}')
+        git clone https://github.com/google/boringssl.git
+        cd boringssl
+        git checkout $BORINGSSL_REVISION
+        cp -r ../src/gostssl.cpp ./
+        cp -r ../src/msspi/src/* ./
+        cp -r ../src/msspi/third_party/cprocsp/include/* ./include/
+        g++ -Wall -std=c++14 -g -O2 -fPIC -Werror -Wno-unused-function -I./include gostssl.cpp -c -o gostssl.o
+        g++ -Wall -std=c++14 -g -O2 -fPIC -Werror -Wno-unused-function -I./include msspi.cpp -c -o msspi.o
+        g++ -shared -o libgostssl.so gostssl.o msspi.o
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
