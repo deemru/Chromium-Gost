@@ -1,4 +1,4 @@
-From b8cb85e5ffdb2be1c3153bab61499a58bb852d6c Mon Sep 17 00:00:00 2001
+From 27c403345bbf442c55cc55206ee433b48222bea4 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Fri, 22 Mar 2024 15:08:36 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -10,7 +10,7 @@ Subject: [PATCH] chromium GOSTSSL
  chrome/app/generated_resources.grd            |   3 -
  .../app/resources/generated_resources_ru.xtb  |   2 +-
  chrome/app/theme/chromium/BRANDING            |  16 +-
- .../native_process_launcher_posix.cc          |  12 ++
+ .../native_process_launcher_posix.cc          |  12 +
  chrome/browser/history/top_sites_factory.cc   |   4 +-
  chrome/browser/resources/new_tab_page/app.ts  |   6 +-
  .../browser/resources/new_tab_page/logo.html  |   5 +-
@@ -45,7 +45,7 @@ Subject: [PATCH] chromium GOSTSSL
  net/socket/socket.h                           |   4 +
  net/socket/ssl_client_socket.cc               |   9 +
  net/socket/ssl_client_socket.h                |   4 +
- net/socket/ssl_client_socket_impl.cc          | 200 ++++++++++++++++++
+ net/socket/ssl_client_socket_impl.cc          | 208 ++++++++++++++++++
  net/socket/ssl_client_socket_impl.h           |   8 +
  net/spdy/spdy_session.cc                      |   5 +
  net/ssl/client_cert_store_mac.cc              |  31 +++
@@ -61,7 +61,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.cc  |   8 +
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 57 files changed, 692 insertions(+), 56 deletions(-)
+ 57 files changed, 700 insertions(+), 56 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
 index 650ae8ca482ab..6c8a7c9f42e43 100644
@@ -1004,7 +1004,7 @@ index 6b5a991f9f248..663b9cb05302a 100644
    void NotifySSLConfigChanged(SSLConfigChangeType change_type);
    void NotifySSLConfigForServersChanged(
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 236de0c0bb686..7cee33441b631 100644
+index 236de0c0bb686..a282b59661258 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
 @@ -28,6 +28,7 @@
@@ -1015,7 +1015,7 @@ index 236de0c0bb686..7cee33441b631 100644
  #include "base/values.h"
  #include "build/build_config.h"
  #include "components/miracle_parameter/common/public/miracle_parameter.h"
-@@ -417,6 +418,92 @@ int SSLClientSocketImpl::ExportKeyingMaterial(base::StringPiece label,
+@@ -417,6 +418,100 @@ int SSLClientSocketImpl::ExportKeyingMaterial(base::StringPiece label,
    return OK;
  }
  
@@ -1047,6 +1047,7 @@ index 236de0c0bb686..7cee33441b631 100644
 +#endif
 +
 +  int gost_rv;
++  CertStatus cert_status = 0;
 +  switch (gost_status) {
 +  case 1:
 +    gost_rv = OK;
@@ -1054,29 +1055,36 @@ index 236de0c0bb686..7cee33441b631 100644
 +  case CERT_E_CN_NO_MATCH:
 +  case CERT_E_INVALID_NAME:
 +    gost_rv = ERR_CERT_COMMON_NAME_INVALID;
++    cert_status |= CERT_STATUS_COMMON_NAME_INVALID;
 +    break;
 +  case CERT_E_UNTRUSTEDROOT:
 +  case TRUST_E_CERT_SIGNATURE:
 +  case CERT_E_UNTRUSTEDTESTROOT:
 +  case CERT_E_CHAINING:
 +    gost_rv = ERR_CERT_AUTHORITY_INVALID;
++    cert_status |= CERT_STATUS_AUTHORITY_INVALID;
 +    break;
 +  case CERT_E_EXPIRED:
 +  case CERT_E_VALIDITYPERIODNESTING:
 +    gost_rv = ERR_CERT_DATE_INVALID;
++    cert_status |= CERT_STATUS_DATE_INVALID;
 +    break;
 +  case CRYPT_E_NO_REVOCATION_CHECK:
 +  case CERT_E_REVOCATION_FAILURE:
 +    gost_rv = ERR_CERT_NO_REVOCATION_MECHANISM;
++    cert_status |= CERT_STATUS_NO_REVOCATION_MECHANISM;
 +    break;
 +  case CRYPT_E_REVOCATION_OFFLINE:
 +    gost_rv = ERR_CERT_UNABLE_TO_CHECK_REVOCATION;
++    cert_status |= CERT_STATUS_UNABLE_TO_CHECK_REVOCATION;
 +    break;
 +  case CRYPT_E_REVOKED:
 +    gost_rv = ERR_CERT_REVOKED;
++    cert_status |= CERT_STATUS_REVOKED;
 +    break;
 +  default:
 +    gost_rv = ERR_CERT_INVALID;
++    cert_status |= CERT_STATUS_INVALID;
 +    break;
 +  }
 +
@@ -1086,7 +1094,7 @@ index 236de0c0bb686..7cee33441b631 100644
 +  cert_verification_result_ = gost_rv;
 +  if (gost_rv != OK)
 +  {
-+    server_cert_verify_result_.cert_status = MapNetErrorToCertStatus(gost_rv);
++    server_cert_verify_result_.cert_status = cert_status;
 +    OpenSSLPutNetError(FROM_HERE, gost_rv);
 +  }
 +
@@ -1108,7 +1116,7 @@ index 236de0c0bb686..7cee33441b631 100644
  int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
    // this has never worked for layered sockets. CHECK to detect any consumers
-@@ -435,6 +522,48 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
+@@ -435,6 +530,48 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
      return rv;
    }
  
@@ -1157,7 +1165,7 @@ index 236de0c0bb686..7cee33441b631 100644
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -954,6 +1083,9 @@ int SSLClientSocketImpl::DoHandshake() {
+@@ -954,6 +1091,9 @@ int SSLClientSocketImpl::DoHandshake() {
        return ERR_IO_PENDING;
      }
      if (ssl_error == SSL_ERROR_WANT_CERTIFICATE_VERIFY) {
@@ -1167,7 +1175,7 @@ index 236de0c0bb686..7cee33441b631 100644
        DCHECK(cert_verifier_request_);
        next_handshake_state_ = STATE_HANDSHAKE;
        return ERR_IO_PENDING;
-@@ -1147,6 +1279,62 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
+@@ -1147,6 +1287,62 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
      return HandleVerifyResult();
    }
  
@@ -1230,7 +1238,7 @@ index 236de0c0bb686..7cee33441b631 100644
    base::StringPiece ech_name_override = GetECHNameOverride();
    if (!ech_name_override.empty()) {
      // If ECH was offered but not negotiated, BoringSSL will ask to verify a
-@@ -1615,6 +1803,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1615,6 +1811,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
