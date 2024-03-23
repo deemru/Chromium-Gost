@@ -29,7 +29,9 @@ jobs:
         git clone https://github.com/google/boringssl.git
         cd boringssl
         git checkout -b temp $BORINGSSL_REVISION
-        git am --3way --ignore-space-change --committer-date-is-author-date --ignore-date < ../patch/boringssl.patch
+        git config user.name "temp"
+        git config user.email "temp@temp.temp"
+        git am --3way --ignore-space-change < ../patch/boringssl.patch
         cp -r ../src/gostssl.cpp ./
         cp -r ../src/msspi/src/* ./
         cp -r ../src/msspi/third_party/cprocsp/include/* ./include/
