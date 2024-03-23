@@ -28,8 +28,8 @@ jobs:
         BORINGSSL_REVISION=$(curl -s https://raw.githubusercontent.com/chromium/chromium/$CHROMIUM_TAG/DEPS | grep "'boringssl_revision':" | awk -F"'" '{print $4}')
         git clone https://github.com/google/boringssl.git
         cd boringssl
-        git checkout $BORINGSSL_REVISION
-        git am --3way --ignore-space-change < ../patch/boringssl.patch
+        git checkout -b temp $BORINGSSL_REVISION
+        git am --3way --ignore-space-change --committer-date-is-author-date --ignore-date < ../patch/boringssl.patch
         cp -r ../src/gostssl.cpp ./
         cp -r ../src/msspi/src/* ./
         cp -r ../src/msspi/third_party/cprocsp/include/* ./include/
