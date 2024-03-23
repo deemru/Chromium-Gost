@@ -818,7 +818,7 @@ static BOOL CertHasUsage( PCCERT_CONTEXT pcert, const char * oid )
         if( CertGetEnhancedKeyUsage( pcert, 0, ekuList, &ekuLength ) )
         {
             if( ekuList->cUsageIdentifier == 0 )
-                return GetLastError() == CRYPT_E_NOT_FOUND ? TRUE : FALSE;
+                return GetLastError() == (DWORD)CRYPT_E_NOT_FOUND ? TRUE : FALSE;
             for( DWORD i = 0; i < ekuList->cUsageIdentifier; i++ )
                 if( 0 == strcmp( ekuList->rgpszUsageIdentifier[i], oid ) )
                     return TRUE;
