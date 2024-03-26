@@ -782,7 +782,7 @@ void gostssl_verifyhook( void * s, const char * host, unsigned * gost_status, ch
     msspi_set_hostname( w->h, host );
     msspi_set_verify_offline( w->h, offline );
 
-    unsigned verify_status = msspi_verify( w->h );
+    int32_t verify_status = msspi_verify( w->h );
 
     switch( verify_status )
     {
