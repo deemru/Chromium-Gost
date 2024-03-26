@@ -1029,7 +1029,7 @@ index 236de0c0bb686..a282b59661258 100644
 +int SSLClientSocketImpl::IsMSSPI() {
 +  return gostssl_is_msspi( ssl_.get() );
 +}
-+int SSLClientSocketImpl::VerifyGOSTResult(unsigned gost_status)
++int SSLClientSocketImpl::VerifyGOSTResult(int32_t gost_status)
 +{
 +#ifndef TRUST_E_CERT_SIGNATURE
 +#define TRUST_E_CERT_SIGNATURE          0x80096004L
@@ -1100,14 +1100,14 @@ index 236de0c0bb686..a282b59661258 100644
 +
 +  return gost_rv;
 +}
-+void SSLClientSocketImpl::VerifyGOSTTaskComplete(unsigned gost_status)
++void SSLClientSocketImpl::VerifyGOSTTaskComplete(int32_t gost_status)
 +{
 +  OnVerifyComplete(VerifyGOSTResult(gost_status));
 +}
 +void SSLClientSocketImpl::VerifyGOSTTask(const scoped_refptr<base::SequencedTaskRunner>& task_runner)
 +{
 +  auto weakPtr = weak_factory_.GetWeakPtr();
-+  unsigned gost_status;
++  int32_t gost_status;
 +  gostssl_verifyhook((void*)ssl_.get(), host_and_port_.host().c_str(), &gost_status, 0);
 +  task_runner->PostTask(FROM_HERE, base::BindOnce(&SSLClientSocketImpl::VerifyGOSTTaskComplete, weakPtr, gost_status));
 +}
@@ -1199,7 +1199,7 @@ index 236de0c0bb686..a282b59661258 100644
 +        verifymode = "3";
 +      }
 +    }
-+    unsigned gost_status;
++    int32_t gost_status;
 +    if (verifymode == "1")
 +    {
 +      gostssl_verifyhook((void*)ssl_.get(), host_and_port_.host().c_str(), &gost_status, 0);
@@ -1269,8 +1269,8 @@ index d67ef97e83b46..d6e258287d8b0 100644
 +  int IsMSSPI() override;
 +private:
 +  void VerifyGOSTTask(const scoped_refptr<base::SequencedTaskRunner>& task_runner);
-+  void VerifyGOSTTaskComplete(unsigned gost_status);
-+  int VerifyGOSTResult(unsigned gost_status);
++  void VerifyGOSTTaskComplete(int32_t gost_status);
++  int VerifyGOSTResult(int32_t gost_status);
 +public:
 +#endif // GOSTSSL
    // Takes ownership of |stream_socket|, which may already be connected.
