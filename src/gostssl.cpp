@@ -417,7 +417,7 @@ static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, con
         if( cachestring )
             msspi_set_cachestring( w->h, cachestring );
         if( s->config->alpn_client_proto_list.size() )
-            msspi_set_alpn( w->h, (const char *)s->config->alpn_client_proto_list.data(), (unsigned)s->config->alpn_client_proto_list.size() );
+            msspi_set_alpn( w->h, (const char *)s->config->alpn_client_proto_list.data(), s->config->alpn_client_proto_list.size() );
         if( cert && size )
             msspi_set_mycert( w->h, (const char *)cert, size );
     }
@@ -770,7 +770,7 @@ void gostssl_free( SSL * s )
     workers_api( s, WDB_FREE );
 }
 
-void gostssl_verifyhook( void * s, const char * host, unsigned * gost_status, char offline )
+void gostssl_verifyhook( void * s, const char * host, int32_t * gost_status, char offline )
 {
     *gost_status = 0;
 
@@ -790,7 +790,7 @@ void gostssl_verifyhook( void * s, const char * host, unsigned * gost_status, ch
             *gost_status = 1;
             break;
         case MSSPI_VERIFY_ERROR:
-            *gost_status = (unsigned)CERT_E_CRITICAL;
+            *gost_status = (int32_t)CERT_E_CRITICAL;
             break;
         case CRYPT_E_NO_REVOCATION_CHECK:
             // Mask off CERT_STATUS_NO_REVOCATION_MECHANISM

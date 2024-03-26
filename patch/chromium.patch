@@ -1023,7 +1023,7 @@ index 236de0c0bb686..a282b59661258 100644
 +extern "C" {
 +void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size, const char * ciphers, const char * tlsmode );
 +void gostssl_certhook( void * cert, int size );
-+void gostssl_verifyhook( void * s, const char * host, unsigned * is_gost, char offline );
++void gostssl_verifyhook( void * s, const char * host, int32_t * is_gost, char offline );
 +int gostssl_is_msspi( SSL * s );
 +}
 +int SSLClientSocketImpl::IsMSSPI() {
@@ -1032,18 +1032,18 @@ index 236de0c0bb686..a282b59661258 100644
 +int SSLClientSocketImpl::VerifyGOSTResult(int32_t gost_status)
 +{
 +#ifndef TRUST_E_CERT_SIGNATURE
-+#define TRUST_E_CERT_SIGNATURE          0x80096004L
-+#define CRYPT_E_REVOKED                 0x80092010L
-+#define CERT_E_UNTRUSTEDROOT            0x800B0109L
-+#define CERT_E_UNTRUSTEDTESTROOT        0x800B010DL
-+#define CERT_E_REVOCATION_FAILURE       0x800B010EL
-+#define CERT_E_EXPIRED                  0x800B0101L
-+#define CERT_E_INVALID_NAME             0x800B0114L
-+#define CERT_E_CN_NO_MATCH              0x800B010FL
-+#define CERT_E_VALIDITYPERIODNESTING    0x800B0102L
-+#define CRYPT_E_NO_REVOCATION_CHECK     0x80092012L
-+#define CRYPT_E_REVOCATION_OFFLINE      0x80092013L
-+#define CERT_E_CHAINING                 0x800B010AL
++#define TRUST_E_CERT_SIGNATURE          (int32_t)0x80096004L
++#define CRYPT_E_REVOKED                 (int32_t)0x80092010L
++#define CERT_E_UNTRUSTEDROOT            (int32_t)0x800B0109L
++#define CERT_E_UNTRUSTEDTESTROOT        (int32_t)0x800B010DL
++#define CERT_E_REVOCATION_FAILURE       (int32_t)0x800B010EL
++#define CERT_E_EXPIRED                  (int32_t)0x800B0101L
++#define CERT_E_INVALID_NAME             (int32_t)0x800B0114L
++#define CERT_E_CN_NO_MATCH              (int32_t)0x800B010FL
++#define CERT_E_VALIDITYPERIODNESTING    (int32_t)0x800B0102L
++#define CRYPT_E_NO_REVOCATION_CHECK     (int32_t)0x80092012L
++#define CRYPT_E_REVOCATION_OFFLINE      (int32_t)0x80092013L
++#define CERT_E_CHAINING                 (int32_t)0x800B010AL
 +#endif
 +
 +  int gost_rv;
