@@ -42,7 +42,7 @@ void gostssl_server_proxy( SSL * s, const char * data, size_t len );
 
 // Hooks
 DLLEXPORT void gostssl_certhook( void * cert, int size );
-DLLEXPORT void gostssl_verifyhook( void * s, const char * host, unsigned * is_gost, char offline );
+DLLEXPORT void gostssl_verifyhook( void * s, const char * host, int32_t * gost_status, char offline );
 DLLEXPORT void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost );
 DLLEXPORT void gostssl_isgostcerthook( void * cert, int size, int * is_gost );
 DLLEXPORT void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size, const char * ciphers, const char * tlsmode );
