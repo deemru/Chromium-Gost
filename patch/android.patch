@@ -1,8 +1,21 @@
+From 3535a7786594750d2fbac5ee0190286e780e4cc4 Mon Sep 17 00:00:00 2001
+From: crypto-das <55387659+crypto-das@users.noreply.github.com>
+Date: Wed, 6 Mar 2024 10:44:28 +0000
+Subject: [PATCH] Android CSP integration
+
+---
+ chrome/android/BUILD.gn                            | 12 ++++++++++++
+ chrome/android/chrome_public_apk_tmpl.gni          |  9 +++++++++
+ .../res_chromium_base/values/channel_constants.xml |  8 ++++----
+ .../chrome/browser/ChromeTabbedActivity.java       | 14 ++++++++++++++
+ .../ui_thread_search_terms_data_android.cc         |  2 +-
+ 5 files changed, 40 insertions(+), 5 deletions(-)
+
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
-index 271d8ffbb5b7b..18073719f9e95 100644
+index d3e324f0f6fbb..4addd65570a37 100644
 --- a/chrome/android/BUILD.gn
 +++ b/chrome/android/BUILD.gn
-@@ -284,8 +284,20 @@ if (current_toolchain == default_toolchain) {
+@@ -282,8 +282,20 @@ if (current_toolchain == default_toolchain) {
      srcjar_deps = [ ":chrome_android_java_google_api_keys_srcjar" ]
    }
  
@@ -24,10 +37,10 @@ index 271d8ffbb5b7b..18073719f9e95 100644
        ":chrome_app_java_resources",
        ":chrome_public_apk_template_resources",
 diff --git a/chrome/android/chrome_public_apk_tmpl.gni b/chrome/android/chrome_public_apk_tmpl.gni
-index 54c50b54bb7ca..0f00e512bc425 100644
+index df3d58c8bade4..67d713b55ea2a 100644
 --- a/chrome/android/chrome_public_apk_tmpl.gni
 +++ b/chrome/android/chrome_public_apk_tmpl.gni
-@@ -729,6 +729,15 @@ template("chrome_common_apk_or_module_tmpl") {
+@@ -711,6 +711,15 @@ template("chrome_common_apk_or_module_tmpl") {
        }
      }
  
@@ -61,20 +74,21 @@ index cc1f2a30cb3c5..3953c9ad3800f 100644
 +    <string name="quick_action_search_widget_title" translatable="false">Chromium-Gost quick action search</string>
  </resources>
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
-index 74e852c79190b..2f5afed5e07f2 100644
+index d61269f9a8fea..9a218fcb02137 100644
 --- a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
-@@ -252,11 +252,22 @@ import java.util.Map;
- import java.util.Set;
- import java.util.concurrent.atomic.AtomicBoolean;
+@@ -267,12 +267,23 @@ import java.util.concurrent.atomic.AtomicBoolean;
+ import java.util.function.BooleanSupplier;
+ import java.util.function.DoubleConsumer;
  
 +import ru.CryptoPro.JCSP.NCSPConfig;
 +
  /**
-  * This is the main activity for ChromeMobile when not running in document mode.  All the tabs
-  * are accessible via a chrome specific tab switching UI.
+  * This is the main activity for ChromeMobile when not running in document mode. All the tabs are
+  * accessible via a chrome specific tab switching UI.
   */
- public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent> {
+ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent>
+         implements MismatchedIndicesHandler {
 +    private static final String APP_LOGGER_TAG = "CSP";
 +
 +    private boolean initCSPProviders() {
@@ -87,7 +101,7 @@ index 74e852c79190b..2f5afed5e07f2 100644
      private static final String TAG = "ChromeTabbedActivity";
  
      protected static final String WINDOW_INDEX = "window_index";
-@@ -525,6 +536,9 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
+@@ -568,6 +579,9 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
                      }
                      minimizeAppAndCloseTabOnBackPress(getActivityTab());
                  });
@@ -110,3 +124,6 @@ index 1278f9e64ed1f..caf77c47e85b9 100644
  }
  
  std::string UIThreadSearchTermsData::GetMailRUReferralID() const {
+-- 
+2.34.1
+
