@@ -28,9 +28,10 @@ jobs:
         BORINGSSL_REVISION=$(curl -s https://raw.githubusercontent.com/chromium/chromium/$CHROMIUM_TAG/DEPS | grep "'boringssl_revision':" | awk -F"'" '{print $4}')
         mkdir boringssl
         cd boringssl
-        git init
+        git init -q .
         git remote add origin https://github.com/google/boringssl.git
         git fetch origin $BORINGSSL_REVISION
+        git checkout -b temp $BORINGSSL_REVISION
         git config user.name "temp"
         git config user.email "temp@temp.temp"
         git am --3way --ignore-space-change < ../patch/boringssl.patch
