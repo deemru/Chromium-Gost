@@ -13,7 +13,7 @@ call git reset HEAD~ --hard
 
 cd %CHROMIUM_PATH%
 call git reset HEAD~ --hard
-call git fetch --tags
+call git fetch origin tag %CHROMIUM_TAG% --no-tags
 call git checkout -b temp tags/%CHROMIUM_TAG%
 call git show-ref --quiet refs/heads/%GOST_BRANCH% && call git branch -D %GOST_BRANCH%
 call git checkout -b %GOST_BRANCH% tags/%CHROMIUM_TAG%

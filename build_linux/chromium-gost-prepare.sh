@@ -14,7 +14,7 @@ git reset HEAD~ --hard
 
 cd $CHROMIUM_PATH
 git reset HEAD~ --hard
-git fetch --tags
+git fetch origin tag $CHROMIUM_TAG --no-tags
 git checkout -b temp tags/$CHROMIUM_TAG
 git show-ref --quiet refs/heads/$GOST_BRANCH && git branch -D $GOST_BRANCH
 git checkout -b $GOST_BRANCH tags/$CHROMIUM_TAG
