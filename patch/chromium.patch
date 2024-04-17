@@ -1,6 +1,6 @@
-From 27c403345bbf442c55cc55206ee433b48222bea4 Mon Sep 17 00:00:00 2001
+From edbdfeee00ff35c01b040032da766e2958182d45 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
-Date: Fri, 22 Mar 2024 15:08:36 +0300
+Date: Wed, 17 Apr 2024 02:55:40 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
@@ -15,7 +15,6 @@ Subject: [PATCH] chromium GOSTSSL
  chrome/browser/resources/new_tab_page/app.ts  |   6 +-
  .../browser/resources/new_tab_page/logo.html  |   5 +-
  chrome/browser/resources/new_tab_page/logo.ts |   2 +-
- .../new_tab_page/realbox/realbox.html         |   7 +
  chrome/browser/search/search.cc               |   2 +
  chrome/browser/shell_integration_linux.cc     |   2 +-
  .../ui/startup/startup_browser_creator.cc     |   4 +-
@@ -28,7 +27,6 @@ Subject: [PATCH] chromium GOSTSSL
  chrome/common/net/x509_certificate_model.cc   |   2 +-
  .../chromium-browser/chromium-browser.info    |  10 +-
  .../installer/linux/rpm/chrome.spec.template  |   4 +
- .../app_shim/certificate_viewer.mm            |  46 ++++
  components/search_engines/keyword_table.cc    |   4 +
  .../search_engines/prepopulated_engines.json  |  12 +-
  .../search_engines/search_terms_data.cc       |   2 +-
@@ -61,13 +59,14 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.cc  |   8 +
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 57 files changed, 700 insertions(+), 56 deletions(-)
+ .../cr_components/omnibox/realbox.html        |   7 +
+ 56 files changed, 654 insertions(+), 56 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
-index 650ae8ca482ab..6c8a7c9f42e43 100644
+index a107e48cbe9d5..a834fdcc65c45 100644
 --- a/chrome/BUILD.gn
 +++ b/chrome/BUILD.gn
-@@ -1533,7 +1533,7 @@ group("extra_resources") {
+@@ -1538,7 +1538,7 @@ group("extra_resources") {
    ]
  }
  
@@ -76,7 +75,7 @@ index 650ae8ca482ab..6c8a7c9f42e43 100644
    if (!is_mac) {
      _preinstalled_apps_target_type = "copy"
    } else {
-@@ -1577,7 +1577,7 @@ if (!is_android) {
+@@ -1582,7 +1582,7 @@ if (!is_android) {
        deps = [ ":resource_allowlist" ]
      }
  
@@ -117,10 +116,10 @@ index 79bf119fba775..2350f4b1d19e9 100644
  </dict>
  </plist>
 diff --git a/chrome/app/generated_resources.grd b/chrome/app/generated_resources.grd
-index d8f4d985c660f..13c631b1d24fb 100644
+index ceabbced0f67e..ae958b0be4ec1 100644
 --- a/chrome/app/generated_resources.grd
 +++ b/chrome/app/generated_resources.grd
-@@ -7542,13 +7542,10 @@ Keep your key file in a safe place. You will need it to create new versions of y
+@@ -7609,13 +7609,10 @@ Keep your key file in a safe place. You will need it to create new versions of y
  
        <!-- NTP -->
        <message name="IDS_GOOGLE_SEARCH_BOX_EMPTY_HINT" desc="The text displayed in the fakebox (on the New Tab page) when it is empty, and Google is the default search engine.">
@@ -135,10 +134,10 @@ index d8f4d985c660f..13c631b1d24fb 100644
        <message name="IDS_NTP_CUSTOM_LINKS_ADD_SHORTCUT_TOOLTIP" desc="The tooltip for adding a custom link shortcut. (On the New Tab Page)">
          Add shortcut
 diff --git a/chrome/app/resources/generated_resources_ru.xtb b/chrome/app/resources/generated_resources_ru.xtb
-index 4cf50fd8b754d..b5f2f6f76e1ab 100644
+index 3445b888b2007..c8036263b4772 100644
 --- a/chrome/app/resources/generated_resources_ru.xtb
 +++ b/chrome/app/resources/generated_resources_ru.xtb
-@@ -5434,7 +5434,7 @@
+@@ -5446,7 +5446,7 @@
  <translation id="5153234146675181447">Удаление телефона</translation>
  <translation id="5153907427821264830"><ph name="STATUS" /> • <ph name="MESSAGE" /></translation>
  <translation id="5154108062446123722"><ph name="PRINTING_DESTINATION" /> – дополнительные настройки</translation>
@@ -216,10 +215,10 @@ index 55d07e905b96c..70c6e15cfb460 100644
    PrefService* pref_service = profile->GetPrefs();
    bool hide_web_store_icon =
 diff --git a/chrome/browser/resources/new_tab_page/app.ts b/chrome/browser/resources/new_tab_page/app.ts
-index 9c155734b9d14..a968cbf2da30e 100644
+index 97a1b738fa70d..43806249ad791 100644
 --- a/chrome/browser/resources/new_tab_page/app.ts
 +++ b/chrome/browser/resources/new_tab_page/app.ts
-@@ -246,7 +246,7 @@ export class AppElement extends AppElementBase {
+@@ -249,7 +249,7 @@ export class AppElement extends AppElementBase {
  
        oneGoogleBarEnabled_: {
          type: Boolean,
@@ -228,7 +227,7 @@ index 9c155734b9d14..a968cbf2da30e 100644
        },
  
        shortcutsEnabled_: {
-@@ -266,12 +266,12 @@ export class AppElement extends AppElementBase {
+@@ -269,12 +269,12 @@ export class AppElement extends AppElementBase {
  
        middleSlotPromoEnabled_: {
          type: Boolean,
@@ -272,24 +271,8 @@ index 20e943fdaa6b1..81bed94901364 100644
          type: Boolean,
        },
  
-diff --git a/chrome/browser/resources/new_tab_page/realbox/realbox.html b/chrome/browser/resources/new_tab_page/realbox/realbox.html
-index f179a71a80fa1..6ed0546a21311 100644
---- a/chrome/browser/resources/new_tab_page/realbox/realbox.html
-+++ b/chrome/browser/resources/new_tab_page/realbox/realbox.html
-@@ -1,4 +1,11 @@
- <style include="cr-icons">
-+  #voiceSearchButton {
-+    visibility: hidden;
-+  }
-+  #lensSearchButton {
-+    visibility: hidden;
-+  }
-+
-   :host {
-     --cr-realbox-height: 44px;
-     --cr-realbox-min-width: var(--ntp-search-box-width);
 diff --git a/chrome/browser/search/search.cc b/chrome/browser/search/search.cc
-index 81e009204c700..a83bf9f7a1831 100644
+index e24cc7a9fe093..57a7611a217a7 100644
 --- a/chrome/browser/search/search.cc
 +++ b/chrome/browser/search/search.cc
 @@ -179,6 +179,8 @@ struct NewTabURLDetails {
@@ -315,10 +298,10 @@ index 002ea678e1f9d..1a7c6a6bc45e6 100644
  }
  
 diff --git a/chrome/browser/ui/startup/startup_browser_creator.cc b/chrome/browser/ui/startup/startup_browser_creator.cc
-index 3e2443d87a998..a117e6540c63d 100644
+index a68953bd7f04a..320d82f81570d 100644
 --- a/chrome/browser/ui/startup/startup_browser_creator.cc
 +++ b/chrome/browser/ui/startup/startup_browser_creator.cc
-@@ -886,12 +886,12 @@ void StartupBrowserCreator::ClearLaunchedProfilesForTesting() {
+@@ -907,12 +907,12 @@ void StartupBrowserCreator::ClearLaunchedProfilesForTesting() {
  // static
  void StartupBrowserCreator::RegisterLocalStatePrefs(
      PrefRegistrySimple* registry) {
@@ -334,10 +317,10 @@ index 3e2443d87a998..a117e6540c63d 100644
  
  #if BUILDFLAG(IS_WIN)
 diff --git a/chrome/browser/ui/ui_features.cc b/chrome/browser/ui/ui_features.cc
-index 2858a69341e5c..f3b2379f430dd 100644
+index fb0b364c7c057..61b831c35f78e 100644
 --- a/chrome/browser/ui/ui_features.cc
 +++ b/chrome/browser/ui/ui_features.cc
-@@ -35,7 +35,7 @@ BASE_FEATURE(kWebAppIconInTitlebar,
+@@ -46,7 +46,7 @@ BASE_FEATURE(kWebAppIconInTitlebar,
               base::FEATURE_DISABLED_BY_DEFAULT);
  
  // Enables Chrome Labs menu in the toolbar. See https://crbug.com/1145666
@@ -425,10 +408,10 @@ index 1108aee78f50e..3ef82a7b13f69 100644
  
    std::optional<SkColor> color;
 diff --git a/chrome/browser/ui/webui/whats_new/whats_new_util.cc b/chrome/browser/ui/webui/whats_new/whats_new_util.cc
-index 28439aae9cc53..50b1a13152662 100644
+index bd67cf2058fe9..6d6aa5085baf4 100644
 --- a/chrome/browser/ui/webui/whats_new/whats_new_util.cc
 +++ b/chrome/browser/ui/webui/whats_new/whats_new_util.cc
-@@ -153,7 +153,7 @@ bool ShouldShowForState(PrefService* local_state,
+@@ -115,7 +115,7 @@ bool ShouldShowForState(PrefService* local_state,
    // potentially displaying multiple times in a given milestone, e.g. for
    // multiple profile relaunches (see https://crbug.com/1274313).
    local_state->SetInteger(prefs::kLastWhatsNewVersion, CHROME_VERSION_MAJOR);
@@ -436,7 +419,7 @@ index 28439aae9cc53..50b1a13152662 100644
 +  return false;
  }
  
- GURL GetServerURLForRefresh() {
+ GURL GetServerURL(bool may_redirect) {
 diff --git a/chrome/common/channel_info_posix.cc b/chrome/common/channel_info_posix.cc
 index 51e8bae89a41b..2fdcafa5c35f9 100644
 --- a/chrome/common/channel_info_posix.cc
@@ -464,10 +447,10 @@ index 064cb8fef1f1b..79c3fa64724da 100644
  #error Unknown branding
  #endif
 diff --git a/chrome/common/net/x509_certificate_model.cc b/chrome/common/net/x509_certificate_model.cc
-index d44f13466ccf1..926bddf970982 100644
+index 62f8e139a4fe1..716e878fc1af6 100644
 --- a/chrome/common/net/x509_certificate_model.cc
 +++ b/chrome/common/net/x509_certificate_model.cc
-@@ -550,7 +550,7 @@ std::string ProcessRDN(const bssl::RelativeDistinguishedName& rdn) {
+@@ -547,7 +547,7 @@ std::string ProcessRDN(const bssl::RelativeDistinguishedName& rdn) {
      std::string value;
      if (!name_attribute.ValueAsStringWithUnsafeOptions(kNameStringHandling,
                                                         &value)) {
@@ -533,67 +516,6 @@ index e968b5fd711d6..92edea048bd0f 100644
  CHANNEL=@@CHANNEL@@
  case $CHANNEL in
    stable )
-diff --git a/components/remote_cocoa/app_shim/certificate_viewer.mm b/components/remote_cocoa/app_shim/certificate_viewer.mm
-index 9f4bf52dbfc0e..a6f2419244552 100644
---- a/components/remote_cocoa/app_shim/certificate_viewer.mm
-+++ b/components/remote_cocoa/app_shim/certificate_viewer.mm
-@@ -14,10 +14,56 @@
- #include "base/notreached.h"
- #include "net/cert/x509_util_apple.h"
- 
-+#ifndef NO_GOSTSSL
-+extern "C" {
-+#include "third_party/boringssl/src/include/openssl/pool.h"
-+void gostssl_isgostcerthook( void * cert, int size, int * is_gost );
-+char gostssl_certificate_info( const char * cert, size_t size, const char ** info, size_t * len );
-+}
-+#endif // GOSTSSL
-+
- namespace remote_cocoa {
- 
- void ShowCertificateViewerForWindow(NSWindow* owning_window,
-                                     net::X509Certificate* certificate) {
-+#ifndef NO_GOSTSSL
-+    int is_gost = 0;
-+    {
-+        const uint8_t * gostcert = CRYPTO_BUFFER_data( certificate->cert_buffer() );
-+        size_t gostcertlen =  CRYPTO_BUFFER_len( certificate->cert_buffer() );
-+        gostssl_isgostcerthook( (void *)gostcert, gostcertlen, &is_gost );
-+    }
-+
-+    if( is_gost == 1 )
-+    {
-+        const char * info;
-+        size_t infoLen;
-+        NSAttributedString * certinfo;
-+
-+        const char * gostcert = (const char *)CRYPTO_BUFFER_data( certificate->cert_buffer() );
-+        size_t gostcertlen =  CRYPTO_BUFFER_len( certificate->cert_buffer() );
-+        if( !gostssl_certificate_info( gostcert, gostcertlen, &info, &infoLen ) )
-+            certinfo = [[NSAttributedString alloc] initWithString:@"(Не удалось получить информацию о сертификате)"];
-+        else
-+            certinfo = [[NSAttributedString alloc] initWithHTML:[NSData dataWithBytes:info length:infoLen] documentAttributes:nil];
-+
-+        return dispatch_async( dispatch_get_main_queue(), ^
-+        {
-+            NSAlert * alert = [[NSAlert alloc] init];
-+            NSTextView * accessory = [[NSTextView alloc] initWithFrame:NSMakeRect( 0, 0, 600, 400 )];
-+            [accessory insertText:certinfo replacementRange:NSMakeRange( 0, 0 )];
-+            [accessory setEditable:NO];
-+            [accessory setDrawsBackground:NO];
-+            accessory.textColor = [NSColor controlTextColor];
-+
-+            [alert setMessageText:@"Информация о сертификате сайта"];
-+            [alert setAccessoryView:accessory];
-+            [alert setAlertStyle:NSAlertStyleInformational];
-+            [alert beginSheetModalForWindow:owning_window completionHandler:nil];
-+        } );
-+    }
-+#endif // GOSTSSL
-+
-   NSArray* cert_chain = base::apple::CFToNSOwnershipCast(
-       net::x509_util::CreateSecCertificateArrayForX509Certificate(certificate)
-           .release());
 diff --git a/components/search_engines/keyword_table.cc b/components/search_engines/keyword_table.cc
 index d421aca3b8936..86a57ffb8b6c5 100644
 --- a/components/search_engines/keyword_table.cc
@@ -619,10 +541,10 @@ index d421aca3b8936..86a57ffb8b6c5 100644
    data->suggestions_url_post_params = s.ColumnString(18);
    data->image_url_post_params = s.ColumnString(19);
 diff --git a/components/search_engines/prepopulated_engines.json b/components/search_engines/prepopulated_engines.json
-index 54d5aa0412a0c..579cb25eed28e 100644
+index 5c323e51c3e7d..b93aa8ed8ec4a 100644
 --- a/components/search_engines/prepopulated_engines.json
 +++ b/components/search_engines/prepopulated_engines.json
-@@ -645,7 +645,7 @@
+@@ -656,7 +656,7 @@
        "keyword": "yandex.by",
        "favicon_url": "https://yastatic.net/lego/_/pDu9OWAQKB0s2J9IojKpiS_Eho.ico",
        "logo_url": "https://storage.ape.yandex.net/get/browser/Doodles/yandex/drawable-xxhdpi/yandex.png",
@@ -631,7 +553,7 @@ index 54d5aa0412a0c..579cb25eed28e 100644
        "suggest_url": "https://suggest.yandex.by/suggest-ff.cgi?part={searchTerms}&{google:cursorPosition}",
        "image_url": "https://yandex.by/images/search/?rpt=imageview",
        "image_url_post_params": "upfile={google:imageThumbnail},original_width={google:imageOriginalWidth},original_height={google:imageOriginalHeight},prg=1",
-@@ -658,7 +658,7 @@
+@@ -669,7 +669,7 @@
        "name": "Yandex",
        "keyword": "yandex.com",
        "favicon_url": "https://yastatic.net/lego/_/rBTjd6UOPk5913OSn5ZQVYMTQWQ.ico",
@@ -640,7 +562,7 @@ index 54d5aa0412a0c..579cb25eed28e 100644
        "suggest_url": "https://suggest.yandex.com/suggest-ff.cgi?part={searchTerms}&{google:cursorPosition}&uil=en&v=3&sn=5",
        "image_url": "https://yandex.com/images/search?rpt=imageview",
        "image_url_post_params": "upfile={google:imageThumbnail},original_width={google:imageOriginalWidth},original_height={google:imageOriginalHeight},prg=1",
-@@ -671,7 +671,7 @@
+@@ -682,7 +682,7 @@
        "keyword": "yandex.kz",
        "favicon_url": "https://yastatic.net/lego/_/pDu9OWAQKB0s2J9IojKpiS_Eho.ico",
        "logo_url": "https://storage.ape.yandex.net/get/browser/Doodles/yandex/drawable-xxhdpi/yandex.png",
@@ -649,7 +571,7 @@ index 54d5aa0412a0c..579cb25eed28e 100644
        "suggest_url": "https://suggest.yandex.kz/suggest-ff.cgi?part={searchTerms}&{google:cursorPosition}",
        "image_url": "https://yandex.kz/images/search/?rpt=imageview",
        "image_url_post_params": "upfile={google:imageThumbnail},original_width={google:imageOriginalWidth},original_height={google:imageOriginalHeight},prg=1",
-@@ -685,7 +685,7 @@
+@@ -696,7 +696,7 @@
        "keyword": "yandex.ru",
        "favicon_url": "https://yastatic.net/lego/_/pDu9OWAQKB0s2J9IojKpiS_Eho.ico",
        "logo_url": "https://storage.ape.yandex.net/get/browser/Doodles/yandex/drawable-xxhdpi/yandex.png",
@@ -658,7 +580,7 @@ index 54d5aa0412a0c..579cb25eed28e 100644
        "suggest_url": "https://suggest.yandex.ru/suggest-ff.cgi?part={searchTerms}&{google:cursorPosition}",
        "image_url": "https://yandex.ru/images/search/?rpt=imageview",
        "image_url_post_params": "upfile={google:imageThumbnail},original_width={google:imageOriginalWidth},original_height={google:imageOriginalHeight},prg=1",
-@@ -698,7 +698,7 @@
+@@ -709,7 +709,7 @@
        "name": "Yandex",
        "keyword": "yandex.com.tr",
        "favicon_url": "https://yastatic.net/lego/_/rBTjd6UOPk5913OSn5ZQVYMTQWQ.ico",
@@ -667,7 +589,7 @@ index 54d5aa0412a0c..579cb25eed28e 100644
        "suggest_url": "https://suggest.yandex.com.tr/suggest-ff.cgi?part={searchTerms}&{google:cursorPosition}",
        "image_url": "https://yandex.com.tr/gorsel/search?rpt=imageview",
        "image_url_post_params": "upfile={google:imageThumbnail},original_width={google:imageOriginalWidth},original_height={google:imageOriginalHeight},prg=1",
-@@ -712,7 +712,7 @@
+@@ -723,7 +723,7 @@
        "keyword": "yandex.ua",
        "favicon_url": "https://yastatic.net/lego/_/pDu9OWAQKB0s2J9IojKpiS_Eho.ico",
        "logo_url": "https://storage.ape.yandex.net/get/browser/Doodles/yandex/drawable-xxhdpi/yandex.png",
@@ -729,13 +651,13 @@ index 322f686adee91..52434867d8ef4 100644
      if (string_value) {
        contextual_search_url = *string_value;
 diff --git a/components/search_engines/template_url_prepopulate_data.cc b/components/search_engines/template_url_prepopulate_data.cc
-index 82fdc972bda92..2eefd434fa763 100644
+index 35063c9dea645..8f6e420e1d77b 100644
 --- a/components/search_engines/template_url_prepopulate_data.cc
 +++ b/components/search_engines/template_url_prepopulate_data.cc
-@@ -1772,6 +1772,12 @@ GetPrepopulatedEnginesForEeaRegionCountries(int country_id,
-     current_number_of_engines++;
-   }
+@@ -82,6 +82,12 @@ GetPrepopulatedEnginesForEeaRegionCountries(int country_id,
+   std::shuffle(t_urls.begin(), t_urls.end(), generator);
  
+   CHECK_LE(t_urls.size(), kMaxEeaPrepopulatedEngines);
 +
 +  const auto itr =
 +        base::ranges::find(t_urls, yandex_ru.id, &TemplateURLData::prepopulate_id);
@@ -745,7 +667,7 @@ index 82fdc972bda92..2eefd434fa763 100644
    return t_urls;
  }
  
-@@ -1909,7 +1915,7 @@ std::vector<std::unique_ptr<TemplateURLData>> GetPrepopulatedEngines(
+@@ -219,7 +225,7 @@ std::vector<std::unique_ptr<TemplateURLData>> GetPrepopulatedEngines(
    }
    if (default_search_provider_index) {
      const auto itr =
@@ -755,10 +677,10 @@ index 82fdc972bda92..2eefd434fa763 100644
          itr == t_urls.end() ? 0 : std::distance(t_urls.begin(), itr);
    }
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
-index fe8318f3c4f6f..2d70e8f7b25ae 100644
+index 733ac0ebce185..77ac1598fa84c 100644
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
-@@ -165,6 +165,10 @@
+@@ -167,6 +167,10 @@
  #include "services/service_manager/public/cpp/interface_provider.h"
  #endif  // BUILDFLAG(IS_ANDROID)
  
@@ -769,7 +691,7 @@ index fe8318f3c4f6f..2d70e8f7b25ae 100644
  #if BUILDFLAG(ENABLE_LIBRARY_CDMS)
  #include "content/browser/media/cdm_storage_common.h"
  #include "content/browser/media/cdm_storage_manager.h"
-@@ -585,6 +589,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
+@@ -588,6 +592,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
        scoped_refptr<net::X509Certificate> cert,
        scoped_refptr<net::SSLPrivateKey> private_key) override {
      DCHECK_CURRENTLY_ON(BrowserThread::UI);
@@ -778,14 +700,14 @@ index fe8318f3c4f6f..2d70e8f7b25ae 100644
 +        private_key = net::GetEmptyPrivateKey();
 +    }
 +#endif // GOSTSSL
-     DCHECK((cert && private_key) || (!cert && !private_key));
  
      if (cert && private_key) {
+       mojo::PendingRemote<network::mojom::SSLPrivateKey> ssl_private_key;
 diff --git a/content/browser/utility_process_host.cc b/content/browser/utility_process_host.cc
-index 009e97487209e..0d19c1b817f42 100644
+index 3cca937cc1af6..c6b4fdab9bb03 100644
 --- a/content/browser/utility_process_host.cc
 +++ b/content/browser/utility_process_host.cc
-@@ -327,6 +327,11 @@ bool UtilityProcessHost::StartProcess() {
+@@ -334,6 +334,11 @@ bool UtilityProcessHost::StartProcess() {
  
      // Browser command-line switches to propagate to the utility process.
      static const char* const kSwitchNames[] = {
@@ -798,10 +720,10 @@ index 009e97487209e..0d19c1b817f42 100644
        network::switches::kForceEffectiveConnectionType,
        network::switches::kHostResolverRules,
 diff --git a/content/common/user_agent.cc b/content/common/user_agent.cc
-index 5c99971335e9c..e69eccd614d64 100644
+index 070658460eb74..b0dff7ed01849 100644
 --- a/content/common/user_agent.cc
 +++ b/content/common/user_agent.cc
-@@ -406,7 +406,7 @@ std::string BuildUserAgentFromOSAndProduct(const std::string& os_info,
+@@ -414,7 +414,7 @@ std::string BuildUserAgentFromOSAndProduct(const std::string& os_info,
    // compatible with Safari, we hope!!
    std::string user_agent;
    base::StringAppendF(&user_agent,
@@ -811,7 +733,7 @@ index 5c99971335e9c..e69eccd614d64 100644
                        os_info.c_str(), product.c_str());
    return user_agent;
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
-index a3ef0f3a9a0c1..d22231ed88b7b 100644
+index dff37088d6c11..7ad3517aea882 100644
 --- a/net/base/net_error_list.h
 +++ b/net/base/net_error_list.h
 @@ -22,6 +22,11 @@
@@ -827,7 +749,7 @@ index a3ef0f3a9a0c1..d22231ed88b7b 100644
  // indicate a fatal error.  Typically this error will be generated as a
  // notification to wait for some external notification that the IO operation
 diff --git a/net/cert/cert_verify_proc.cc b/net/cert/cert_verify_proc.cc
-index 0e6fc76f7cb14..08fdfbc244fec 100644
+index 90383f320e461..8cc3f01ac0218 100644
 --- a/net/cert/cert_verify_proc.cc
 +++ b/net/cert/cert_verify_proc.cc
 @@ -452,6 +452,12 @@ CertVerifyProc::CertVerifyProc(scoped_refptr<CRLSet> crl_set)
@@ -1004,7 +926,7 @@ index 6b5a991f9f248..663b9cb05302a 100644
    void NotifySSLConfigChanged(SSLConfigChangeType change_type);
    void NotifySSLConfigForServersChanged(
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 236de0c0bb686..a282b59661258 100644
+index e036710b7b781..0e378e9e3a5a6 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
 @@ -28,6 +28,7 @@
@@ -1015,7 +937,7 @@ index 236de0c0bb686..a282b59661258 100644
  #include "base/values.h"
  #include "build/build_config.h"
  #include "components/miracle_parameter/common/public/miracle_parameter.h"
-@@ -417,6 +418,100 @@ int SSLClientSocketImpl::ExportKeyingMaterial(base::StringPiece label,
+@@ -325,6 +326,100 @@ int SSLClientSocketImpl::ExportKeyingMaterial(base::StringPiece label,
    return OK;
  }
  
@@ -1116,7 +1038,7 @@ index 236de0c0bb686..a282b59661258 100644
  int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
    // this has never worked for layered sockets. CHECK to detect any consumers
-@@ -435,6 +530,48 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
+@@ -343,6 +438,48 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
      return rv;
    }
  
@@ -1165,7 +1087,7 @@ index 236de0c0bb686..a282b59661258 100644
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -954,6 +1091,9 @@ int SSLClientSocketImpl::DoHandshake() {
+@@ -863,6 +1000,9 @@ int SSLClientSocketImpl::DoHandshake() {
        return ERR_IO_PENDING;
      }
      if (ssl_error == SSL_ERROR_WANT_CERTIFICATE_VERIFY) {
@@ -1175,7 +1097,7 @@ index 236de0c0bb686..a282b59661258 100644
        DCHECK(cert_verifier_request_);
        next_handshake_state_ = STATE_HANDSHAKE;
        return ERR_IO_PENDING;
-@@ -1147,6 +1287,62 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
+@@ -1045,6 +1185,62 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
      return HandleVerifyResult();
    }
  
@@ -1238,7 +1160,7 @@ index 236de0c0bb686..a282b59661258 100644
    base::StringPiece ech_name_override = GetECHNameOverride();
    if (!ech_name_override.empty()) {
      // If ECH was offered but not negotiated, BoringSSL will ask to verify a
-@@ -1615,6 +1811,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1502,6 +1698,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
@@ -1258,7 +1180,7 @@ index 236de0c0bb686..a282b59661258 100644
    if (client_cert_.get()) {
      if (!client_private_key_) {
 diff --git a/net/socket/ssl_client_socket_impl.h b/net/socket/ssl_client_socket_impl.h
-index d67ef97e83b46..d6e258287d8b0 100644
+index d67ef97e83b46..f0ec802e372e5 100644
 --- a/net/socket/ssl_client_socket_impl.h
 +++ b/net/socket/ssl_client_socket_impl.h
 @@ -50,6 +50,14 @@ class X509Certificate;
@@ -1598,7 +1520,7 @@ index 2c195882284e4..340a3f5805ce1 100644
  bssl::UniquePtr<EVP_PKEY> GetClientCertPublicKey(
      const X509Certificate* certificate);
 diff --git a/sandbox/policy/features.cc b/sandbox/policy/features.cc
-index f8d1913851f4f..98f8f914f7cc7 100644
+index 16ce023c3de10..3c789c96fbabd 100644
 --- a/sandbox/policy/features.cc
 +++ b/sandbox/policy/features.cc
 @@ -30,7 +30,7 @@ BASE_FEATURE(kNetworkServiceSandbox,
@@ -1776,7 +1698,7 @@ index 68e9fc988a2d6..e28a1c1eb275a 100644
    HeapMojoReceiver<mojom::blink::ReportingObserver, ReportingContext> receiver_;
  };
 diff --git a/third_party/boringssl/BUILD.generated.gni b/third_party/boringssl/BUILD.generated.gni
-index 0f649af2e9372..f79b5e1a957f0 100644
+index d1beea52bfecb..08b0298593c7c 100644
 --- a/third_party/boringssl/BUILD.generated.gni
 +++ b/third_party/boringssl/BUILD.generated.gni
 @@ -15,6 +15,8 @@
@@ -1788,5 +1710,21 @@ index 0f649af2e9372..f79b5e1a957f0 100644
    "err_data.c",
    "src/crypto/asn1/a_bitstr.c",
    "src/crypto/asn1/a_bool.c",
+diff --git a/ui/webui/resources/cr_components/omnibox/realbox.html b/ui/webui/resources/cr_components/omnibox/realbox.html
+index 59d048c1273c5..52e7c336cbe97 100644
+--- a/ui/webui/resources/cr_components/omnibox/realbox.html
++++ b/ui/webui/resources/cr_components/omnibox/realbox.html
+@@ -1,4 +1,11 @@
+ <style include="cr-icons">
++  #voiceSearchButton {
++    visibility: hidden;
++  }
++  #lensSearchButton {
++    visibility: hidden;
++  }
++
+   :host {
+     --cr-realbox-height: 44px;
+     --cr-realbox-min-width: var(--ntp-search-box-width);
 -- 
 

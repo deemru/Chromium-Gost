@@ -1,4 +1,4 @@
-From c9e96f80fb3eb6c5c3c9f32c419d6b261e584cca Mon Sep 17 00:00:00 2001
+From f9ea2ef7d20768d39a541cdadb116cfd093c9b50 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Fri, 14 Jul 2023 15:32:39 +0300
 Subject: [PATCH] boringssl GOSTSSL
@@ -15,10 +15,10 @@ Subject: [PATCH] boringssl GOSTSSL
  8 files changed, 513 insertions(+)
 
 diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
-index 2e19253c2..ef6cf4e98 100644
+index d73f9da9d..651e8016a 100644
 --- a/include/openssl/ssl.h
 +++ b/include/openssl/ssl.h
-@@ -5624,6 +5624,11 @@ BSSL_NAMESPACE_END
+@@ -5833,6 +5833,11 @@ BSSL_NAMESPACE_END
  
  #endif
  
@@ -31,7 +31,7 @@ index 2e19253c2..ef6cf4e98 100644
  #define SSL_R_ATTEMPT_TO_REUSE_SESSION_IN_DIFFERENT_CONTEXT 101
  #define SSL_R_BAD_ALERT 102
 diff --git a/ssl/extensions.cc b/ssl/extensions.cc
-index b13400097..bc2eb0901 100644
+index 20a5d3034..a1dd99ef4 100644
 --- a/ssl/extensions.cc
 +++ b/ssl/extensions.cc
 @@ -437,6 +437,34 @@ bool tls12_add_verify_sigalgs(const SSL_HANDSHAKE *hs, CBB *out) {
@@ -69,7 +69,7 @@ index b13400097..bc2eb0901 100644
    return true;
  }
  
-@@ -2510,6 +2538,23 @@ static bool ext_supported_groups_add_clienthello(const SSL_HANDSHAKE *hs,
+@@ -2511,6 +2539,23 @@ static bool ext_supported_groups_add_clienthello(const SSL_HANDSHAKE *hs,
      }
    }
  
@@ -94,10 +94,10 @@ index b13400097..bc2eb0901 100644
  }
  
 diff --git a/ssl/handshake_client.cc b/ssl/handshake_client.cc
-index 971ebd0b1..53bfff2cf 100644
+index b958dce23..1a322c765 100644
 --- a/ssl/handshake_client.cc
 +++ b/ssl/handshake_client.cc
-@@ -709,6 +709,14 @@ static enum ssl_hs_wait_t do_read_server_hello(SSL_HANDSHAKE *hs) {
+@@ -710,6 +710,14 @@ static enum ssl_hs_wait_t do_read_server_hello(SSL_HANDSHAKE *hs) {
      return ssl_hs_error;
    }
  
@@ -113,10 +113,10 @@ index 971ebd0b1..53bfff2cf 100644
      OPENSSL_PUT_ERROR(SSL, SSL_R_UNSUPPORTED_PROTOCOL);
      ssl_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_PROTOCOL_VERSION);
 diff --git a/ssl/internal.h b/ssl/internal.h
-index c9facb699..23cc54d78 100644
+index 0c2c2f86d..95f338251 100644
 --- a/ssl/internal.h
 +++ b/ssl/internal.h
-@@ -553,6 +553,13 @@ BSSL_NAMESPACE_BEGIN
+@@ -584,6 +584,13 @@ BSSL_NAMESPACE_BEGIN
  #define SSL_kPSK 0x00000004u
  #define SSL_kGENERIC 0x00000008u
  
@@ -128,9 +128,9 @@ index c9facb699..23cc54d78 100644
 +#endif // GOSTSSL
 +
  // Bits for |algorithm_auth| (server authentication).
- #define SSL_aRSA 0x00000001u
- #define SSL_aECDSA 0x00000002u
-@@ -3439,6 +3446,36 @@ void ssl_set_read_error(SSL *ssl);
+ #define SSL_aRSA_SIGN 0x00000001u
+ #define SSL_aRSA_DECRYPT 0x00000002u
+@@ -3505,6 +3512,36 @@ void ssl_set_read_error(SSL *ssl);
  
  BSSL_NAMESPACE_END
  
@@ -168,7 +168,7 @@ index c9facb699..23cc54d78 100644
  // Opaque C types.
  //
 diff --git a/ssl/s3_both.cc b/ssl/s3_both.cc
-index 6d33c6d7d..002c46367 100644
+index 172de90d9..98378399e 100644
 --- a/ssl/s3_both.cc
 +++ b/ssl/s3_both.cc
 @@ -339,6 +339,14 @@ int tls_flush_flight(SSL *ssl) {
@@ -203,7 +203,7 @@ index 2ca14efae..1359e37e7 100644
    }
  
 diff --git a/ssl/ssl_cipher.cc b/ssl/ssl_cipher.cc
-index fd8cef95d..5cd63c6de 100644
+index 29e32ceb2..af53f4a82 100644
 --- a/ssl/ssl_cipher.cc
 +++ b/ssl/ssl_cipher.cc
 @@ -197,6 +197,20 @@ static constexpr SSL_CIPHER kCiphers[] = {
@@ -438,8 +438,8 @@ index fd8cef95d..5cd63c6de 100644
        return NID_kx_ecdhe;
      case SSL_kPSK:
        return NID_kx_psk;
-@@ -1426,6 +1602,9 @@ int SSL_CIPHER_get_auth_nid(const SSL_CIPHER *cipher) {
-     case SSL_aRSA:
+@@ -1427,6 +1603,9 @@ int SSL_CIPHER_get_auth_nid(const SSL_CIPHER *cipher) {
+     case SSL_aRSA_SIGN:
        return NID_auth_rsa;
      case SSL_aECDSA:
 +#ifndef NO_GOSTSSL
@@ -448,7 +448,7 @@ index fd8cef95d..5cd63c6de 100644
        return NID_auth_ecdsa;
      case SSL_aPSK:
        return NID_auth_psk;
-@@ -1549,6 +1728,9 @@ int SSL_CIPHER_get_bits(const SSL_CIPHER *cipher, int *out_alg_bits) {
+@@ -1550,6 +1729,9 @@ int SSL_CIPHER_get_bits(const SSL_CIPHER *cipher, int *out_alg_bits) {
  
      case SSL_AES256:
      case SSL_AES256GCM:
@@ -459,7 +459,7 @@ index fd8cef95d..5cd63c6de 100644
        alg_bits = 256;
        strength_bits = 256;
 diff --git a/ssl/ssl_lib.cc b/ssl/ssl_lib.cc
-index 58b68e675..f25aec8e9 100644
+index 98f97ebb2..653bcd1a5 100644
 --- a/ssl/ssl_lib.cc
 +++ b/ssl/ssl_lib.cc
 @@ -522,6 +522,163 @@ static int ssl_session_cmp(const SSL_SESSION *a, const SSL_SESSION *b) {
@@ -624,8 +624,8 @@ index 58b68e675..f25aec8e9 100644
 +#endif // GOSTSSL
 +
  ssl_ctx_st::ssl_ctx_st(const SSL_METHOD *ssl_method)
-     : method(ssl_method->method),
-       x509_method(ssl_method->x509_method),
+     : RefCounted(CheckSubClass()),
+       method(ssl_method->method),
 @@ -719,6 +876,11 @@ SSL_CONFIG::~SSL_CONFIG() {
  }
  
@@ -737,7 +737,7 @@ index 58b68e675..f25aec8e9 100644
  
    if (ssl->do_handshake == NULL) {
      OPENSSL_PUT_ERROR(SSL, SSL_R_UNINITIALIZED);
-@@ -2537,6 +2756,10 @@ EVP_PKEY *SSL_CTX_get0_privatekey(const SSL_CTX *ctx) {
+@@ -2541,6 +2760,10 @@ EVP_PKEY *SSL_CTX_get0_privatekey(const SSL_CTX *ctx) {
  }
  
  const SSL_CIPHER *SSL_get_current_cipher(const SSL *ssl) {
