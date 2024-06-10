@@ -14,9 +14,9 @@ call git reset HEAD~ --hard
 cd %CHROMIUM_PATH%
 call git reset HEAD~ --hard
 call git fetch origin tag %CHROMIUM_TAG% --no-tags
-call git checkout -b temp tags/%CHROMIUM_TAG%
+call git checkout -f -b temp tags/%CHROMIUM_TAG%
 call git show-ref --quiet refs/heads/%GOST_BRANCH% && call git branch -D %GOST_BRANCH%
-call git checkout -b %GOST_BRANCH% tags/%CHROMIUM_TAG%
+call git checkout -f -b %GOST_BRANCH% tags/%CHROMIUM_TAG%
 call git branch -D temp
 call gclient sync --with_branch_heads -D
 call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\chromium.patch || goto :finish
@@ -55,9 +55,9 @@ copy /y %CHROMIUM_GOST_REPO%\src\msspi\third_party\cprocsp\include\WinCryptEx.h 
 copy /y %CHROMIUM_GOST_REPO%\src\msspi\third_party\cprocsp\include\common.h third_party\boringssl\src\include\common.h
 
 cd %BORINGSSL_PATH%
-call git checkout -b temp
+call git checkout -f -b temp
 call git show-ref --quiet refs/heads/%GOST_BRANCH% && call git branch -D %GOST_BRANCH%
-call git checkout -b %GOST_BRANCH%
+call git checkout -f -b %GOST_BRANCH%
 call git branch -D temp
 call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\boringssl.patch || goto :finish
 
