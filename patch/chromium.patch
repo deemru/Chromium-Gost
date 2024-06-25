@@ -1,4 +1,4 @@
-From 805735c3743d171617a6618cb3baa0e5155df2be Mon Sep 17 00:00:00 2001
+From 31958e4ce24214fc727e239f38fbf8c4b26fabc9 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Mon, 10 Jun 2024 12:44:04 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -42,7 +42,7 @@ Subject: [PATCH] chromium GOSTSSL
  net/socket/socket.h                           |   4 +
  net/socket/ssl_client_socket.cc               |   9 +
  net/socket/ssl_client_socket.h                |   4 +
- net/socket/ssl_client_socket_impl.cc          | 208 ++++++++++++++++++
+ net/socket/ssl_client_socket_impl.cc          | 212 ++++++++++++++++++
  net/socket/ssl_client_socket_impl.h           |   8 +
  net/spdy/spdy_session.cc                      |   5 +
  net/ssl/client_cert_store_mac.cc              |  31 +++
@@ -59,7 +59,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.generated.gni     |   2 +
  .../cr_components/searchbox/realbox.html      |   7 +
- 55 files changed, 654 insertions(+), 53 deletions(-)
+ 55 files changed, 658 insertions(+), 53 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
 index de94c7bcf0bd0..00b71174e0e7d 100644
@@ -117,7 +117,7 @@ index b54ec8a465a10..4043570c4bcca 100644
        <message name="IDS_GOOGLE_SEARCH_BOX_EMPTY_HINT_MULTIMODAL" desc="The text displayed in the multimodal searchbox when it is empty. It is meant to invite the user to add a text query to the existing image query in order to issue a 'multimodal' (image + text) query.">
          Add to your search
 diff --git a/chrome/app/resources/generated_resources_ru.xtb b/chrome/app/resources/generated_resources_ru.xtb
-index a048aeac98099..8346791384279 100644
+index 5d708f8a09011..f7075f64a91f8 100644
 --- a/chrome/app/resources/generated_resources_ru.xtb
 +++ b/chrome/app/resources/generated_resources_ru.xtb
 @@ -5591,7 +5591,7 @@
@@ -909,7 +909,7 @@ index b63c471a986c0..2b763d8856c72 100644
    void NotifySSLConfigChanged(SSLConfigChangeType change_type);
    void NotifySSLConfigForServersChanged(
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 26dfb248ba5d3..ce0c0b3de04a7 100644
+index 26dfb248ba5d3..81b6a64f139dd 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
 @@ -28,6 +28,7 @@
@@ -1021,7 +1021,7 @@ index 26dfb248ba5d3..ce0c0b3de04a7 100644
  int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
    // this has never worked for layered sockets. CHECK to detect any consumers
-@@ -343,6 +438,48 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
+@@ -343,6 +438,52 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
      return rv;
    }
  
@@ -1045,9 +1045,13 @@ index 26dfb248ba5d3..ce0c0b3de04a7 100644
 +        ciphers = command_line->GetSwitchValueASCII("ciphers");
 +      if (ciphers == "")
 +      {
-+        ciphers = "C104:C105:C103:C106:C100:C101:C102:FF85:0081";
++        ciphers = "C104:C105:C103:C106:C100:C101:C102:FF85:0081"; // GOST
 +        ciphers += ":";
-+        ciphers += "C030:C02F:C028:C027:C014:C013:009D:009C:003D:003C:0035:002F:000A";
++        ciphers += "1301:1302"; // TLS 1.3 AES
++        ciphers += ":";
++        ciphers += "C02C:C02B:C024:C023:C00A:C009"; // TLS 1.2 ECDSA
++        ciphers += ":";
++        ciphers += "C030:C02F:C028:C027:C014:C013:009D:009C:003D:003C:0035:002F:000A"; // TLS RSA
 +      }
 +      if (command_line->HasSwitch("tlsmode"))
 +        tlsmode = command_line->GetSwitchValueASCII("tlsmode");
@@ -1070,7 +1074,7 @@ index 26dfb248ba5d3..ce0c0b3de04a7 100644
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -862,6 +999,9 @@ int SSLClientSocketImpl::DoHandshake() {
+@@ -862,6 +1003,9 @@ int SSLClientSocketImpl::DoHandshake() {
        return ERR_IO_PENDING;
      }
      if (ssl_error == SSL_ERROR_WANT_CERTIFICATE_VERIFY) {
@@ -1080,7 +1084,7 @@ index 26dfb248ba5d3..ce0c0b3de04a7 100644
        DCHECK(cert_verifier_request_);
        next_handshake_state_ = STATE_HANDSHAKE;
        return ERR_IO_PENDING;
-@@ -1043,6 +1183,62 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
+@@ -1043,6 +1187,62 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
      return HandleVerifyResult();
    }
  
@@ -1143,7 +1147,7 @@ index 26dfb248ba5d3..ce0c0b3de04a7 100644
    std::string_view ech_name_override = GetECHNameOverride();
    if (!ech_name_override.empty()) {
      // If ECH was offered but not negotiated, BoringSSL will ask to verify a
-@@ -1500,6 +1696,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1500,6 +1700,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
