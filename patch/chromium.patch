@@ -1,6 +1,6 @@
-From 31958e4ce24214fc727e239f38fbf8c4b26fabc9 Mon Sep 17 00:00:00 2001
+From 80a6ab5d97519e2875441ce15592d651e7fcc8a8 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
-Date: Mon, 10 Jun 2024 12:44:04 +0300
+Date: Wed, 24 Jul 2024 03:03:42 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
@@ -62,10 +62,10 @@ Subject: [PATCH] chromium GOSTSSL
  55 files changed, 658 insertions(+), 53 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
-index de94c7bcf0bd0..00b71174e0e7d 100644
+index c35f1b734745a..5fc9573f46fc1 100644
 --- a/chrome/BUILD.gn
 +++ b/chrome/BUILD.gn
-@@ -1542,7 +1542,7 @@ group("extra_resources") {
+@@ -1545,7 +1545,7 @@ group("extra_resources") {
    ]
  }
  
@@ -74,7 +74,7 @@ index de94c7bcf0bd0..00b71174e0e7d 100644
    if (!is_mac) {
      _preinstalled_apps_target_type = "copy"
    } else {
-@@ -1586,7 +1586,7 @@ if (!is_android) {
+@@ -1589,7 +1589,7 @@ if (!is_android) {
        deps = [ ":resource_allowlist" ]
      }
  
@@ -102,10 +102,10 @@ index 79bf119fba775..2350f4b1d19e9 100644
  </dict>
  </plist>
 diff --git a/chrome/app/generated_resources.grd b/chrome/app/generated_resources.grd
-index b54ec8a465a10..4043570c4bcca 100644
+index 3a9f1ea3d2b4d..ae7b29fe19169 100644
 --- a/chrome/app/generated_resources.grd
 +++ b/chrome/app/generated_resources.grd
-@@ -7708,10 +7708,8 @@ Keep your key file in a safe place. You will need it to create new versions of y
+@@ -7733,10 +7733,8 @@ Keep your key file in a safe place. You will need it to create new versions of y
  
        <!-- NTP -->
        <message name="IDS_GOOGLE_SEARCH_BOX_EMPTY_HINT_MD" desc="The text displayed in the fakebox (on the New Tab page) when it is empty, Google is the default search engine, and the Material Design UI is enabled.">
@@ -117,10 +117,10 @@ index b54ec8a465a10..4043570c4bcca 100644
        <message name="IDS_GOOGLE_SEARCH_BOX_EMPTY_HINT_MULTIMODAL" desc="The text displayed in the multimodal searchbox when it is empty. It is meant to invite the user to add a text query to the existing image query in order to issue a 'multimodal' (image + text) query.">
          Add to your search
 diff --git a/chrome/app/resources/generated_resources_ru.xtb b/chrome/app/resources/generated_resources_ru.xtb
-index 5d708f8a09011..f7075f64a91f8 100644
+index dd0110ed61243..665a39a35254b 100644
 --- a/chrome/app/resources/generated_resources_ru.xtb
 +++ b/chrome/app/resources/generated_resources_ru.xtb
-@@ -5591,7 +5591,7 @@
+@@ -5652,7 +5652,7 @@
  <translation id="5153234146675181447">Удаление телефона</translation>
  <translation id="5153907427821264830"><ph name="STATUS" /> • <ph name="MESSAGE" /></translation>
  <translation id="5154108062446123722"><ph name="PRINTING_DESTINATION" /> – дополнительные настройки</translation>
@@ -281,10 +281,10 @@ index 2737375e8233c..ae00df123b043 100644
  }
  
 diff --git a/chrome/browser/ui/startup/startup_browser_creator.cc b/chrome/browser/ui/startup/startup_browser_creator.cc
-index 86ab9563e08bc..9e62ccf288cc5 100644
+index 22a2efe170757..4fe5f50e8d43d 100644
 --- a/chrome/browser/ui/startup/startup_browser_creator.cc
 +++ b/chrome/browser/ui/startup/startup_browser_creator.cc
-@@ -910,12 +910,12 @@ void StartupBrowserCreator::ClearLaunchedProfilesForTesting() {
+@@ -911,12 +911,12 @@ void StartupBrowserCreator::ClearLaunchedProfilesForTesting() {
  // static
  void StartupBrowserCreator::RegisterLocalStatePrefs(
      PrefRegistrySimple* registry) {
@@ -300,7 +300,7 @@ index 86ab9563e08bc..9e62ccf288cc5 100644
  
  #if BUILDFLAG(IS_WIN)
 diff --git a/chrome/browser/ui/ui_features.cc b/chrome/browser/ui/ui_features.cc
-index d4495e33ad1f3..5a23cd3cadc7a 100644
+index 097362cfceb53..c389d34422e62 100644
 --- a/chrome/browser/ui/ui_features.cc
 +++ b/chrome/browser/ui/ui_features.cc
 @@ -46,7 +46,7 @@ BASE_FEATURE(kWebAppIconInTitlebar,
@@ -378,10 +378,10 @@ index 49e676ef47627..f9a76a15553fe 100644
    for (auto& column : columns) {
      column.sortable = true;
 diff --git a/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc b/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
-index 4217fd8d60fdf..6296f53cbb336 100644
+index 4bcc7d641bc31..35e730b792849 100644
 --- a/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
 +++ b/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
-@@ -239,7 +239,7 @@ void BrowserAppMenuButton::UpdateTextAndHighlightColor() {
+@@ -222,7 +222,7 @@ void BrowserAppMenuButton::UpdateTextAndHighlightColor() {
  #endif
    } else {
      tooltip_message_id = IDS_APPMENU_TOOLTIP_ALERT;
@@ -391,18 +391,18 @@ index 4217fd8d60fdf..6296f53cbb336 100644
  
    SetTooltipText(l10n_util::GetStringUTF16(tooltip_message_id));
 diff --git a/chrome/browser/ui/webui/whats_new/whats_new_util.cc b/chrome/browser/ui/webui/whats_new/whats_new_util.cc
-index bd67cf2058fe9..6d6aa5085baf4 100644
+index 195c9746f68e0..8089aa477b564 100644
 --- a/chrome/browser/ui/webui/whats_new/whats_new_util.cc
 +++ b/chrome/browser/ui/webui/whats_new/whats_new_util.cc
-@@ -115,7 +115,7 @@ bool ShouldShowForState(PrefService* local_state,
+@@ -98,7 +98,7 @@ bool ShouldShowForState(PrefService* local_state,
    // potentially displaying multiple times in a given milestone, e.g. for
    // multiple profile relaunches (see https://crbug.com/1274313).
    local_state->SetInteger(prefs::kLastWhatsNewVersion, CHROME_VERSION_MAJOR);
 -  return true;
 +  return false;
+ #endif
  }
  
- GURL GetServerURL(bool may_redirect) {
 diff --git a/chrome/common/channel_info_posix.cc b/chrome/common/channel_info_posix.cc
 index 35aa3dadf0e3d..7b8dd8d74145c 100644
 --- a/chrome/common/channel_info_posix.cc
@@ -500,10 +500,10 @@ index e968b5fd711d6..92edea048bd0f 100644
  case $CHANNEL in
    stable )
 diff --git a/components/search_engines/keyword_table.cc b/components/search_engines/keyword_table.cc
-index 35a2bce59ee4f..a7207635cb0ce 100644
+index d4f60386970cf..b493d4c587141 100644
 --- a/components/search_engines/keyword_table.cc
 +++ b/components/search_engines/keyword_table.cc
-@@ -172,7 +172,9 @@ void BindURLToStatement(const TemplateURLData& data,
+@@ -173,7 +173,9 @@ void BindURLToStatement(const TemplateURLData& data,
    s->BindString(starting_column + 16, data.search_url_post_params);
    s->BindString(starting_column + 17, data.suggestions_url_post_params);
    s->BindString(starting_column + 18, data.image_url_post_params);
@@ -513,7 +513,7 @@ index 35a2bce59ee4f..a7207635cb0ce 100644
    s->BindTime(starting_column + 20, data.last_visited);
    s->BindBool(starting_column + 21, data.created_from_play_api);
    s->BindInt(starting_column + 22, static_cast<int>(data.is_active));
-@@ -544,7 +546,9 @@ bool KeywordTable::GetKeywordDataFromStatement(sql::Statement& s,
+@@ -543,7 +545,9 @@ bool KeywordTable::GetKeywordDataFromStatement(sql::Statement& s,
    data->SetURL(s.ColumnString(4));
    data->suggestions_url = s.ColumnString(10);
    data->image_url = s.ColumnString(16);
@@ -524,7 +524,7 @@ index 35a2bce59ee4f..a7207635cb0ce 100644
    data->suggestions_url_post_params = s.ColumnString(18);
    data->image_url_post_params = s.ColumnString(19);
 diff --git a/components/search_engines/prepopulated_engines.json b/components/search_engines/prepopulated_engines.json
-index 91539be7a0e83..37a6077961c87 100644
+index cdb763081d22b..22b3b8fe66a9f 100644
 --- a/components/search_engines/prepopulated_engines.json
 +++ b/components/search_engines/prepopulated_engines.json
 @@ -661,7 +661,7 @@
@@ -634,10 +634,10 @@ index 6f85515188bb6..7791bf81132e1 100644
      if (string_value) {
        contextual_search_url = *string_value;
 diff --git a/components/search_engines/template_url_prepopulate_data.cc b/components/search_engines/template_url_prepopulate_data.cc
-index 39e72f6be1d69..d132efdf795f6 100644
+index 3a7798c2d1420..b0d5cc93ab30c 100644
 --- a/components/search_engines/template_url_prepopulate_data.cc
 +++ b/components/search_engines/template_url_prepopulate_data.cc
-@@ -83,6 +83,12 @@ GetPrepopulatedEnginesForEeaRegionCountries(int country_id,
+@@ -81,6 +81,12 @@ GetPrepopulatedEnginesForEeaRegionCountries(int country_id,
    std::shuffle(t_urls.begin(), t_urls.end(), generator);
  
    CHECK_LE(t_urls.size(), kMaxEeaPrepopulatedEngines);
@@ -650,17 +650,17 @@ index 39e72f6be1d69..d132efdf795f6 100644
    return t_urls;
  }
  
-@@ -239,7 +245,7 @@ std::vector<std::unique_ptr<TemplateURLData>> GetPrepopulatedEngines(
-   }
-   if (default_search_provider_index) {
-     const auto itr =
--        base::ranges::find(t_urls, google.id, &TemplateURLData::prepopulate_id);
-+        base::ranges::find(t_urls, yandex_ru.id, &TemplateURLData::prepopulate_id);
-     *default_search_provider_index =
-         itr == t_urls.end() ? 0 : std::distance(t_urls.begin(), itr);
-   }
+@@ -325,7 +331,7 @@ std::unique_ptr<TemplateURLData> GetPrepopulatedFallbackSearch(
+     PrefService* prefs,
+     search_engines::SearchEngineChoiceService* search_engine_choice_service) {
+   return FindPrepopulatedEngineInternal(prefs, search_engine_choice_service,
+-                                        google.id,
++                                        yandex_ru.id,
+                                         /*use_first_as_fallback=*/true);
+ }
+ 
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
-index 56f70fef0b2fb..72da89dbbb6cc 100644
+index 8b04f2afe863e..6d02ebf5bc78d 100644
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
 @@ -167,6 +167,10 @@
@@ -687,7 +687,7 @@ index 56f70fef0b2fb..72da89dbbb6cc 100644
      if (cert && private_key) {
        mojo::PendingRemote<network::mojom::SSLPrivateKey> ssl_private_key;
 diff --git a/content/browser/utility_process_host.cc b/content/browser/utility_process_host.cc
-index 4d28d2368ac03..79b54aca3db1f 100644
+index 7e82cd311a628..5e21e8c8503fe 100644
 --- a/content/browser/utility_process_host.cc
 +++ b/content/browser/utility_process_host.cc
 @@ -309,6 +309,11 @@ bool UtilityProcessHost::StartProcess() {
@@ -716,7 +716,7 @@ index 070658460eb74..b0dff7ed01849 100644
                        os_info.c_str(), product.c_str());
    return user_agent;
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
-index 7895c59ac835f..81cdc072dadb3 100644
+index 049d187a25437..d6c1c8f00ae2d 100644
 --- a/net/base/net_error_list.h
 +++ b/net/base/net_error_list.h
 @@ -22,6 +22,11 @@
@@ -732,7 +732,7 @@ index 7895c59ac835f..81cdc072dadb3 100644
  // indicate a fatal error.  Typically this error will be generated as a
  // notification to wait for some external notification that the IO operation
 diff --git a/net/cert/cert_verify_proc.cc b/net/cert/cert_verify_proc.cc
-index c075d1bc7b6cd..26ac3f224aae0 100644
+index 609cb5e93c113..2a5bd6b960086 100644
 --- a/net/cert/cert_verify_proc.cc
 +++ b/net/cert/cert_verify_proc.cc
 @@ -447,6 +447,12 @@ CertVerifyProc::CertVerifyProc(scoped_refptr<CRLSet> crl_set)
@@ -832,10 +832,10 @@ index c6c544bec555a..11c9d941f217e 100644
    std::string state_or_province_name;
    std::string country_name;
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index 1de141088c814..02d152b725d6c 100644
+index 1c7222e9471d6..0224aee040072 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
-@@ -1693,6 +1693,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
+@@ -1697,6 +1697,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
        return OK;
      }
    }
@@ -909,10 +909,10 @@ index b63c471a986c0..2b763d8856c72 100644
    void NotifySSLConfigChanged(SSLConfigChangeType change_type);
    void NotifySSLConfigForServersChanged(
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 26dfb248ba5d3..81b6a64f139dd 100644
+index 623c7b5ef295a..5e3d80295462c 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
-@@ -28,6 +28,7 @@
+@@ -33,6 +33,7 @@
  #include "base/rand_util.h"
  #include "base/synchronization/lock.h"
  #include "base/task/sequenced_task_runner.h"
@@ -920,7 +920,7 @@ index 26dfb248ba5d3..81b6a64f139dd 100644
  #include "base/values.h"
  #include "build/build_config.h"
  #include "components/miracle_parameter/common/public/miracle_parameter.h"
-@@ -325,6 +326,100 @@ int SSLClientSocketImpl::ExportKeyingMaterial(std::string_view label,
+@@ -330,6 +331,100 @@ int SSLClientSocketImpl::ExportKeyingMaterial(std::string_view label,
    return OK;
  }
  
@@ -1021,7 +1021,7 @@ index 26dfb248ba5d3..81b6a64f139dd 100644
  int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
    // this has never worked for layered sockets. CHECK to detect any consumers
-@@ -343,6 +438,52 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
+@@ -348,6 +443,52 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
      return rv;
    }
  
@@ -1074,7 +1074,7 @@ index 26dfb248ba5d3..81b6a64f139dd 100644
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -862,6 +1003,9 @@ int SSLClientSocketImpl::DoHandshake() {
+@@ -867,6 +1008,9 @@ int SSLClientSocketImpl::DoHandshake() {
        return ERR_IO_PENDING;
      }
      if (ssl_error == SSL_ERROR_WANT_CERTIFICATE_VERIFY) {
@@ -1084,7 +1084,7 @@ index 26dfb248ba5d3..81b6a64f139dd 100644
        DCHECK(cert_verifier_request_);
        next_handshake_state_ = STATE_HANDSHAKE;
        return ERR_IO_PENDING;
-@@ -1043,6 +1187,62 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
+@@ -1048,6 +1192,62 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
      return HandleVerifyResult();
    }
  
@@ -1147,7 +1147,7 @@ index 26dfb248ba5d3..81b6a64f139dd 100644
    std::string_view ech_name_override = GetECHNameOverride();
    if (!ech_name_override.empty()) {
      // If ECH was offered but not negotiated, BoringSSL will ask to verify a
-@@ -1500,6 +1700,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1505,6 +1705,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
@@ -1186,10 +1186,10 @@ index 487081415b731..a133151689a6d 100644
    // The given hostname will be compared with the name(s) in the server's
    // certificate during the SSL handshake.  |ssl_config| specifies the SSL
 diff --git a/net/spdy/spdy_session.cc b/net/spdy/spdy_session.cc
-index 9b6732e621b36..03ea7a2515746 100644
+index 524e230c56e92..c1cac21acfc0c 100644
 --- a/net/spdy/spdy_session.cc
 +++ b/net/spdy/spdy_session.cc
-@@ -1464,6 +1464,11 @@ void SpdySession::RemovePooledAlias(const SpdySessionKey& alias_key) {
+@@ -1469,6 +1469,11 @@ void SpdySession::RemovePooledAlias(const SpdySessionKey& alias_key) {
  }
  
  bool SpdySession::HasAcceptableTransportSecurity() const {
@@ -1251,10 +1251,10 @@ index 9bf0a6e6078dc..92cc9fac1a81c 100644
  }
  
 diff --git a/net/ssl/client_cert_store_nss.cc b/net/ssl/client_cert_store_nss.cc
-index 3371564b32ba8..daacc43f6c11b 100644
+index 4891880e832bb..c151165254945 100644
 --- a/net/ssl/client_cert_store_nss.cc
 +++ b/net/ssl/client_cert_store_nss.cc
-@@ -147,6 +147,12 @@ void ClientCertStoreNSS::FilterCertsOnWorkerThread(
+@@ -151,6 +151,12 @@ void ClientCertStoreNSS::FilterCertsOnWorkerThread(
    std::sort(identities->begin(), identities->end(), ClientCertIdentitySorter());
  }
  
@@ -1267,7 +1267,7 @@ index 3371564b32ba8..daacc43f6c11b 100644
  // static
  ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
      scoped_refptr<crypto::CryptoModuleBlockingPasswordDelegate>
-@@ -162,6 +168,33 @@ ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
+@@ -166,6 +172,33 @@ ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
    GetPlatformCertsOnWorkerThread(std::move(password_delegate), CertFilter(),
                                   &selected_identities);
    FilterCertsOnWorkerThread(&selected_identities, *request);
@@ -1302,10 +1302,10 @@ index 3371564b32ba8..daacc43f6c11b 100644
  }
  
 diff --git a/net/ssl/client_cert_store_win.cc b/net/ssl/client_cert_store_win.cc
-index 876597cfba81d..ae1c6856e09d1 100644
+index 7debb8610acbd..227adfe6f2a7e 100644
 --- a/net/ssl/client_cert_store_win.cc
 +++ b/net/ssl/client_cert_store_win.cc
-@@ -106,6 +106,12 @@ static BOOL WINAPI ClientCertFindCallback(PCCERT_CONTEXT cert_context,
+@@ -111,6 +111,12 @@ static BOOL WINAPI ClientCertFindCallback(PCCERT_CONTEXT cert_context,
    return TRUE;
  }
  
@@ -1318,7 +1318,7 @@ index 876597cfba81d..ae1c6856e09d1 100644
  ClientCertIdentityList GetClientCertsImpl(HCERTSTORE cert_store,
                                            const SSLCertRequestInfo& request) {
    ClientCertIdentityList selected_identities;
-@@ -207,6 +213,32 @@ ClientCertIdentityList GetClientCertsImpl(HCERTSTORE cert_store,
+@@ -212,6 +218,32 @@ ClientCertIdentityList GetClientCertsImpl(HCERTSTORE cert_store,
      }
    }
  
@@ -1352,7 +1352,7 @@ index 876597cfba81d..ae1c6856e09d1 100644
              ClientCertIdentitySorter());
    return selected_identities;
 diff --git a/net/ssl/openssl_ssl_util.cc b/net/ssl/openssl_ssl_util.cc
-index 711a9489c6ff0..b14e8430edb17 100644
+index 76639ed95f5b1..6b15e82d8fc4a 100644
 --- a/net/ssl/openssl_ssl_util.cc
 +++ b/net/ssl/openssl_ssl_util.cc
 @@ -82,6 +82,10 @@ int MapOpenSSLErrorSSL(uint32_t error_code) {
@@ -1367,7 +1367,7 @@ index 711a9489c6ff0..b14e8430edb17 100644
      case SSL_R_SSLV3_ALERT_UNSUPPORTED_CERTIFICATE:
      case SSL_R_SSLV3_ALERT_CERTIFICATE_REVOKED:
 diff --git a/net/ssl/ssl_cipher_suite_names.cc b/net/ssl/ssl_cipher_suite_names.cc
-index fb50193ea5145..2e89370c9c127 100644
+index 7800ff104248d..53ec6c33e40cd 100644
 --- a/net/ssl/ssl_cipher_suite_names.cc
 +++ b/net/ssl/ssl_cipher_suite_names.cc
 @@ -68,6 +68,58 @@ void SSLCipherSuiteToStrings(const char** key_exchange_str,
@@ -1507,7 +1507,7 @@ index 0d0793473e626..f4ca1e8408539 100644
  bssl::UniquePtr<EVP_PKEY> GetClientCertPublicKey(
      const X509Certificate* certificate);
 diff --git a/sandbox/policy/features.cc b/sandbox/policy/features.cc
-index 62e4436d8d4f1..3c7af6ef814af 100644
+index fb5a05c3e8dfb..a203b7a848790 100644
 --- a/sandbox/policy/features.cc
 +++ b/sandbox/policy/features.cc
 @@ -30,7 +30,7 @@ BASE_FEATURE(kNetworkServiceSandbox,
@@ -1557,7 +1557,7 @@ index aba1816b960a0..85bd780880cd5 100644
  ; This is read by CFPrefs calling getpwuid in a loop. libinfo then fails to
  ; contact any of the opendirectoryd mach services, and falls back to
 diff --git a/sandbox/win/src/process_mitigations.cc b/sandbox/win/src/process_mitigations.cc
-index 5ab3033aa10b8..fa5b2128f43d0 100644
+index eb538e3e723f8..f5b2b25aaf606 100644
 --- a/sandbox/win/src/process_mitigations.cc
 +++ b/sandbox/win/src/process_mitigations.cc
 @@ -226,6 +226,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags starting_flags,
@@ -1698,7 +1698,7 @@ index 599b5903de75b..3b3f82f23cf6a 100644
    "src/crypto/asn1/a_bool.c",
    "src/crypto/asn1/a_d2i_fp.c",
 diff --git a/ui/webui/resources/cr_components/searchbox/realbox.html b/ui/webui/resources/cr_components/searchbox/realbox.html
-index 007ba1fafa8c6..54433951e47ab 100644
+index aab1bb1034f68..2c99c357d61e4 100644
 --- a/ui/webui/resources/cr_components/searchbox/realbox.html
 +++ b/ui/webui/resources/cr_components/searchbox/realbox.html
 @@ -1,4 +1,11 @@
