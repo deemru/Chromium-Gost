@@ -22,10 +22,6 @@ git branch -D temp
 gclient sync --with_branch_heads -D
 git am --3way --ignore-space-change < $CHROMIUM_GOST_REPO/patch/chromium.patch || exit
 
-# https://github.com/deemru/Chromium-Gost/issues/92
-git fetch origin 00c3708715e5394420942ffc984778345cb50e3f --no-tags
-git cherry-pick 00c3708715e5394420942ffc984778345cb50e3f
-
 perl -pi -e "s/Chromium/Chromium-Gost/g" chrome/app/chromium_strings.grd
 perl -pi -e "s/Chromium/Chromium-Gost/g" chrome/app/resources/chromium_strings*.xtb
 cp -f $CHROMIUM_GOST_REPO/extra/exit_0.sh chrome/installer/linux/common/repo.cron
