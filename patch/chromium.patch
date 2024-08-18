@@ -1,4 +1,4 @@
-From 2e58865e6d6e53091b4f058cfd6d3ee4de362de7 Mon Sep 17 00:00:00 2001
+From a3b698a00b5ff02c08b7d24fadb194dcc7250316 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Mon, 19 Aug 2024 00:14:03 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -33,6 +33,7 @@ Subject: [PATCH] chromium GOSTSSL
  content/browser/storage_partition_impl.cc     |   9 +
  content/browser/utility_process_host.cc       |   5 +
  content/common/user_agent.cc                  |   2 +-
+ net/base/features.cc                          |   2 +-
  net/base/net_error_list.h                     |   5 +
  net/cert/cert_verify_proc.cc                  |  23 ++
  net/cert/x509_cert_types.cc                   |  27 +++
@@ -58,7 +59,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.generated.gni     |   2 +
  .../cr_components/searchbox/realbox.html      |   7 +
- 54 files changed, 658 insertions(+), 53 deletions(-)
+ 55 files changed, 659 insertions(+), 54 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
 index a8c87a5d595af..193a13c3623e9 100644
@@ -705,6 +706,19 @@ index 070658460eb74..b0dff7ed01849 100644
                        "%s Safari/537.36",
                        os_info.c_str(), product.c_str());
    return user_agent;
+diff --git a/net/base/features.cc b/net/base/features.cc
+index 067bc25deba37..b62612692c1e0 100644
+--- a/net/base/features.cc
++++ b/net/base/features.cc
+@@ -145,7 +145,7 @@ BASE_FEATURE(kPostQuantumKyber,
+ #if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_IOS)
+              base::FEATURE_DISABLED_BY_DEFAULT);
+ #else
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             base::FEATURE_DISABLED_BY_DEFAULT);
+ #endif
+ 
+ BASE_FEATURE(kNetUnusedIdleSocketTimeout,
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
 index 049d187a25437..d6c1c8f00ae2d 100644
 --- a/net/base/net_error_list.h
