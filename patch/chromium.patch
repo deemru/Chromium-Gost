@@ -1,4 +1,4 @@
-From a3b698a00b5ff02c08b7d24fadb194dcc7250316 Mon Sep 17 00:00:00 2001
+From 14051cb299051d02c5f7382d8c1039a6feda9b4c Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Mon, 19 Aug 2024 00:14:03 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -13,7 +13,7 @@ Subject: [PATCH] chromium GOSTSSL
  chrome/browser/history/top_sites_factory.cc   |   4 +-
  chrome/browser/resources/new_tab_page/app.ts  |   6 +-
  .../browser/resources/new_tab_page/logo.css   |   5 +-
- chrome/browser/resources/new_tab_page/logo.ts |   4 +-
+ chrome/browser/resources/new_tab_page/logo.ts |   2 +
  chrome/browser/search/search.cc               |   2 +
  chrome/browser/shell_integration_linux.cc     |   2 +-
  .../ui/startup/startup_browser_creator.cc     |   4 +-
@@ -52,14 +52,14 @@ Subject: [PATCH] chromium GOSTSSL
  net/ssl/ssl_cipher_suite_names.cc             |  64 ++++++
  net/ssl/ssl_platform_key_util.cc              |  22 ++
  net/ssl/ssl_platform_key_util.h               |   7 +
- sandbox/policy/features.cc                    |   4 +-
+ sandbox/policy/features.cc                    |   8 +-
  sandbox/policy/mac/common.sb                  |  17 ++
  sandbox/win/src/process_mitigations.cc        |   4 +
  .../renderer/core/frame/reporting_context.cc  |   8 +
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.generated.gni     |   2 +
  .../cr_components/searchbox/realbox.html      |   7 +
- 55 files changed, 659 insertions(+), 54 deletions(-)
+ 55 files changed, 663 insertions(+), 52 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
 index a8c87a5d595af..193a13c3623e9 100644
@@ -242,22 +242,25 @@ index f7c8d5c6e46ef..71e8d5455d28b 100644
  
  :host(:not([single-colored])) #logo {
 diff --git a/chrome/browser/resources/new_tab_page/logo.ts b/chrome/browser/resources/new_tab_page/logo.ts
-index 412c9bcf2c157..0b57eeff107db 100644
+index 412c9bcf2c157..6c6885ea8c5a0 100644
 --- a/chrome/browser/resources/new_tab_page/logo.ts
 +++ b/chrome/browser/resources/new_tab_page/logo.ts
-@@ -158,10 +158,10 @@ export class LogoElement extends CrLitElement {
-   override willUpdate(changedProperties: PropertyValues<this>) {
-     super.willUpdate(changedProperties);
+@@ -121,6 +121,7 @@ export class LogoElement extends CrLitElement {
+     super();
  
--    this.imageDoodle_ = this.computeImageDoodle_();
-+    this.imageDoodle_ = false;
-     this.imageUrl_ = this.computeImageUrl_();
-     this.animationUrl_ = this.computeAnimationUrl_();
--    this.showDoodle_ = this.computeShowDoodle_();
-+    this.showDoodle_ = false;
-     this.iframeUrl_ = this.computeIframeUrl_();
-     this.showLogo_ = this.computeShowLogo_();
-     this.doodleBoxed_ = this.computeDoodleBoxed_();
+     this.pageHandler_ = NewTabPageProxy.getInstance().handler;
++    this.loaded_ = true; /*
+     this.pageHandler_.getDoodle().then(({doodle}) => {
+       this.doodle_ = doodle;
+       this.loaded_ = true;
+@@ -129,6 +130,7 @@ export class LogoElement extends CrLitElement {
+         this.height_ = `${this.doodle_.interactive.height}px`;
+       }
+     });
++*/
+   }
+ 
+   override connectedCallback() {
 diff --git a/chrome/browser/search/search.cc b/chrome/browser/search/search.cc
 index 916e1c043f3e5..4a1184b2b4b08 100644
 --- a/chrome/browser/search/search.cc
@@ -586,7 +589,7 @@ index edc375b207c0d..0f586fe798687 100644
  
  std::string SearchTermsData::GetMailRUReferralID() const {
 diff --git a/components/search_engines/template_url_data_util.cc b/components/search_engines/template_url_data_util.cc
-index 6f85515188bb6..7791bf81132e1 100644
+index 6f85515188bb6..3f14e878788fe 100644
 --- a/components/search_engines/template_url_data_util.cc
 +++ b/components/search_engines/template_url_data_util.cc
 @@ -75,10 +75,12 @@ std::unique_ptr<TemplateURLData> TemplateURLDataFromDictionary(
@@ -607,7 +610,7 @@ index 6f85515188bb6..7791bf81132e1 100644
        ToStringPiece(engine.image_url),
        ToStringPiece(engine.image_translate_url),
 -      ToStringPiece(engine.new_tab_url),
-+      base::StringPiece(), //ToStringPiece(engine.new_tab_url),
++      ToStringPiece(nullptr),
        ToStringPiece(engine.contextual_search_url),
        ToStringPiece(engine.logo_url), ToStringPiece(engine.doodle_url),
        ToStringPiece(engine.search_url_post_params),
@@ -1511,7 +1514,7 @@ index 0d0793473e626..f4ca1e8408539 100644
  bssl::UniquePtr<EVP_PKEY> GetClientCertPublicKey(
      const X509Certificate* certificate);
 diff --git a/sandbox/policy/features.cc b/sandbox/policy/features.cc
-index b21625adf0780..8b213073b454f 100644
+index b21625adf0780..20390dcb1db13 100644
 --- a/sandbox/policy/features.cc
 +++ b/sandbox/policy/features.cc
 @@ -30,7 +30,7 @@ BASE_FEATURE(kNetworkServiceSandbox,
@@ -1532,6 +1535,18 @@ index b21625adf0780..8b213073b454f 100644
  #endif  // BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
  #endif  // !BUILDFLAG(IS_MAC) && !BUILDFLAG(IS_FUCHSIA)
  
+@@ -63,7 +63,11 @@ BASE_FEATURE(kGpuLPAC,
+ // overridden and disabled by policy.
+ BASE_FEATURE(kPrintCompositorLPAC,
+              "PrintCompositorLPAC",
++#if BUILDFLAG(IS_WIN)
++             base::FEATURE_DISABLED_BY_DEFAULT);
++#else
+              base::FEATURE_ENABLED_BY_DEFAULT);
++#endif
+ 
+ // Enables Renderer AppContainer
+ BASE_FEATURE(kRendererAppContainer,
 diff --git a/sandbox/policy/mac/common.sb b/sandbox/policy/mac/common.sb
 index aba1816b960a0..85bd780880cd5 100644
 --- a/sandbox/policy/mac/common.sb
