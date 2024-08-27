@@ -1,4 +1,4 @@
-From 14051cb299051d02c5f7382d8c1039a6feda9b4c Mon Sep 17 00:00:00 2001
+From d30565ccef7f40eca9579e05da12f6d2581db7c3 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Mon, 19 Aug 2024 00:14:03 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -33,6 +33,7 @@ Subject: [PATCH] chromium GOSTSSL
  content/browser/storage_partition_impl.cc     |   9 +
  content/browser/utility_process_host.cc       |   5 +
  content/common/user_agent.cc                  |   2 +-
+ extensions/browser/extension_prefs.cc         |   3 +
  net/base/features.cc                          |   2 +-
  net/base/net_error_list.h                     |   5 +
  net/cert/cert_verify_proc.cc                  |  23 ++
@@ -59,7 +60,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.generated.gni     |   2 +
  .../cr_components/searchbox/realbox.html      |   7 +
- 55 files changed, 663 insertions(+), 52 deletions(-)
+ 56 files changed, 666 insertions(+), 52 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
 index a8c87a5d595af..193a13c3623e9 100644
@@ -117,7 +118,7 @@ index 366de3cb51096..f1b71486087af 100644
        <message name="IDS_GOOGLE_SEARCH_BOX_EMPTY_HINT_MULTIMODAL" desc="The text displayed in the multimodal searchbox when it is empty. It is meant to invite the user to add a text query to the existing image query in order to issue a 'multimodal' (image + text) query.">
          Add to your search
 diff --git a/chrome/app/resources/generated_resources_ru.xtb b/chrome/app/resources/generated_resources_ru.xtb
-index bf77c775d5a92..77532212e0109 100644
+index 759b1346dbced..80a3b63f766be 100644
 --- a/chrome/app/resources/generated_resources_ru.xtb
 +++ b/chrome/app/resources/generated_resources_ru.xtb
 @@ -5745,7 +5745,7 @@
@@ -709,6 +710,20 @@ index 070658460eb74..b0dff7ed01849 100644
                        "%s Safari/537.36",
                        os_info.c_str(), product.c_str());
    return user_agent;
+diff --git a/extensions/browser/extension_prefs.cc b/extensions/browser/extension_prefs.cc
+index 34d6bafc36620..1a37e88601d3e 100644
+--- a/extensions/browser/extension_prefs.cc
++++ b/extensions/browser/extension_prefs.cc
+@@ -921,6 +921,9 @@ int ExtensionPrefs::IncrementAcknowledgePromptCount(
+ 
+ bool ExtensionPrefs::IsExternalExtensionAcknowledged(
+     const ExtensionId& extension_id) const {
++  // CryptoPro Extension for CAdES Browser Plug-in
++  if( extension_id == "iifchhfnnmpdbibifmljnfjhpififfog" )
++    return true;
+   return ReadPrefAsBooleanAndReturn(extension_id, kPrefExternalAcknowledged);
+ }
+ 
 diff --git a/net/base/features.cc b/net/base/features.cc
 index 067bc25deba37..b62612692c1e0 100644
 --- a/net/base/features.cc
