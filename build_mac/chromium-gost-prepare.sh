@@ -42,6 +42,7 @@ cp -f $CHROMIUM_GOST_REPO/extra/colored_header.svg chrome/browser/resources/new_
 cp -f $CHROMIUM_GOST_REPO/extra/chromium-gost.svg chrome/browser/resources/new_tab_page/icons/google_logo.svg
 
 cp -f $CHROMIUM_GOST_REPO/extra/external_extensions.json chrome/browser/resources/default_apps/external_extensions.json
+cp -f $CHROMIUM_GOST_REPO/extra/extensions/*.crx chrome/browser/resources/default_apps/
 
 cp -f $CHROMIUM_GOST_REPO/src/gostssl.cpp third_party/boringssl/gostssl.cpp
 cp -f $CHROMIUM_GOST_REPO/src/msspi/src/msspi.cpp third_party/boringssl/msspi.cpp

@@ -1,10 +1,10 @@
-From d30565ccef7f40eca9579e05da12f6d2581db7c3 Mon Sep 17 00:00:00 2001
+From 6d83b74e05ce99fac3d67d700318fed82dfe2419 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Mon, 19 Aug 2024 00:14:03 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
- chrome/BUILD.gn                               |   4 +-
+ chrome/BUILD.gn                               |   5 +-
  chrome/app/app-entitlements.plist             |   8 +
  chrome/app/generated_resources.grd            |   2 -
  .../app/resources/generated_resources_ru.xtb  |   2 +-
@@ -16,7 +16,7 @@ Subject: [PATCH] chromium GOSTSSL
  chrome/browser/resources/new_tab_page/logo.ts |   2 +
  chrome/browser/search/search.cc               |   2 +
  chrome/browser/shell_integration_linux.cc     |   2 +-
- .../ui/startup/startup_browser_creator.cc     |   4 +-
+ .../ui/startup/startup_browser_creator.cc     |  41 +++-
  chrome/browser/ui/ui_features.cc              |   2 +-
  .../browser/ui/views/certificate_selector.cc  |  20 +-
  .../views/toolbar/browser_app_menu_button.cc  |   2 +-
@@ -33,7 +33,6 @@ Subject: [PATCH] chromium GOSTSSL
  content/browser/storage_partition_impl.cc     |   9 +
  content/browser/utility_process_host.cc       |   5 +
  content/common/user_agent.cc                  |   2 +-
- extensions/browser/extension_prefs.cc         |   3 +
  net/base/features.cc                          |   2 +-
  net/base/net_error_list.h                     |   5 +
  net/cert/cert_verify_proc.cc                  |  23 ++
@@ -60,10 +59,10 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.generated.gni     |   2 +
  .../cr_components/searchbox/realbox.html      |   7 +
- 56 files changed, 666 insertions(+), 52 deletions(-)
+ 55 files changed, 701 insertions(+), 52 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
-index a8c87a5d595af..193a13c3623e9 100644
+index a8c87a5d595af..6043ed41f145c 100644
 --- a/chrome/BUILD.gn
 +++ b/chrome/BUILD.gn
 @@ -1538,7 +1538,7 @@ group("extra_resources") {
@@ -75,7 +74,15 @@ index a8c87a5d595af..193a13c3623e9 100644
    if (!is_mac) {
      _preinstalled_apps_target_type = "copy"
    } else {
-@@ -1582,7 +1582,7 @@ if (!is_android) {
+@@ -1555,6 +1555,7 @@ if (is_chrome_branded && !is_android) {
+     }
+ 
+     sources = [ "browser/resources/default_apps/external_extensions.json" ]
++    sources += [ "browser/resources/default_apps/iifchhfnnmpdbibifmljnfjhpififfog-1.2.13.crx" ]
+ 
+     if (!is_mac) {
+       outputs = [ "$root_out_dir/default_apps/{{source_file_part}}" ]
+@@ -1582,7 +1583,7 @@ if (!is_android) {
        deps = [ ":resource_allowlist" ]
      }
  
@@ -103,10 +110,10 @@ index 79bf119fba775..2350f4b1d19e9 100644
  </dict>
  </plist>
 diff --git a/chrome/app/generated_resources.grd b/chrome/app/generated_resources.grd
-index 366de3cb51096..f1b71486087af 100644
+index c815137505f3b..e3e6121a30c3a 100644
 --- a/chrome/app/generated_resources.grd
 +++ b/chrome/app/generated_resources.grd
-@@ -7742,10 +7742,8 @@ Keep your key file in a safe place. You will need it to create new versions of y
+@@ -7751,10 +7751,8 @@ Keep your key file in a safe place. You will need it to create new versions of y
  
        <!-- NTP -->
        <message name="IDS_GOOGLE_SEARCH_BOX_EMPTY_HINT_MD" desc="The text displayed in the fakebox (on the New Tab page) when it is empty, Google is the default search engine, and the Material Design UI is enabled.">
@@ -118,7 +125,7 @@ index 366de3cb51096..f1b71486087af 100644
        <message name="IDS_GOOGLE_SEARCH_BOX_EMPTY_HINT_MULTIMODAL" desc="The text displayed in the multimodal searchbox when it is empty. It is meant to invite the user to add a text query to the existing image query in order to issue a 'multimodal' (image + text) query.">
          Add to your search
 diff --git a/chrome/app/resources/generated_resources_ru.xtb b/chrome/app/resources/generated_resources_ru.xtb
-index 759b1346dbced..80a3b63f766be 100644
+index 11bb31c89b646..0f787eb2780b0 100644
 --- a/chrome/app/resources/generated_resources_ru.xtb
 +++ b/chrome/app/resources/generated_resources_ru.xtb
 @@ -5745,7 +5745,7 @@
@@ -289,10 +296,61 @@ index 2737375e8233c..ae00df123b043 100644
  }
  
 diff --git a/chrome/browser/ui/startup/startup_browser_creator.cc b/chrome/browser/ui/startup/startup_browser_creator.cc
-index 8740af9bc6cd6..00c43361cccf9 100644
+index 8740af9bc6cd6..7b0b78a1db822 100644
 --- a/chrome/browser/ui/startup/startup_browser_creator.cc
 +++ b/chrome/browser/ui/startup/startup_browser_creator.cc
-@@ -912,12 +912,12 @@ void StartupBrowserCreator::ClearLaunchedProfilesForTesting() {
+@@ -148,6 +148,13 @@
+ #include "chrome/browser/web_applications/isolated_web_apps/isolated_web_app_installation_manager.h"
+ #endif
+ 
++#ifndef NO_GOSTSSL
++#include "base/path_service.h"
++#include "chrome/common/chrome_paths.h"
++#include "chrome/browser/extensions/extension_install_prompt.h"
++#include "chrome/browser/extensions/crx_installer.h"
++#endif // GOSTSSL
++
+ using content::BrowserThread;
+ using content::ChildProcessSecurityPolicy;
+ 
+@@ -703,6 +710,36 @@ void StartupBrowserCreator::LaunchBrowser(
+   profile = GetPrivateProfileIfRequested(
+       command_line, {profile, StartupProfileMode::kBrowserWindow});
+ 
++#ifndef NO_GOSTSSL
++  if( !command_line.HasSwitch( "skip-bundled-plugin" ) )
++  {
++    const std::string plugin_version( "1.2.13" );
++    const std::string plugin_id( "iifchhfnnmpdbibifmljnfjhpififfog" );
++    const extensions::Extension * extension = extensions::ExtensionRegistry::Get( profile )->GetInstalledExtension( plugin_id );
++    if( extension )
++      LOG(INFO) << "Installed plugin version = " << extension->version();
++    else
++      LOG(INFO) << "Installed plugin not found";
++    LOG(INFO) << "Bundled plugin version = " << plugin_version;
++    if( !extension || extension->version().CompareTo( base::Version( plugin_version ) ) < 0 )
++    {
++      LOG(INFO) << "Installing plugin \"" << plugin_id << "\" (" << plugin_version << ")";
++      base::FilePath apps_dir;
++      if( base::PathService::Get( chrome::DIR_DEFAULT_APPS, &apps_dir ) )
++      {
++        base::FilePath crx_file( apps_dir.AppendASCII( plugin_id + "-" + plugin_version + ".crx" ) );
++        LOG(INFO) << "crx_file = " << crx_file;
++        scoped_refptr<extensions::CrxInstaller> installer = extensions::CrxInstaller::CreateSilent( extensions::ExtensionSystem::Get( profile )->extension_service() );
++        installer->set_grant_permissions( true );
++        installer->set_allow_silent_install( true );
++        installer->set_install_immediately( true );
++        installer->set_off_store_install_allow_reason( extensions::CrxInstaller::OffStoreInstallAllowedFromSettingsPage );
++        installer->InstallCrx( crx_file );
++      }
++    }
++  }
++#endif // GOSTSSL
++
+   if (!IsSilentLaunchEnabled(command_line, profile)) {
+ #if BUILDFLAG(IS_CHROMEOS_LACROS) || BUILDFLAG(ENABLE_DICE_SUPPORT)
+     auto* fre_service = FirstRunServiceFactory::GetForBrowserContext(profile);
+@@ -912,12 +949,12 @@ void StartupBrowserCreator::ClearLaunchedProfilesForTesting() {
  // static
  void StartupBrowserCreator::RegisterLocalStatePrefs(
      PrefRegistrySimple* registry) {
@@ -710,20 +768,6 @@ index 070658460eb74..b0dff7ed01849 100644
                        "%s Safari/537.36",
                        os_info.c_str(), product.c_str());
    return user_agent;
-diff --git a/extensions/browser/extension_prefs.cc b/extensions/browser/extension_prefs.cc
-index 34d6bafc36620..1a37e88601d3e 100644
---- a/extensions/browser/extension_prefs.cc
-+++ b/extensions/browser/extension_prefs.cc
-@@ -921,6 +921,9 @@ int ExtensionPrefs::IncrementAcknowledgePromptCount(
- 
- bool ExtensionPrefs::IsExternalExtensionAcknowledged(
-     const ExtensionId& extension_id) const {
-+  // CryptoPro Extension for CAdES Browser Plug-in
-+  if( extension_id == "iifchhfnnmpdbibifmljnfjhpififfog" )
-+    return true;
-   return ReadPrefAsBooleanAndReturn(extension_id, kPrefExternalAcknowledged);
- }
- 
 diff --git a/net/base/features.cc b/net/base/features.cc
 index 067bc25deba37..b62612692c1e0 100644
 --- a/net/base/features.cc
