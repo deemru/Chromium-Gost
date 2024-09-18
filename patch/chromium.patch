@@ -1,4 +1,4 @@
-From f676dffceee7955397a95ccf77224e7d8e73e779 Mon Sep 17 00:00:00 2001
+From a80c576daa228017327f653eff419561c896ab43 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 18 Sep 2024 11:56:57 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -25,6 +25,7 @@ Subject: [PATCH] chromium GOSTSSL
  chrome/common/net/x509_certificate_model.cc   |   2 +-
  .../chromium-browser/chromium-browser.info    |  10 +-
  .../installer/linux/rpm/chrome.spec.template  |   4 +
+ .../installer/mini_installer/chrome.release   |   2 +-
  components/search_engines/keyword_table.cc    |   4 +
  .../search_engines/prepopulated_engines.json  |  12 +-
  .../search_engines/search_terms_data.cc       |   2 +-
@@ -59,7 +60,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.generated.gni     |   2 +
  .../cr_components/searchbox/searchbox.html    |   7 +
- 55 files changed, 702 insertions(+), 53 deletions(-)
+ 56 files changed, 703 insertions(+), 54 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
 index 19c940ccf37f1..0b4191cc2ec4f 100644
@@ -551,6 +552,19 @@ index e968b5fd711d6..92edea048bd0f 100644
  CHANNEL=@@CHANNEL@@
  case $CHANNEL in
    stable )
+diff --git a/chrome/installer/mini_installer/chrome.release b/chrome/installer/mini_installer/chrome.release
+index e5de7351fdd30..ec3ba3fdbfb10 100644
+--- a/chrome/installer/mini_installer/chrome.release
++++ b/chrome/installer/mini_installer/chrome.release
+@@ -39,7 +39,7 @@ v8_context_snapshot.bin: %(VersionDir)s\
+ #
+ # Sub directories living in the version dir
+ #
+-Extensions\*.*: %(VersionDir)s\Extensions\
++default_apps\*.*: %(VersionDir)s\default_apps\
+ locales\*.pak: %(VersionDir)s\Locales
+ 
+ #
 diff --git a/components/search_engines/keyword_table.cc b/components/search_engines/keyword_table.cc
 index d4f60386970cf..b493d4c587141 100644
 --- a/components/search_engines/keyword_table.cc
