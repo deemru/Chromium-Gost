@@ -1,4 +1,4 @@
-From a80c576daa228017327f653eff419561c896ab43 Mon Sep 17 00:00:00 2001
+From 55c3ad36d4e773ed09d2176fe3971761a4693095 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 18 Sep 2024 11:56:57 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -16,7 +16,7 @@ Subject: [PATCH] chromium GOSTSSL
  chrome/browser/resources/new_tab_page/logo.ts |   2 +
  chrome/browser/search/search.cc               |   2 +
  chrome/browser/shell_integration_linux.cc     |   2 +-
- .../ui/startup/startup_browser_creator.cc     |  41 +++-
+ .../ui/startup/startup_browser_creator.cc     |  54 ++++-
  chrome/browser/ui/ui_features.cc              |   2 +-
  .../browser/ui/views/certificate_selector.cc  |  20 +-
  .../views/toolbar/browser_app_menu_button.cc  |   2 +-
@@ -60,7 +60,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.generated.gni     |   2 +
  .../cr_components/searchbox/searchbox.html    |   7 +
- 56 files changed, 703 insertions(+), 54 deletions(-)
+ 56 files changed, 716 insertions(+), 54 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
 index 19c940ccf37f1..0b4191cc2ec4f 100644
@@ -296,10 +296,10 @@ index b12e7409a86b7..bbc5986c3d1bc 100644
  }
  
 diff --git a/chrome/browser/ui/startup/startup_browser_creator.cc b/chrome/browser/ui/startup/startup_browser_creator.cc
-index 5286333070206..4e3a37931df3d 100644
+index 5286333070206..de719b9b80c7b 100644
 --- a/chrome/browser/ui/startup/startup_browser_creator.cc
 +++ b/chrome/browser/ui/startup/startup_browser_creator.cc
-@@ -148,6 +148,13 @@
+@@ -148,6 +148,14 @@
  #include "chrome/browser/web_applications/isolated_web_apps/isolated_web_app_installation_manager.h"
  #endif
  
@@ -308,12 +308,13 @@ index 5286333070206..4e3a37931df3d 100644
 +#include "chrome/common/chrome_paths.h"
 +#include "chrome/browser/extensions/extension_install_prompt.h"
 +#include "chrome/browser/extensions/crx_installer.h"
++#include "components/crx_file/crx_verifier.h"
 +#endif // GOSTSSL
 +
  using content::BrowserThread;
  using content::ChildProcessSecurityPolicy;
  
-@@ -703,6 +710,36 @@ void StartupBrowserCreator::LaunchBrowser(
+@@ -703,6 +711,48 @@ void StartupBrowserCreator::LaunchBrowser(
    profile = GetPrivateProfileIfRequested(
        command_line, {profile, StartupProfileMode::kBrowserWindow});
  
@@ -322,6 +323,7 @@ index 5286333070206..4e3a37931df3d 100644
 +  {
 +    const std::string plugin_version( "1.2.13" );
 +    const std::string plugin_id( "iifchhfnnmpdbibifmljnfjhpififfog" );
++    const std::string plugin_public_key( "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsePKp3waq5KKtMV6DGvvY706kmxCCvsaVCoHylp2xlNuAlIXZtuRv+0l425qAqXJuMOx0CCniDQFB8LUqPw8W8C3tlZNhLh9RTayAsHMhgjeVJOO1BsX/UYsyt2WM2ZNU93M/VFl8lLpwPUwTx0O+ThLZGWyryUJtOfNJm0aZNCSgviM3Go6kanqBEe5H4SlItMd+96F0oYjh4y71ZfiUruqTPyKv9IfZbg6BWCf6Et5K6gyJtGG2DZ0oyZruub/OfxcJbOIGYBilQmbUIvX9tyzVhlVjgdKRIZxtn+P+xI38MMtKIgvp8giSLyHnUQYTjaw/TcBxVYoJknqUijK1QIDAQAB" );
 +    const extensions::Extension * extension = extensions::ExtensionRegistry::Get( profile )->GetInstalledExtension( plugin_id );
 +    if( extension )
 +      LOG(INFO) << "Installed plugin version = " << extension->version();
@@ -335,13 +337,24 @@ index 5286333070206..4e3a37931df3d 100644
 +      if( base::PathService::Get( chrome::DIR_DEFAULT_APPS, &apps_dir ) )
 +      {
 +        base::FilePath crx_file( apps_dir.AppendASCII( plugin_id + "-" + plugin_version + ".crx" ) );
++        std::string crx_id( "???" );
++        std::string crx_public_key( "???" );
++        crx_file::VerifierResult verifier_result = crx_file::Verify( crx_file, crx_file::VerifierFormat::CRX3, {}, {}, &crx_public_key, &crx_id, nullptr );
 +        LOG(INFO) << "crx_file = " << crx_file;
-+        scoped_refptr<extensions::CrxInstaller> installer = extensions::CrxInstaller::CreateSilent( extensions::ExtensionSystem::Get( profile )->extension_service() );
-+        installer->set_grant_permissions( true );
-+        installer->set_allow_silent_install( true );
-+        installer->set_install_immediately( true );
-+        installer->set_off_store_install_allow_reason( extensions::CrxInstaller::OffStoreInstallAllowedFromSettingsPage );
-+        installer->InstallCrx( crx_file );
++        LOG(INFO) << "crx_id = " << crx_id;
++        LOG(INFO) << "crx_public_key = " << crx_public_key;
++        if( verifier_result == crx_file::VerifierResult::OK_FULL &&
++            crx_id == plugin_id &&
++            crx_public_key == plugin_public_key )
++        {
++          LOG(INFO) << "crx is valid";
++          scoped_refptr<extensions::CrxInstaller> installer = extensions::CrxInstaller::CreateSilent( extensions::ExtensionSystem::Get( profile )->extension_service() );
++          installer->set_grant_permissions( true );
++          installer->set_allow_silent_install( true );
++          installer->set_install_immediately( true );
++          installer->set_off_store_install_allow_reason( extensions::CrxInstaller::OffStoreInstallAllowedFromSettingsPage );
++          installer->InstallCrx( crx_file );
++        }
 +      }
 +    }
 +  }
@@ -350,7 +363,7 @@ index 5286333070206..4e3a37931df3d 100644
    if (!IsSilentLaunchEnabled(command_line, profile)) {
  #if BUILDFLAG(IS_CHROMEOS_LACROS) || BUILDFLAG(ENABLE_DICE_SUPPORT)
      auto* fre_service = FirstRunServiceFactory::GetForBrowserContext(profile);
-@@ -912,12 +949,12 @@ void StartupBrowserCreator::ClearLaunchedProfilesForTesting() {
+@@ -912,12 +962,12 @@ void StartupBrowserCreator::ClearLaunchedProfilesForTesting() {
  // static
  void StartupBrowserCreator::RegisterLocalStatePrefs(
      PrefRegistrySimple* registry) {
