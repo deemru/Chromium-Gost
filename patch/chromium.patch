@@ -1,4 +1,4 @@
-From 4d25de1f643b5488558b9693502ea184435d6f9d Mon Sep 17 00:00:00 2001
+From 4939960c3d993e333f97ba630040e8c6a327e419 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Mon, 14 Oct 2024 17:56:57 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -9,6 +9,7 @@ Subject: [PATCH] chromium GOSTSSL
  chrome/app/generated_resources.grd            |   2 -
  .../app/resources/generated_resources_ru.xtb  |   2 +-
  chrome/app/theme/chromium/BRANDING            |  16 +-
+ chrome/browser/extensions/api/BUILD.gn        |   2 +-
  .../api/messaging/launch_context_posix.cc     |  12 +
  chrome/browser/history/top_sites_factory.cc   |   4 +-
  chrome/browser/resources/new_tab_page/app.ts  |   8 +-
@@ -60,7 +61,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.gn                |   1 +
  .../cr_components/searchbox/searchbox.html    |   7 +
- 56 files changed, 715 insertions(+), 54 deletions(-)
+ 57 files changed, 716 insertions(+), 55 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
 index 6d355ce559b80..35890ae21e988 100644
@@ -161,6 +162,19 @@ index f8363d5b294fe..2f8021eabe810 100644
 +MAC_BUNDLE_ID=ru.cryptopro.chromium-gost
  MAC_CREATOR_CODE=Cr24
  MAC_TEAM_ID=
+diff --git a/chrome/browser/extensions/api/BUILD.gn b/chrome/browser/extensions/api/BUILD.gn
+index 6173ec0a17669..4f9f5f4eacdec 100644
+--- a/chrome/browser/extensions/api/BUILD.gn
++++ b/chrome/browser/extensions/api/BUILD.gn
+@@ -34,7 +34,7 @@ group("api_implementations") {
+     "//chrome/browser/extensions/api/downloads_internal",
+     "//chrome/browser/extensions/api/experimental_ai_data",
+     "//chrome/browser/extensions/api/font_settings",
+-    "//chrome/browser/extensions/api/mdns",
++#   "//chrome/browser/extensions/api/mdns",
+     "//chrome/browser/extensions/api/module",
+     "//chrome/browser/extensions/api/networking_private",
+     "//chrome/browser/extensions/api/omnibox",
 diff --git a/chrome/browser/extensions/api/messaging/launch_context_posix.cc b/chrome/browser/extensions/api/messaging/launch_context_posix.cc
 index dd22e035c92d1..e10b623ece106 100644
 --- a/chrome/browser/extensions/api/messaging/launch_context_posix.cc
@@ -207,7 +221,7 @@ index cd1caf3f41f79..5f0b99b14f5f0 100644
    PrefService* pref_service = profile->GetPrefs();
    bool hide_web_store_icon =
 diff --git a/chrome/browser/resources/new_tab_page/app.ts b/chrome/browser/resources/new_tab_page/app.ts
-index c35421fc8159a..177d679e16529 100644
+index 8c89ee55f2709..9a5c5aae67675 100644
 --- a/chrome/browser/resources/new_tab_page/app.ts
 +++ b/chrome/browser/resources/new_tab_page/app.ts
 @@ -288,18 +288,18 @@ export class AppElement extends AppElementBase {
