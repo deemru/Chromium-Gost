@@ -701,6 +701,7 @@ int gostssl_connect( SSL * s, int * is_gost )
         // VERSION + CIPHER
         uint16_t version;
         uint16_t cipher_id;
+        uint16_t group_id;
         {
             PSecPkgContext_CipherInfo cipher_info = msspi_get_cipherinfo( w->h );
 
@@ -709,6 +710,7 @@ int gostssl_connect( SSL * s, int * is_gost )
 
             version = (uint16_t)msspi_to_ssl_version( cipher_info->dwProtocol );
             cipher_id = (uint16_t)cipher_info->dwCipherSuite;
+            group_id = (uint16_t)cipher_info->dwKeyType;
         }
 
         // SERVER CERTIFICATES
@@ -755,7 +757,7 @@ int gostssl_connect( SSL * s, int * is_gost )
         host_status_set( w->host_string, GOSTSSL_HOST_YES );
         w->connected = true;
 
-        char ssl_ret = boring_set_connected_cb( w->s, alpn, alpn_len, version, cipher_id, &servercerts_bufs[0], &servercerts_lens[0], servercerts_count );
+        char ssl_ret = boring_set_connected_cb( w->s, alpn, alpn_len, version, cipher_id, group_id, &servercerts_bufs[0], &servercerts_lens[0], servercerts_count );
         if( ssl_ret != 1 )
             return -1;
 
