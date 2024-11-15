@@ -1,4 +1,4 @@
-From bf8ec35a563b38f5227c812cdcb77024d3e29ee9 Mon Sep 17 00:00:00 2001
+From e470875bb3d0be0fdf8978037038cf2c4f1c6149 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Tue, 12 Nov 2024 15:43:36 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -27,6 +27,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../chromium-browser/chromium-browser.info    |  10 +-
  .../installer/linux/rpm/chrome.spec.template  |   4 +
  .../installer/mini_installer/chrome.release   |   2 +-
+ chrome/installer/setup/install_worker.cc      |   4 +
  components/search_engines/keyword_table.cc    |   4 +
  .../search_engines/prepopulated_engines.json  |  12 +-
  .../search_engines/search_terms_data.cc       |   2 +-
@@ -61,7 +62,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.gn                |   1 +
  .../cr_components/searchbox/searchbox.html    |   7 +
- 57 files changed, 717 insertions(+), 56 deletions(-)
+ 58 files changed, 721 insertions(+), 56 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
 index e2d2446670d35..b3030d72a4c48 100644
@@ -127,7 +128,7 @@ index 47cecfd2782d5..024a9dc2f6696 100644
        <message name="IDS_GOOGLE_SEARCH_BOX_EMPTY_HINT_MULTIMODAL" desc="The text displayed in the multimodal searchbox when it is empty. It is meant to invite the user to add a text query to the existing image query in order to issue a 'multimodal' (image + text) query.">
          Add to your search
 diff --git a/chrome/app/resources/generated_resources_ru.xtb b/chrome/app/resources/generated_resources_ru.xtb
-index 85edebcaeb44e..6a5572bea6e9a 100644
+index 91eb6e8f9a039..41ea83c363756 100644
 --- a/chrome/app/resources/generated_resources_ru.xtb
 +++ b/chrome/app/resources/generated_resources_ru.xtb
 @@ -5835,7 +5835,7 @@
@@ -592,6 +593,39 @@ index e5de7351fdd30..ec3ba3fdbfb10 100644
  locales\*.pak: %(VersionDir)s\Locales
  
  #
+diff --git a/chrome/installer/setup/install_worker.cc b/chrome/installer/setup/install_worker.cc
+index 04cb2e75f3671..09360f93a243d 100644
+--- a/chrome/installer/setup/install_worker.cc
++++ b/chrome/installer/setup/install_worker.cc
+@@ -296,6 +296,7 @@ void AddChromeWorkItems(const InstallParams& install_params,
+       ->set_best_effort(true);
+ }
+ 
++#if BUILDFLAG(GOOGLE_CHROME_BRANDING)
+ // Adds work items to register the Elevation Service with Windows. Only for
+ // system level installs.
+ void AddElevationServiceWorkItems(const base::FilePath& elevation_service_path,
+@@ -319,6 +320,7 @@ void AddElevationServiceWorkItems(const base::FilePath& elevation_service_path,
+   install_service_work_item->set_best_effort(true);
+   list->AddWorkItem(install_service_work_item);
+ }
++#endif  // BUILDFLAG(GOOGLE_CHROME_BRANDING)
+ 
+ #if BUILDFLAG(GOOGLE_CHROME_BRANDING)
+ // Adds work items to add the "store-dmtoken" command to Chrome's version key.
+@@ -927,10 +929,12 @@ void AddInstallWorkItems(const InstallParams& install_params,
+       installer_state.root_key(),
+       GetNotificationHelperPath(target_path, new_version), install_list);
+ 
++#if BUILDFLAG(GOOGLE_CHROME_BRANDING)
+   if (installer_state.system_install()) {
+     AddElevationServiceWorkItems(
+         GetElevationServicePath(target_path, new_version), install_list);
+   }
++#endif  // BUILDFLAG(GOOGLE_CHROME_BRANDING
+ 
+   AddUpdateDowngradeVersionItem(installer_state.root_key(), current_version,
+                                 new_version, install_list);
 diff --git a/components/search_engines/keyword_table.cc b/components/search_engines/keyword_table.cc
 index c88f019f8da18..85afef975744a 100644
 --- a/components/search_engines/keyword_table.cc
