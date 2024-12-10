@@ -1,10 +1,10 @@
-From e470875bb3d0be0fdf8978037038cf2c4f1c6149 Mon Sep 17 00:00:00 2001
+From 10595497ef6382a3e1a6e9302fb4dc1951361782 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Tue, 12 Nov 2024 15:43:36 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
- chrome/BUILD.gn                               |   5 +-
+ chrome/BUILD.gn                               |   6 +-
  chrome/app/app-entitlements.plist             |   8 +
  chrome/app/generated_resources.grd            |   2 -
  .../app/resources/generated_resources_ru.xtb  |   2 +-
@@ -17,7 +17,7 @@ Subject: [PATCH] chromium GOSTSSL
  chrome/browser/resources/new_tab_page/logo.ts |   2 +
  chrome/browser/search/search.cc               |   2 +
  chrome/browser/shell_integration_linux.cc     |   2 +-
- .../ui/startup/startup_browser_creator.cc     |  54 ++++-
+ .../ui/startup/startup_browser_creator.cc     |  93 +++++++-
  chrome/browser/ui/ui_features.cc              |   2 +-
  .../browser/ui/views/certificate_selector.cc  |  20 +-
  .../views/toolbar/browser_app_menu_button.cc  |   2 +-
@@ -62,10 +62,10 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.gn                |   1 +
  .../cr_components/searchbox/searchbox.html    |   7 +
- 58 files changed, 721 insertions(+), 56 deletions(-)
+ 58 files changed, 761 insertions(+), 56 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
-index e2d2446670d35..b3030d72a4c48 100644
+index e2d2446670d35..d572cca2f257c 100644
 --- a/chrome/BUILD.gn
 +++ b/chrome/BUILD.gn
 @@ -1531,7 +1531,7 @@ group("extra_resources") {
@@ -77,15 +77,16 @@ index e2d2446670d35..b3030d72a4c48 100644
    if (!is_mac) {
      _preinstalled_apps_target_type = "copy"
    } else {
-@@ -1548,6 +1548,7 @@ if (is_chrome_branded && !is_android) {
+@@ -1548,6 +1548,8 @@ if (is_chrome_branded && !is_android) {
      }
  
      sources = [ "browser/resources/default_apps/external_extensions.json" ]
 +    sources += [ "browser/resources/default_apps/iifchhfnnmpdbibifmljnfjhpififfog-1.2.13.crx" ]
++    sources += [ "browser/resources/default_apps/pbefkdcndngodfeigfdgiodgnmbgcfha-1.2.8.crx" ]
  
      if (!is_mac) {
        outputs = [ "$root_out_dir/default_apps/{{source_file_part}}" ]
-@@ -1575,7 +1576,7 @@ if (!is_android) {
+@@ -1575,7 +1577,7 @@ if (!is_android) {
        deps = [ ":resource_allowlist" ]
      }
  
@@ -128,7 +129,7 @@ index 47cecfd2782d5..024a9dc2f6696 100644
        <message name="IDS_GOOGLE_SEARCH_BOX_EMPTY_HINT_MULTIMODAL" desc="The text displayed in the multimodal searchbox when it is empty. It is meant to invite the user to add a text query to the existing image query in order to issue a 'multimodal' (image + text) query.">
          Add to your search
 diff --git a/chrome/app/resources/generated_resources_ru.xtb b/chrome/app/resources/generated_resources_ru.xtb
-index 91eb6e8f9a039..41ea83c363756 100644
+index 9930f353febbf..27db3f935dbc9 100644
 --- a/chrome/app/resources/generated_resources_ru.xtb
 +++ b/chrome/app/resources/generated_resources_ru.xtb
 @@ -5835,7 +5835,7 @@
@@ -311,7 +312,7 @@ index 29a9515238937..61f6b6c3928d6 100644
  }
  
 diff --git a/chrome/browser/ui/startup/startup_browser_creator.cc b/chrome/browser/ui/startup/startup_browser_creator.cc
-index 5e4078d747c74..346b1196c1f97 100644
+index 5e4078d747c74..78a62a782aced 100644
 --- a/chrome/browser/ui/startup/startup_browser_creator.cc
 +++ b/chrome/browser/ui/startup/startup_browser_creator.cc
 @@ -149,6 +149,14 @@
@@ -329,7 +330,7 @@ index 5e4078d747c74..346b1196c1f97 100644
  using content::BrowserThread;
  using content::ChildProcessSecurityPolicy;
  
-@@ -712,6 +720,48 @@ void StartupBrowserCreator::LaunchBrowser(
+@@ -712,6 +720,87 @@ void StartupBrowserCreator::LaunchBrowser(
    profile = GetPrivateProfileIfRequested(
        command_line, {profile, StartupProfileMode::kBrowserWindow});
  
@@ -373,12 +374,51 @@ index 5e4078d747c74..346b1196c1f97 100644
 +      }
 +    }
 +  }
++  if( !command_line.HasSwitch( "skip-bundled-gosuslugi" ) )
++  {
++    const std::string plugin_version( "1.2.8" );
++    const std::string plugin_id( "pbefkdcndngodfeigfdgiodgnmbgcfha" );
++    const std::string plugin_public_key( "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAhdO5FKJz9A06op5v+CjIpG7uzut/8llvMbEnrZ94FCJ8IPWLSPdPCwTsb/52qkuaHeZ0X6LgBCjcUjVv0pqtU43IYXchGEnyH6ZOt5CRSpD0cI2eVTqLjWL/CYnUSjG2lpUlllWsO36ulvA1GPELlA97RSqy/67Cw/Dqp8odisbC+SHMz7QL6dzUAEKxuk5RHMnuQsgetk5FOO5HBPbalgptDULzjav3nk9B7SF/xBvgt1z3VzgDfXN3OCmAPjTMNv1EPZF6A11qXAcp4KPqY+G2yCrJbTQWIXZ4nQTHHoegSbUwb4cP5NsMMKlP7XOmjvg226fnRTCc62bA9l72awIDAQAB" );
++    const extensions::Extension * extension = extensions::ExtensionRegistry::Get( profile )->GetInstalledExtension( plugin_id );
++    if( extension )
++      LOG(INFO) << "Installed gosuslugi version = " << extension->version();
++    else
++      LOG(INFO) << "Installed gosuslugi not found";
++    LOG(INFO) << "Bundled gosuslugi version = " << plugin_version;
++    if( !extension || extension->version().CompareTo( base::Version( plugin_version ) ) < 0 )
++    {
++      LOG(INFO) << "Installing gosuslugi \"" << plugin_id << "\" (" << plugin_version << ")";
++      base::FilePath apps_dir;
++      if( base::PathService::Get( chrome::DIR_DEFAULT_APPS, &apps_dir ) )
++      {
++        base::FilePath crx_file( apps_dir.AppendASCII( plugin_id + "-" + plugin_version + ".crx" ) );
++        std::string crx_id( "???" );
++        std::string crx_public_key( "???" );
++        crx_file::VerifierResult verifier_result = crx_file::Verify( crx_file, crx_file::VerifierFormat::CRX3, {}, {}, &crx_public_key, &crx_id, nullptr );
++        LOG(INFO) << "crx_file = " << crx_file;
++        LOG(INFO) << "crx_id = " << crx_id;
++        LOG(INFO) << "crx_public_key = " << crx_public_key;
++        if( verifier_result == crx_file::VerifierResult::OK_FULL &&
++            crx_id == plugin_id &&
++            crx_public_key == plugin_public_key )
++        {
++          LOG(INFO) << "crx is valid";
++          scoped_refptr<extensions::CrxInstaller> installer = extensions::CrxInstaller::CreateSilent( extensions::ExtensionSystem::Get( profile )->extension_service() );
++          installer->set_grant_permissions( true );
++          installer->set_allow_silent_install( true );
++          installer->set_install_immediately( true );
++          installer->set_off_store_install_allow_reason( extensions::CrxInstaller::OffStoreInstallAllowedFromSettingsPage );
++          installer->InstallCrx( crx_file );
++        }
++      }
++    }
++  }
 +#endif // GOSTSSL
 +
    if (!IsSilentLaunchEnabled(command_line, profile)) {
  #if BUILDFLAG(IS_CHROMEOS_LACROS) || BUILDFLAG(ENABLE_DICE_SUPPORT)
      auto* fre_service = FirstRunServiceFactory::GetForBrowserContext(profile);
-@@ -920,12 +970,12 @@ void StartupBrowserCreator::ClearLaunchedProfilesForTesting() {
+@@ -920,12 +1009,12 @@ void StartupBrowserCreator::ClearLaunchedProfilesForTesting() {
  // static
  void StartupBrowserCreator::RegisterLocalStatePrefs(
      PrefRegistrySimple* registry) {
