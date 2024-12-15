@@ -1,4 +1,4 @@
-From 10595497ef6382a3e1a6e9302fb4dc1951361782 Mon Sep 17 00:00:00 2001
+From 1aa185f54ea7b894bc3632834153309dd060346b Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Tue, 12 Nov 2024 15:43:36 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -52,7 +52,7 @@ Subject: [PATCH] chromium GOSTSSL
  net/ssl/client_cert_store_nss.cc              |  33 +++
  net/ssl/client_cert_store_win.cc              |  32 +++
  net/ssl/openssl_ssl_util.cc                   |   4 +
- net/ssl/ssl_cipher_suite_names.cc             |  64 ++++++
+ net/ssl/ssl_cipher_suite_names.cc             |  69 ++++++
  net/ssl/ssl_platform_key_util.cc              |  22 ++
  net/ssl/ssl_platform_key_util.h               |   7 +
  sandbox/policy/features.cc                    |   8 +-
@@ -62,7 +62,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.gn                |   1 +
  .../cr_components/searchbox/searchbox.html    |   7 +
- 58 files changed, 761 insertions(+), 56 deletions(-)
+ 58 files changed, 766 insertions(+), 56 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
 index e2d2446670d35..d572cca2f257c 100644
@@ -129,7 +129,7 @@ index 47cecfd2782d5..024a9dc2f6696 100644
        <message name="IDS_GOOGLE_SEARCH_BOX_EMPTY_HINT_MULTIMODAL" desc="The text displayed in the multimodal searchbox when it is empty. It is meant to invite the user to add a text query to the existing image query in order to issue a 'multimodal' (image + text) query.">
          Add to your search
 diff --git a/chrome/app/resources/generated_resources_ru.xtb b/chrome/app/resources/generated_resources_ru.xtb
-index 9930f353febbf..27db3f935dbc9 100644
+index 88810117ceae6..d1dcdde1eb34e 100644
 --- a/chrome/app/resources/generated_resources_ru.xtb
 +++ b/chrome/app/resources/generated_resources_ru.xtb
 @@ -5835,7 +5835,7 @@
@@ -1551,10 +1551,10 @@ index aa9e79409ab26..1fac710f1c407 100644
      case SSL_R_SSLV3_ALERT_UNSUPPORTED_CERTIFICATE:
      case SSL_R_SSLV3_ALERT_CERTIFICATE_REVOKED:
 diff --git a/net/ssl/ssl_cipher_suite_names.cc b/net/ssl/ssl_cipher_suite_names.cc
-index 7800ff104248d..53ec6c33e40cd 100644
+index 7800ff104248d..a3b668beff791 100644
 --- a/net/ssl/ssl_cipher_suite_names.cc
 +++ b/net/ssl/ssl_cipher_suite_names.cc
-@@ -68,6 +68,58 @@ void SSLCipherSuiteToStrings(const char** key_exchange_str,
+@@ -68,6 +68,63 @@ void SSLCipherSuiteToStrings(const char** key_exchange_str,
    *is_aead = false;
    *is_tls13 = false;
  
@@ -1562,21 +1562,26 @@ index 7800ff104248d..53ec6c33e40cd 100644
 +  switch( cipher_suite )
 +  {
 +  case 0x0081: // GOST2001-GOST89-GOST89
-+  case 0xff85: // GOST2012-GOST8912-GOST8912
-+  case 0xc102: // TLS_GOSTR341112_256_WITH_28147_CNT_IMIT
 +      *key_exchange_str = "GOST_R_3410_2001";
 +      *cipher_str = "GOST_28147_CNT";
 +      *mac_str = "GOST_28147_IMIT";
 +      return;
 +
++  case 0xff85: // GOST2012-GOST8912-GOST8912
++  case 0xc102: // TLS_GOSTR341112_256_WITH_28147_CNT_IMIT
++      *key_exchange_str = "GOST_R_3410_2012";
++      *cipher_str = "GOST_28147_CNT";
++      *mac_str = "GOST_28147_IMIT";
++      return;
++
 +  case 0xc100: // TLS_GOSTR341112_256_WITH_KUZNYECHIK_CTR_OMAC
-+      *key_exchange_str = "GOST_R_3410_2012_512";
++      *key_exchange_str = "GOST_R_3410_2012";
 +      *cipher_str = "GOST_KUZNYECHIK_CTR";
 +      *mac_str = "GOST_KUZNYECHIK_OMAC";
 +      return;
 +
 +  case 0xc101: // TLS_GOSTR341112_256_WITH_MAGMA_CTR_OMAC
-+      *key_exchange_str = "GOST_R_3410_2001";
++      *key_exchange_str = "GOST_R_3410_2012";
 +      *cipher_str = "GOST_MAGMA_CTR";
 +      *mac_str = "GOST_MAGMA_OMAC";
 +      return;
@@ -1613,7 +1618,7 @@ index 7800ff104248d..53ec6c33e40cd 100644
    const SSL_CIPHER* cipher = SSL_get_cipher_by_value(cipher_suite);
    if (!cipher)
      return;
-@@ -181,6 +233,18 @@ int ObsoleteSSLStatus(int connection_status, uint16_t signature_algorithm) {
+@@ -181,6 +238,18 @@ int ObsoleteSSLStatus(int connection_status, uint16_t signature_algorithm) {
    obsolete_ssl |= ObsoleteSSLStatusForProtocol(ssl_version);
  
    uint16_t cipher_suite = SSLConnectionStatusToCipherSuite(connection_status);
