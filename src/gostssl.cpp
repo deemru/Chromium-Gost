@@ -831,10 +831,10 @@ static BOOL CertHasUsage( PCCERT_CONTEXT pcert, const char * oid )
 
 void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost )
 {
-    *is_gost = 1;
+    *is_gost = g_tlsmode == 1 ? 1 : 0;
     *count = 0;
 
-    if( g_tlsmode == -1 )
+    if( g_tlsmode == -1 || !gostssl_init() )
     {
         *is_gost = 0;
         return;
@@ -843,11 +843,7 @@ void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, in
     HCERTSTORE hStore = CertOpenStore( CERT_STORE_PROV_SYSTEM_A, 0, 0, CERT_STORE_OPEN_EXISTING_FLAG | CERT_STORE_READONLY_FLAG | CERT_SYSTEM_STORE_CURRENT_USER, "MY" );
 
     if( !hStore )
-    {
-        if( g_tlsmode != 1 )
-            *is_gost = 0;
         return;
-    }
 
     int i = 0;
     g_certs.clear();
@@ -900,6 +896,7 @@ void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, in
         if( names )
             *names = &g_certnames[0];
         *count = i;
+        *is_gost = 1;
     }
 
     CertCloseStore( hStore, 0 );
