@@ -39,8 +39,8 @@ jobs:
         cp -r ../src/msspi/src/* ./
         cp -r ../src/msspi/third_party/cprocsp/include/* ./include/
         g++ -v
-        g++ -Wall -std=c++14 -g -O2 -fPIC -Werror -Wno-unused-function -I./include gostssl.cpp -c -o gostssl.o
-        g++ -Wall -std=c++14 -g -O2 -fPIC -Werror -Wno-unused-function -I./include msspi.cpp -c -o msspi.o
+        g++ -Wall -std=c++20 -g -O2 -fPIC -Werror -Wno-unused-function -I./include gostssl.cpp -c -o gostssl.o
+        g++ -Wall -std=c++20 -g -O2 -fPIC -Werror -Wno-unused-function -I./include msspi.cpp -c -o msspi.o
         g++ -shared -o libgostssl.so gostssl.o msspi.o
 
     - name: Perform CodeQL Analysis
