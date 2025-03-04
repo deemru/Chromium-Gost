@@ -7,6 +7,7 @@ set GOST_BRANCH=GOSTSSL-%CHROMIUM_TAG%
 
 cd %CHROMIUM_PATH%\.git || goto :finish
 cd %BORINGSSL_PATH%\.git || goto :finish
+cd %CHROMIUM_PATH%\third_party\search_engines_data\resources && call git reset HEAD~ --hard
 
 cd %BORINGSSL_PATH%
 call git reset HEAD~ --hard
@@ -61,6 +62,13 @@ call git show-ref --quiet refs/heads/%GOST_BRANCH% && call git branch -D %GOST_B
 call git checkout -f -b %GOST_BRANCH%
 call git branch -D temp
 call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\boringssl.patch || goto :finish
+
+cd %CHROMIUM_PATH%\third_party\search_engines_data\resources
+call git checkout -f -b temp
+call git show-ref --quiet refs/heads/%GOST_BRANCH% && call git branch -D %GOST_BRANCH%
+call git checkout -f -b %GOST_BRANCH%
+call git branch -D temp
+call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\search_engines_data.patch || goto :finish
 
 :finish
 if "%1"=="" cmd

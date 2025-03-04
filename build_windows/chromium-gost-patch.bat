@@ -11,5 +11,7 @@ cd %CHROMIUM_PATH%
 cmd /C "git format-patch HEAD~1 --stdout > %CHROMIUM_GOST_REPO%patch\chromium.patch"
 cd %BORINGSSL_PATH%
 cmd /C "git format-patch HEAD~1 --stdout > %CHROMIUM_GOST_REPO%patch\boringssl.patch"
+cd %CHROMIUM_PATH%\third_party\search_engines_data\resources
+cmd /C "git format-patch HEAD~1 --stdout > %CHROMIUM_GOST_REPO%patch\search_engines_data.patch"
 
 cmd
