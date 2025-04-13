@@ -1,4 +1,4 @@
-From 651f6cba4abdac0db9f823bed6991d6918238ac7 Mon Sep 17 00:00:00 2001
+From 294d72c59561db8b18c7df4871837389ef943d13 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Tue, 4 Mar 2025 15:12:30 +0300
 Subject: [PATCH] +CRGOST
@@ -8,10 +8,10 @@ Subject: [PATCH] +CRGOST
  1 file changed, 6 insertions(+), 6 deletions(-)
 
 diff --git a/definitions/prepopulated_engines.json b/definitions/prepopulated_engines.json
-index 1a331e7..6427902 100644
+index a2dd37c..eb8d7e0 100644
 --- a/definitions/prepopulated_engines.json
 +++ b/definitions/prepopulated_engines.json
-@@ -828,7 +828,7 @@
+@@ -862,7 +862,7 @@
        "keyword": "yandex.by",
        "favicon_url": "https://yastatic.net/lego/_/pDu9OWAQKB0s2J9IojKpiS_Eho.ico",
        "logo_url": "https://storage.ape.yandex.net/get/browser/Doodles/yandex/drawable-xxhdpi/yandex.png",
@@ -20,7 +20,7 @@ index 1a331e7..6427902 100644
        "suggest_url": "https://suggest.yandex.by/suggest-ff.cgi?part={searchTerms}&{google:cursorPosition}",
        "image_url": "https://yandex.by/images/search/?rpt=imageview",
        "image_url_post_params": "upfile={google:imageThumbnail},original_width={google:imageOriginalWidth},original_height={google:imageOriginalHeight},prg=1",
-@@ -841,7 +841,7 @@
+@@ -875,7 +875,7 @@
        "name": "Yandex",
        "keyword": "yandex.com",
        "favicon_url": "https://yastatic.net/lego/_/rBTjd6UOPk5913OSn5ZQVYMTQWQ.ico",
@@ -29,7 +29,7 @@ index 1a331e7..6427902 100644
        "suggest_url": "https://suggest.yandex.com/suggest-ff.cgi?part={searchTerms}&{google:cursorPosition}",
        "image_url": "https://yandex.com/images/search?rpt=imageview",
        "image_url_post_params": "upfile={google:imageThumbnail},original_width={google:imageOriginalWidth},original_height={google:imageOriginalHeight},prg=1",
-@@ -866,7 +866,7 @@
+@@ -900,7 +900,7 @@
        "keyword": "yandex.kz",
        "favicon_url": "https://yastatic.net/lego/_/pDu9OWAQKB0s2J9IojKpiS_Eho.ico",
        "logo_url": "https://storage.ape.yandex.net/get/browser/Doodles/yandex/drawable-xxhdpi/yandex.png",
@@ -38,7 +38,7 @@ index 1a331e7..6427902 100644
        "suggest_url": "https://suggest.yandex.kz/suggest-ff.cgi?part={searchTerms}&{google:cursorPosition}",
        "image_url": "https://yandex.kz/images/search/?rpt=imageview",
        "image_url_post_params": "upfile={google:imageThumbnail},original_width={google:imageOriginalWidth},original_height={google:imageOriginalHeight},prg=1",
-@@ -880,7 +880,7 @@
+@@ -914,7 +914,7 @@
        "keyword": "yandex.ru",
        "favicon_url": "https://yastatic.net/lego/_/pDu9OWAQKB0s2J9IojKpiS_Eho.ico",
        "logo_url": "https://storage.ape.yandex.net/get/browser/Doodles/yandex/drawable-xxhdpi/yandex.png",
@@ -47,7 +47,7 @@ index 1a331e7..6427902 100644
        "suggest_url": "https://suggest.yandex.ru/suggest-ff.cgi?part={searchTerms}&{google:cursorPosition}",
        "image_url": "https://yandex.ru/images/search/?rpt=imageview",
        "image_url_post_params": "upfile={google:imageThumbnail},original_width={google:imageOriginalWidth},original_height={google:imageOriginalHeight},prg=1",
-@@ -893,7 +893,7 @@
+@@ -927,7 +927,7 @@
        "name": "Yandex",
        "keyword": "yandex.com.tr",
        "favicon_url": "https://yastatic.net/lego/_/rBTjd6UOPk5913OSn5ZQVYMTQWQ.ico",
@@ -56,7 +56,7 @@ index 1a331e7..6427902 100644
        "suggest_url": "https://suggest.yandex.com.tr/suggest-ff.cgi?part={searchTerms}&{google:cursorPosition}",
        "image_url": "https://yandex.com.tr/gorsel/search?rpt=imageview",
        "image_url_post_params": "upfile={google:imageThumbnail},original_width={google:imageOriginalWidth},original_height={google:imageOriginalHeight},prg=1",
-@@ -907,7 +907,7 @@
+@@ -941,7 +941,7 @@
        "keyword": "yandex.ua",
        "favicon_url": "https://yastatic.net/lego/_/pDu9OWAQKB0s2J9IojKpiS_Eho.ico",
        "logo_url": "https://storage.ape.yandex.net/get/browser/Doodles/yandex/drawable-xxhdpi/yandex.png",
@@ -66,4 +66,5 @@ index 1a331e7..6427902 100644
        "image_url": "https://yandex.ua/images/search/?rpt=imageview",
        "image_url_post_params": "upfile={google:imageThumbnail},original_width={google:imageOriginalWidth},original_height={google:imageOriginalHeight},prg=1",
 -- 
+2.30.0.windows.2
 

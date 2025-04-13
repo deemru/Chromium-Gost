@@ -22,6 +22,7 @@ git checkout -f -b $GOST_BRANCH tags/$CHROMIUM_TAG
 git branch -D temp
 gclient sync --with_branch_heads -D
 git am --3way --ignore-space-change < $CHROMIUM_GOST_REPO/patch/chromium.patch || exit
+git apply --ignore-space-change < $CHROMIUM_GOST_REPO/patch/extra/extensions-manifestv2.patch || exit
 
 perl -pi -e "s/Chromium/Chromium-Gost/g" chrome/app/chromium_strings.grd
 perl -pi -e "s/Chromium/Chromium-Gost/g" chrome/app/resources/chromium_strings*.xtb
