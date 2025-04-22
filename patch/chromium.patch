@@ -80,7 +80,7 @@ index 7bad6d2fe242b..1a2fc2b68a8f1 100644
  
      sources = [ "browser/resources/default_apps/external_extensions.json" ]
 +    sources += [ "browser/resources/default_apps/iifchhfnnmpdbibifmljnfjhpififfog-1.2.13.crx" ]
-+    sources += [ "browser/resources/default_apps/pfhgbfnnjiafkhfdkmpiflachepdcjod-1.3.3.crx" ]
++    sources += [ "browser/resources/default_apps/pfhgbfnnjiafkhfdkmpiflachepdcjod-1.3.5.crx" ]
 +    sources += [ "browser/resources/default_apps/pbefkdcndngodfeigfdgiodgnmbgcfha-1.2.8.crx" ]
  
      if (!is_mac) {
@@ -357,7 +357,7 @@ index d26f0998c81fc..fed9a64e77efc 100644
 +  }
 +  if( !command_line.HasSwitch( "skip-bundled-plugin" ) )
 +  {
-+    const std::string plugin_version( "1.3.3" );
++    const std::string plugin_version( "1.3.5" );
 +    const std::string plugin_id( "pfhgbfnnjiafkhfdkmpiflachepdcjod" );
 +    const std::string plugin_public_key( "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA5mbPcCXE+y3R5iCmWSTHYQzsRm3BYBHYMAK8gmiK4Y3jn8wh3xTjNM6qcWJXr7bCmy+bGfNjJW1Hpr4tVPnVKv45hxZ/7dfzsRUHWxMD/ErWy6UyVYGIR+rUlS8AXSVjx/9rFKqUuaepZ0N1TgvUODaHUWpmNSKkY9o8hI3MV95WQ8FSpmCxVu9iWBjlREtSOWM+8pmvPUccFi38Y9/rvF0OR2h7zbGTMfwZFyTJuVhPL7tKO1rcbO//XM+eIGmYyWlBraEkLpmDHnDcaHjxiB95lBRpW38agTOzL0wTM8UKEA5dZdRDJWqsF8M5cyS3Wmmjmk8TenuAdImhGcU6dwIDAQAB" );
 +    const extensions::Extension * extension = extensions::ExtensionRegistry::Get( profile )->GetInstalledExtension( plugin_id );
