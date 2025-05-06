@@ -1,0 +1,146 @@
+From 6eddf7cc4bd8cde823ebfeaed1496b355ac23869 Mon Sep 17 00:00:00 2001
+From: Dmitrii Pichulin <deem@deem.ru>
+Date: Tue, 6 May 2025 12:31:50 +0300
+Subject: [PATCH] extensions-manifestv2.patch (ifdef)
+
+---
+ .../developer_private/extension_info_generator_desktop.cc | 2 ++
+ chrome/browser/extensions/extension_management.cc         | 8 ++++++++
+ .../browser/extensions/manifest_v2_experiment_manager.cc  | 6 ++++++
+ chrome/browser/ui/webui/extensions/extensions_ui.cc       | 2 +-
+ extensions/common/extension.cc                            | 2 ++
+ 5 files changed, 19 insertions(+), 1 deletion(-)
+
+diff --git a/chrome/browser/extensions/api/developer_private/extension_info_generator_desktop.cc b/chrome/browser/extensions/api/developer_private/extension_info_generator_desktop.cc
+index 6c811a018093b..71d110079abaf 100644
+--- a/chrome/browser/extensions/api/developer_private/extension_info_generator_desktop.cc
++++ b/chrome/browser/extensions/api/developer_private/extension_info_generator_desktop.cc
+@@ -132,6 +132,7 @@ void ExtensionInfoGenerator::FillExtensionInfo(
+     info.controlled_info.emplace();
+     info.controlled_info->text =
+         l10n_util::GetStringUTF8(IDS_EXTENSIONS_INSTALL_LOCATION_ENTERPRISE);
++#if 0
+   } else {
+     // Create Safety Hub information for any non-enterprise extension.
+     developer::SafetyCheckWarningReason warning_reason =
+@@ -143,6 +144,7 @@ void ExtensionInfoGenerator::FillExtensionInfo(
+           ExtensionSafetyCheckUtils::GetSafetyCheckWarningStrings(
+               warning_reason, state);
+     }
++#endif
+   }
+ 
+   bool is_enabled = state == developer::ExtensionState::kEnabled;
+diff --git a/chrome/browser/extensions/extension_management.cc b/chrome/browser/extensions/extension_management.cc
+index 475e4b11af53b..273a9cddf8e3b 100644
+--- a/chrome/browser/extensions/extension_management.cc
++++ b/chrome/browser/extensions/extension_management.cc
+@@ -317,6 +317,9 @@ bool ExtensionManagement::IsAllowedManifestVersion(
+     int manifest_version,
+     const std::string& extension_id,
+     Manifest::Type manifest_type) {
++#if 1
++      return true;
++#else
+   bool enabled_by_default =
+       !base::FeatureList::IsEnabled(
+           extensions_features::kExtensionsManifestV3Only) ||
+@@ -342,6 +345,7 @@ bool ExtensionManagement::IsAllowedManifestVersion(
+              installation_mode == ManagedInstallationMode::kForced ||
+              installation_mode == ManagedInstallationMode::kRecommended;
+   }
++#endif
+ }
+ 
+ bool ExtensionManagement::IsAllowedManifestVersion(const Extension* extension) {
+@@ -362,6 +366,9 @@ bool ExtensionManagement::IsExemptFromMV2DeprecationByPolicy(
+     return false;
+   }
+ 
++#if 1
++  return true;
++#else
+   switch (global_settings_->manifest_v2_setting) {
+     case internal::GlobalSettings::ManifestV2Setting::kDefault:
+       // Default browser behavior. Not exempt.
+@@ -382,6 +389,7 @@ bool ExtensionManagement::IsExemptFromMV2DeprecationByPolicy(
+   }
+ 
+   return false;
++#endif
+ }
+ 
+ bool ExtensionManagement::IsAllowedByUnpublishedAvailabilityPolicy(
+diff --git a/chrome/browser/extensions/manifest_v2_experiment_manager.cc b/chrome/browser/extensions/manifest_v2_experiment_manager.cc
+index 2e47e928e34c7..12f6d873342e3 100644
+--- a/chrome/browser/extensions/manifest_v2_experiment_manager.cc
++++ b/chrome/browser/extensions/manifest_v2_experiment_manager.cc
+@@ -145,6 +145,7 @@ bool ManifestV2ExperimentManagerFactory::ServiceIsCreatedWithBrowserContext()
+ 
+ // Determines the current stage of the MV2 deprecation experiments.
+ MV2ExperimentStage CalculateCurrentExperimentStage() {
++#if 0
+   // Return the "highest" stage that is currently active for the user.
+   if (base::FeatureList::IsEnabled(
+           extensions_features::kExtensionManifestV2Unsupported)) {
+@@ -161,6 +162,7 @@ MV2ExperimentStage CalculateCurrentExperimentStage() {
+     return MV2ExperimentStage::kWarning;
+   }
+ 
++#endif
+   return MV2ExperimentStage::kNone;
+ }
+ 
+@@ -200,6 +202,9 @@ PrefMap GetGlobalNoticeAcknowledgedPrefFor(
+ // Returns true if legacy extensions should be disabled, looking at both
+ // experiment stage and global state.
+ bool ShouldDisableLegacyExtensions(MV2ExperimentStage stage) {
++#if 1
++  return false
++#else
+   if (g_allow_mv2_for_testing) {
+     // We allow legacy MV2 extensions for testing purposes.
+     return false;
+@@ -213,6 +218,7 @@ bool ShouldDisableLegacyExtensions(MV2ExperimentStage stage) {
+     case MV2ExperimentStage::kUnsupported:
+       return true;
+   }
++#endif
+ }
+ 
+ // Returns true if the given `stage` is one in which extension enablement should
+diff --git a/chrome/browser/ui/webui/extensions/extensions_ui.cc b/chrome/browser/ui/webui/extensions/extensions_ui.cc
+index fc605dbc68f6d..f4b0c15f75e56 100644
+--- a/chrome/browser/ui/webui/extensions/extensions_ui.cc
++++ b/chrome/browser/ui/webui/extensions/extensions_ui.cc
+@@ -481,7 +481,7 @@ content::WebUIDataSource* CreateAndAddExtensionsSource(Profile* profile,
+           extensions_features::kExtensionsMenuAccessControlWithPermittedSites));
+   source->AddBoolean(
+       "safetyHubThreeDotDetails",
+-      base::FeatureList::IsEnabled(features::kSafetyHubThreeDotDetails));
++      false);
+ 
+ #if BUILDFLAG(IS_ANDROID)
+   source->AddResourcePath("images/product_logo.png",
+diff --git a/extensions/common/extension.cc b/extensions/common/extension.cc
+index cd6a7eb4b6d8d..af24c9f835cb8 100644
+--- a/extensions/common/extension.cc
++++ b/extensions/common/extension.cc
+@@ -96,6 +96,7 @@ bool IsManifestSupported(int manifest_version,
+   // Supported versions are always safe.
+   if (manifest_version >= kMinimumSupportedManifestVersion &&
+       manifest_version <= kMaximumSupportedManifestVersion) {
++#if 0
+     // Emit a warning for unpacked extensions on Manifest V2 warning that
+     // MV2 is deprecated.
+     if (type == Manifest::TYPE_EXTENSION && manifest_version == 2 &&
+@@ -103,6 +104,7 @@ bool IsManifestSupported(int manifest_version,
+         !g_silence_deprecated_manifest_version_warnings) {
+       *warning = errors::kManifestV2IsDeprecatedWarning;
+     }
++#endif
+     return true;
+   }
+ 
+-- 
+
