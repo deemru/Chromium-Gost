@@ -96,7 +96,7 @@ index 2e47e928e34c7..12f6d873342e3 100644
  // experiment stage and global state.
  bool ShouldDisableLegacyExtensions(MV2ExperimentStage stage) {
 +#if 1
-+  return false
++  return false;
 +#else
    if (g_allow_mv2_for_testing) {
      // We allow legacy MV2 extensions for testing purposes.
