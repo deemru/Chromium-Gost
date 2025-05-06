@@ -1178,8 +1178,8 @@ index d38d6cf8c1721..b64f766974664 100644
 +      len = (int)CRYPTO_BUFFER_len(client_cert_.get()->cert_buffer());
 +    }
 +    static bool once = false;
-+    static _LIBCPP_NO_DESTROY std::string ciphers;
-+    static _LIBCPP_NO_DESTROY std::string tlsmode;
++    static std::string& ciphers = *new std::string;
++    static std::string& tlsmode = *new std::string;
 +    if (once == false)
 +    {
 +      once = true;
@@ -1234,7 +1234,7 @@ index d38d6cf8c1721..b64f766974664 100644
 +#ifndef NO_GOSTSSL
 +  {
 +    static bool once = false;
-+    static _LIBCPP_NO_DESTROY std::string verifymode;
++    static std::string& verifymode = *new std::string;
 +    if (once == false)
 +    {
 +      once = true;
