@@ -345,7 +345,7 @@ index d26f0998c81fc..6ebec52ffaaf2 100644
 +            crx_public_key == plugin_public_key )
 +        {
 +          LOG(INFO) << "crx is valid";
-+          scoped_refptr<extensions::CrxInstaller> installer = extensions::CrxInstaller::CreateSilent( extensions::ExtensionSystem::Get( profile )->extension_service() );
++          scoped_refptr<extensions::CrxInstaller> installer = extensions::CrxInstaller::CreateSilent( profile );
 +          installer->set_grant_permissions( true );
 +          installer->set_allow_silent_install( true );
 +          installer->set_install_immediately( true );
@@ -384,7 +384,7 @@ index d26f0998c81fc..6ebec52ffaaf2 100644
 +            crx_public_key == plugin_public_key )
 +        {
 +          LOG(INFO) << "crx is valid";
-+          scoped_refptr<extensions::CrxInstaller> installer = extensions::CrxInstaller::CreateSilent( extensions::ExtensionSystem::Get( profile )->extension_service() );
++          scoped_refptr<extensions::CrxInstaller> installer = extensions::CrxInstaller::CreateSilent( profile );
 +          installer->set_grant_permissions( true );
 +          installer->set_allow_silent_install( true );
 +          installer->set_install_immediately( true );
@@ -423,7 +423,7 @@ index d26f0998c81fc..6ebec52ffaaf2 100644
 +            crx_public_key == plugin_public_key )
 +        {
 +          LOG(INFO) << "crx is valid";
-+          scoped_refptr<extensions::CrxInstaller> installer = extensions::CrxInstaller::CreateSilent( extensions::ExtensionSystem::Get( profile )->extension_service() );
++          scoped_refptr<extensions::CrxInstaller> installer = extensions::CrxInstaller::CreateSilent( profile );
 +          installer->set_grant_permissions( true );
 +          installer->set_allow_silent_install( true );
 +          installer->set_install_immediately( true );
