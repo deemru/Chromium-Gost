@@ -21,7 +21,9 @@ call git checkout -f -b %GOST_BRANCH% tags/%CHROMIUM_TAG%
 call git branch -D temp
 call gclient sync --with_branch_heads -D
 call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\chromium.patch || goto :finish
-call git apply --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\extra\extensions-manifestv2.patch || goto :finish
+:call git apply --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\extra\extensions-manifestv2.patch || goto :finish
+:goto finish
+call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\extra\extensions-manifestv2_ifdef.patch || goto :finish
 
 perl -pi -e "s/Chromium/Chromium-Gost/g" chrome\app\chromium_strings.grd
 for %%f in (chrome\app\resources\chromium_strings*.xtb) do perl -pi -e "s/Chromium/Chromium-Gost/g" %%f
