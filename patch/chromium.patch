@@ -1,4 +1,4 @@
-From f39de3ec9751934d6aaf5b5adfdb28c80721afd1 Mon Sep 17 00:00:00 2001
+From 9d92cf65e96af9af7af7bfd11e7b230cdb87f0f6 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Fri, 21 Apr 2023 00:13:54 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -26,6 +26,8 @@ Subject: [PATCH] chromium GOSTSSL
  chrome/common/chrome_constants.cc             |   2 +-
  .../chromium-browser/chromium-browser.info    |  10 +-
  .../installer/linux/rpm/chrome.spec.template  |   4 +
+ .../installer/mini_installer/chrome.release   |   2 +-
+ chrome/installer/setup/install_worker.cc      |   4 +
  .../app_shim/certificate_viewer.mm            |  46 ++++++
  components/search_engines/keyword_table.cc    |   4 +
  .../search_engines/prepopulated_engines.json  |  12 +-
@@ -58,7 +60,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.cc  |   8 +
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 54 files changed, 749 insertions(+), 52 deletions(-)
+ 56 files changed, 754 insertions(+), 53 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
 index d5049a4e98a4c..765eb531a5ca1 100644
@@ -658,6 +660,52 @@ index e968b5fd711d6..92edea048bd0f 100644
  CHANNEL=@@CHANNEL@@
  case $CHANNEL in
    stable )
+diff --git a/chrome/installer/mini_installer/chrome.release b/chrome/installer/mini_installer/chrome.release
+index 6523364f6870b..c23bb607c99ee 100644
+--- a/chrome/installer/mini_installer/chrome.release
++++ b/chrome/installer/mini_installer/chrome.release
+@@ -43,7 +43,7 @@ v8_context_snapshot.bin: %(VersionDir)s\
+ #
+ # Sub directories living in the version dir
+ #
+-Extensions\*.*: %(VersionDir)s\Extensions\
++default_apps\*.*: %(VersionDir)s\default_apps\
+ locales\*.pak: %(VersionDir)s\Locales
+ 
+ #
+diff --git a/chrome/installer/setup/install_worker.cc b/chrome/installer/setup/install_worker.cc
+index 6b49f5b246614..0a726c48b40b3 100644
+--- a/chrome/installer/setup/install_worker.cc
++++ b/chrome/installer/setup/install_worker.cc
+@@ -297,6 +297,7 @@ void AddChromeWorkItems(const InstallParams& install_params,
+       ->set_best_effort(true);
+ }
+ 
++#if BUILDFLAG(GOOGLE_CHROME_BRANDING)
+ // Adds work items to register the Elevation Service with Windows. Only for
+ // system level installs.
+ void AddElevationServiceWorkItems(const base::FilePath& elevation_service_path,
+@@ -318,6 +319,7 @@ void AddElevationServiceWorkItems(const base::FilePath& elevation_service_path,
+   install_service_work_item->set_best_effort(true);
+   list->AddWorkItem(install_service_work_item);
+ }
++#endif  // BUILDFLAG(GOOGLE_CHROME_BRANDING)
+ 
+ #if BUILDFLAG(GOOGLE_CHROME_BRANDING)
+ // Adds work items to add the "store-dmtoken" command to Chrome's version key.
+@@ -854,10 +856,12 @@ void AddInstallWorkItems(const InstallParams& install_params,
+       installer_state.root_key(),
+       GetNotificationHelperPath(target_path, new_version), install_list);
+ 
++#if BUILDFLAG(GOOGLE_CHROME_BRANDING)
+   if (installer_state.system_install()) {
+     AddElevationServiceWorkItems(
+         GetElevationServicePath(target_path, new_version), install_list);
+   }
++#endif  // BUILDFLAG(GOOGLE_CHROME_BRANDING
+ 
+   AddUpdateDowngradeVersionItem(installer_state.root_key(), current_version,
+                                 new_version, install_list);
 diff --git a/components/remote_cocoa/app_shim/certificate_viewer.mm b/components/remote_cocoa/app_shim/certificate_viewer.mm
 index d249482052790..523f3951f5c2e 100644
 --- a/components/remote_cocoa/app_shim/certificate_viewer.mm
