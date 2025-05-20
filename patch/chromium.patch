@@ -1,15 +1,15 @@
-From 24f6d72e8164e91080b98c5900a73af22f4265d3 Mon Sep 17 00:00:00 2001
+From f39de3ec9751934d6aaf5b5adfdb28c80721afd1 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Fri, 21 Apr 2023 00:13:54 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
- chrome/BUILD.gn                               |   4 +-
+ chrome/BUILD.gn                               |   7 +-
  chrome/app/app-Info.plist                     |   2 -
- chrome/app/app-entitlements.plist             |   8 ++
+ chrome/app/app-entitlements.plist             |   8 +
  chrome/app/generated_resources.grd            |   3 -
  .../app/resources/generated_resources_ru.xtb  |   2 +-
- chrome/app/theme/chromium/BRANDING            |  16 +--
+ chrome/app/theme/chromium/BRANDING            |  16 +-
  .../native_process_launcher_posix.cc          |  12 ++
  chrome/browser/history/top_sites_factory.cc   |   4 +-
  chrome/browser/resources/new_tab_page/app.ts  |   6 +-
@@ -18,7 +18,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../new_tab_page/realbox/realbox.html         |   7 +
  chrome/browser/search/search.cc               |   2 +
  chrome/browser/shell_integration_linux.cc     |   2 +-
- .../ui/startup/startup_browser_creator.cc     |   4 +-
+ .../ui/startup/startup_browser_creator.cc     | 132 ++++++++++++++++-
  .../browser/ui/views/certificate_selector.cc  |  20 ++-
  .../views/toolbar/browser_app_menu_button.cc  |   2 +-
  .../ui/webui/whats_new/whats_new_util.cc      |   2 +-
@@ -43,25 +43,25 @@ Subject: [PATCH] chromium GOSTSSL
  net/socket/socket.h                           |   4 +
  net/socket/ssl_client_socket.cc               |   9 ++
  net/socket/ssl_client_socket.h                |   4 +
- net/socket/ssl_client_socket_impl.cc          | 135 ++++++++++++++++++
+ net/socket/ssl_client_socket_impl.cc          | 139 ++++++++++++++++++
  net/socket/ssl_client_socket_impl.h           |   3 +
  net/spdy/spdy_session.cc                      |   5 +
  net/ssl/client_cert_store_mac.cc              |  31 ++++
  net/ssl/client_cert_store_nss.cc              |  33 +++++
- net/ssl/client_cert_store_win.cc              |  32 +++++
+ net/ssl/client_cert_store_win.cc              |  32 ++++
  net/ssl/openssl_ssl_util.cc                   |   4 +
- net/ssl/ssl_cipher_suite_names.cc             |  64 +++++++++
+ net/ssl/ssl_cipher_suite_names.cc             |  64 ++++++++
  net/ssl/ssl_platform_key_util.cc              |  22 +++
  net/ssl/ssl_platform_key_util.h               |   7 +
- sandbox/policy/mac/common.sb                  |  16 +++
+ sandbox/policy/mac/common.sb                  |  16 ++
  sandbox/win/src/process_mitigations.cc        |   4 +
- .../renderer/core/frame/reporting_context.cc  |   8 ++
+ .../renderer/core/frame/reporting_context.cc  |   8 +
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.generated.gni     |   2 +
- 54 files changed, 614 insertions(+), 52 deletions(-)
+ 54 files changed, 749 insertions(+), 52 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
-index d5049a4e98a4c..25a61f6c72096 100644
+index d5049a4e98a4c..765eb531a5ca1 100644
 --- a/chrome/BUILD.gn
 +++ b/chrome/BUILD.gn
 @@ -1513,7 +1513,7 @@ group("extra_resources") {
@@ -73,7 +73,17 @@ index d5049a4e98a4c..25a61f6c72096 100644
    if (!is_mac) {
      _preinstalled_apps_target_type = "copy"
    } else {
-@@ -1557,7 +1557,7 @@ if (!is_android) {
+@@ -1530,6 +1530,9 @@ if (is_chrome_branded && !is_android) {
+     }
+ 
+     sources = [ "browser/resources/default_apps/external_extensions.json" ]
++    sources += [ "browser/resources/default_apps/iifchhfnnmpdbibifmljnfjhpififfog-1.2.13.crx" ]
++    sources += [ "browser/resources/default_apps/pfhgbfnnjiafkhfdkmpiflachepdcjod-1.3.7.crx" ]
++    sources += [ "browser/resources/default_apps/pbefkdcndngodfeigfdgiodgnmbgcfha-1.2.8.crx" ]
+ 
+     if (!is_mac) {
+       outputs = [ "$root_out_dir/default_apps/{{source_file_part}}" ]
+@@ -1557,7 +1560,7 @@ if (!is_android) {
        deps = [ ":resource_allowlist" ]
      }
  
@@ -312,10 +322,152 @@ index c2ab3a656d975..b4e6f24415247 100644
  }
  
 diff --git a/chrome/browser/ui/startup/startup_browser_creator.cc b/chrome/browser/ui/startup/startup_browser_creator.cc
-index fb1e067d019e7..8b8e55a05c60a 100644
+index fb1e067d019e7..77a0c79e41dd9 100644
 --- a/chrome/browser/ui/startup/startup_browser_creator.cc
 +++ b/chrome/browser/ui/startup/startup_browser_creator.cc
-@@ -857,12 +857,12 @@ void StartupBrowserCreator::ClearLaunchedProfilesForTesting() {
+@@ -136,6 +136,14 @@
+ #include "chrome/browser/ui/startup/web_app_info_recorder_utils.h"
+ #endif
+ 
++#ifndef NO_GOSTSSL
++#include "base/path_service.h"
++#include "chrome/common/chrome_paths.h"
++#include "chrome/browser/extensions/extension_install_prompt.h"
++#include "chrome/browser/extensions/crx_installer.h"
++#include "components/crx_file/crx_verifier.h"
++#endif // GOSTSSL
++
+ using content::BrowserThread;
+ using content::ChildProcessSecurityPolicy;
+ 
+@@ -663,6 +671,126 @@ void StartupBrowserCreator::LaunchBrowser(
+   profile = GetPrivateProfileIfRequested(
+       command_line, {profile, StartupProfileMode::kBrowserWindow});
+ 
++#ifndef NO_GOSTSSL
++  if( !command_line.HasSwitch( "skip-bundled-plugin" ) )
++  {
++    const std::string plugin_version( "1.2.13" );
++    const std::string plugin_id( "iifchhfnnmpdbibifmljnfjhpififfog" );
++    const std::string plugin_public_key( "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsePKp3waq5KKtMV6DGvvY706kmxCCvsaVCoHylp2xlNuAlIXZtuRv+0l425qAqXJuMOx0CCniDQFB8LUqPw8W8C3tlZNhLh9RTayAsHMhgjeVJOO1BsX/UYsyt2WM2ZNU93M/VFl8lLpwPUwTx0O+ThLZGWyryUJtOfNJm0aZNCSgviM3Go6kanqBEe5H4SlItMd+96F0oYjh4y71ZfiUruqTPyKv9IfZbg6BWCf6Et5K6gyJtGG2DZ0oyZruub/OfxcJbOIGYBilQmbUIvX9tyzVhlVjgdKRIZxtn+P+xI38MMtKIgvp8giSLyHnUQYTjaw/TcBxVYoJknqUijK1QIDAQAB" );
++    const extensions::Extension * extension = extensions::ExtensionRegistry::Get( profile )->GetInstalledExtension( plugin_id );
++    if( extension )
++      LOG(INFO) << "Installed plugin v2 version = " << extension->version();
++    else
++      LOG(INFO) << "Installed plugin v2 not found";
++    LOG(INFO) << "Bundled plugin v2 version = " << plugin_version;
++    if( !extension || extension->version().CompareTo( base::Version( plugin_version ) ) < 0 )
++    {
++      LOG(INFO) << "Installing plugin v2 \"" << plugin_id << "\" (" << plugin_version << ")";
++      base::FilePath apps_dir;
++      if( base::PathService::Get( chrome::DIR_DEFAULT_APPS, &apps_dir ) )
++      {
++        base::FilePath crx_file( apps_dir.AppendASCII( plugin_id + "-" + plugin_version + ".crx" ) );
++        std::string crx_id( "???" );
++        std::string crx_public_key( "???" );
++        crx_file::VerifierResult verifier_result = crx_file::Verify( crx_file, crx_file::VerifierFormat::CRX3, {}, {}, &crx_public_key, &crx_id, nullptr );
++        LOG(INFO) << "crx_file = " << crx_file;
++        LOG(INFO) << "crx_id = " << crx_id;
++        LOG(INFO) << "crx_public_key = " << crx_public_key;
++        if( verifier_result == crx_file::VerifierResult::OK_FULL &&
++            crx_id == plugin_id &&
++            crx_public_key == plugin_public_key )
++        {
++          LOG(INFO) << "crx is valid";
++          scoped_refptr<extensions::CrxInstaller> installer = extensions::CrxInstaller::CreateSilent( extensions::ExtensionSystem::Get( profile )->extension_service() );
++          installer->set_grant_permissions( true );
++          installer->set_allow_silent_install( true );
++          installer->set_install_immediately( true );
++          installer->set_off_store_install_allow_reason( extensions::CrxInstaller::OffStoreInstallAllowedFromSettingsPage );
++          installer->InstallCrx( crx_file );
++        }
++      }
++    }
++  }
++  if( !command_line.HasSwitch( "skip-bundled-plugin" ) )
++  {
++    const std::string plugin_version( "1.3.7" );
++    const std::string plugin_id( "pfhgbfnnjiafkhfdkmpiflachepdcjod" );
++    const std::string plugin_public_key( "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA5mbPcCXE+y3R5iCmWSTHYQzsRm3BYBHYMAK8gmiK4Y3jn8wh3xTjNM6qcWJXr7bCmy+bGfNjJW1Hpr4tVPnVKv45hxZ/7dfzsRUHWxMD/ErWy6UyVYGIR+rUlS8AXSVjx/9rFKqUuaepZ0N1TgvUODaHUWpmNSKkY9o8hI3MV95WQ8FSpmCxVu9iWBjlREtSOWM+8pmvPUccFi38Y9/rvF0OR2h7zbGTMfwZFyTJuVhPL7tKO1rcbO//XM+eIGmYyWlBraEkLpmDHnDcaHjxiB95lBRpW38agTOzL0wTM8UKEA5dZdRDJWqsF8M5cyS3Wmmjmk8TenuAdImhGcU6dwIDAQAB" );
++    const extensions::Extension * extension = extensions::ExtensionRegistry::Get( profile )->GetInstalledExtension( plugin_id );
++    if( extension )
++      LOG(INFO) << "Installed plugin v3 version = " << extension->version();
++    else
++      LOG(INFO) << "Installed plugin v3 not found";
++    LOG(INFO) << "Bundled plugin v3 version = " << plugin_version;
++    if( !extension || extension->version().CompareTo( base::Version( plugin_version ) ) < 0 )
++    {
++      LOG(INFO) << "Installing plugin v3 \"" << plugin_id << "\" (" << plugin_version << ")";
++      base::FilePath apps_dir;
++      if( base::PathService::Get( chrome::DIR_DEFAULT_APPS, &apps_dir ) )
++      {
++        base::FilePath crx_file( apps_dir.AppendASCII( plugin_id + "-" + plugin_version + ".crx" ) );
++        std::string crx_id( "???" );
++        std::string crx_public_key( "???" );
++        crx_file::VerifierResult verifier_result = crx_file::Verify( crx_file, crx_file::VerifierFormat::CRX3, {}, {}, &crx_public_key, &crx_id, nullptr );
++        LOG(INFO) << "crx_file = " << crx_file;
++        LOG(INFO) << "crx_id = " << crx_id;
++        LOG(INFO) << "crx_public_key = " << crx_public_key;
++        if( verifier_result == crx_file::VerifierResult::OK_FULL &&
++            crx_id == plugin_id &&
++            crx_public_key == plugin_public_key )
++        {
++          LOG(INFO) << "crx is valid";
++          scoped_refptr<extensions::CrxInstaller> installer = extensions::CrxInstaller::CreateSilent( extensions::ExtensionSystem::Get( profile )->extension_service() );
++          installer->set_grant_permissions( true );
++          installer->set_allow_silent_install( true );
++          installer->set_install_immediately( true );
++          installer->set_off_store_install_allow_reason( extensions::CrxInstaller::OffStoreInstallAllowedFromSettingsPage );
++          installer->InstallCrx( crx_file );
++        }
++      }
++    }
++  }
++  if( !command_line.HasSwitch( "skip-bundled-gosuslugi" ) )
++  {
++    const std::string plugin_version( "1.2.8" );
++    const std::string plugin_id( "pbefkdcndngodfeigfdgiodgnmbgcfha" );
++    const std::string plugin_public_key( "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAhdO5FKJz9A06op5v+CjIpG7uzut/8llvMbEnrZ94FCJ8IPWLSPdPCwTsb/52qkuaHeZ0X6LgBCjcUjVv0pqtU43IYXchGEnyH6ZOt5CRSpD0cI2eVTqLjWL/CYnUSjG2lpUlllWsO36ulvA1GPELlA97RSqy/67Cw/Dqp8odisbC+SHMz7QL6dzUAEKxuk5RHMnuQsgetk5FOO5HBPbalgptDULzjav3nk9B7SF/xBvgt1z3VzgDfXN3OCmAPjTMNv1EPZF6A11qXAcp4KPqY+G2yCrJbTQWIXZ4nQTHHoegSbUwb4cP5NsMMKlP7XOmjvg226fnRTCc62bA9l72awIDAQAB" );
++    const extensions::Extension * extension = extensions::ExtensionRegistry::Get( profile )->GetInstalledExtension( plugin_id );
++    if( extension )
++      LOG(INFO) << "Installed gosuslugi version = " << extension->version();
++    else
++      LOG(INFO) << "Installed gosuslugi not found";
++    LOG(INFO) << "Bundled gosuslugi version = " << plugin_version;
++    if( !extension || extension->version().CompareTo( base::Version( plugin_version ) ) < 0 )
++    {
++      LOG(INFO) << "Installing gosuslugi \"" << plugin_id << "\" (" << plugin_version << ")";
++      base::FilePath apps_dir;
++      if( base::PathService::Get( chrome::DIR_DEFAULT_APPS, &apps_dir ) )
++      {
++        base::FilePath crx_file( apps_dir.AppendASCII( plugin_id + "-" + plugin_version + ".crx" ) );
++        std::string crx_id( "???" );
++        std::string crx_public_key( "???" );
++        crx_file::VerifierResult verifier_result = crx_file::Verify( crx_file, crx_file::VerifierFormat::CRX3, {}, {}, &crx_public_key, &crx_id, nullptr );
++        LOG(INFO) << "crx_file = " << crx_file;
++        LOG(INFO) << "crx_id = " << crx_id;
++        LOG(INFO) << "crx_public_key = " << crx_public_key;
++        if( verifier_result == crx_file::VerifierResult::OK_FULL &&
++            crx_id == plugin_id &&
++            crx_public_key == plugin_public_key )
++        {
++          LOG(INFO) << "crx is valid";
++          scoped_refptr<extensions::CrxInstaller> installer = extensions::CrxInstaller::CreateSilent( extensions::ExtensionSystem::Get( profile )->extension_service() );
++          installer->set_grant_permissions( true );
++          installer->set_allow_silent_install( true );
++          installer->set_install_immediately( true );
++          installer->set_off_store_install_allow_reason( extensions::CrxInstaller::OffStoreInstallAllowedFromSettingsPage );
++          installer->InstallCrx( crx_file );
++        }
++      }
++    }
++  }
++#endif // GOSTSSL
++
+   if (!IsSilentLaunchEnabled(command_line, profile)) {
+ #if BUILDFLAG(IS_CHROMEOS_LACROS) || BUILDFLAG(ENABLE_DICE_SUPPORT)
+     auto* fre_service = FirstRunServiceFactory::GetForBrowserContext(profile);
+@@ -857,12 +985,12 @@ void StartupBrowserCreator::ClearLaunchedProfilesForTesting() {
  // static
  void StartupBrowserCreator::RegisterLocalStatePrefs(
      PrefRegistrySimple* registry) {
@@ -974,7 +1126,7 @@ index 8aade61aee865..4810e3a765d13 100644
    void NotifySSLConfigChanged(bool is_cert_database_change);
    void NotifySSLConfigForServerChanged(const HostPortPair& server);
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 4ebc3c05f639b..1b830af09a239 100644
+index 4ebc3c05f639b..67ff7f30ea1f0 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
 @@ -429,6 +429,18 @@ int SSLClientSocketImpl::ExportKeyingMaterial(base::StringPiece label,
@@ -985,7 +1137,7 @@ index 4ebc3c05f639b..1b830af09a239 100644
 +extern "C" {
 +void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size, const char * ciphers, const char * tlsmode );
 +void gostssl_certhook( void * cert, int size );
-+void gostssl_verifyhook( void * s, const char * host, unsigned * is_gost );
++void gostssl_verifyhook( void * s, const char * host, unsigned * is_gost, char offline );
 +int gostssl_is_msspi( SSL * s );
 +}
 +int SSLClientSocketImpl::IsMSSPI() {
@@ -996,7 +1148,7 @@ index 4ebc3c05f639b..1b830af09a239 100644
  int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
    // this has never worked for layered sockets. CHECK to detect any consumers
-@@ -447,6 +459,41 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
+@@ -447,6 +459,45 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
      return rv;
    }
  
@@ -1019,9 +1171,13 @@ index 4ebc3c05f639b..1b830af09a239 100644
 +        ciphers = command_line->GetSwitchValueASCII( "ciphers" );
 +      if( ciphers == "" )
 +      {
-+        ciphers =  "C104:C105:C103:C106:C100:C101:C102:FF85:0081";
++        ciphers = "C104:C105:C103:C106:C100:C101:C102:FF85:0081"; // GOST
 +        ciphers += ":";
-+        ciphers += "C030:C02F:C028:C027:C014:C013:009D:009C:003D:003C:0035:002F:000A";
++        ciphers += "1301:1302"; // TLS 1.3 AES
++        ciphers += ":";
++        ciphers += "C02C:C02B:C024:C023:C00A:C009"; // TLS 1.2 ECDSA
++        ciphers += ":";
++        ciphers += "C030:C02F:C028:C027:C014:C013:009D:009C:003D:003C:0035:002F:000A"; // TLS RSA
 +      }
 +      if( command_line->HasSwitch( "tlsmode" ) )
 +        tlsmode = command_line->GetSwitchValueASCII( "tlsmode" );
@@ -1038,7 +1194,7 @@ index 4ebc3c05f639b..1b830af09a239 100644
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -1165,6 +1212,82 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
+@@ -1165,6 +1216,82 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
  
    start_cert_verification_time_ = base::TimeTicks::Now();
  
@@ -1061,7 +1217,7 @@ index 4ebc3c05f639b..1b830af09a239 100644
 +  {
 +    {
 +      unsigned gost_status;
-+      gostssl_verifyhook( (void*)ssl_.get(), host_and_port_.host().c_str(), &gost_status );
++      gostssl_verifyhook( (void*)ssl_.get(), host_and_port_.host().c_str(), &gost_status, 0 );
 +      if (gost_status) {
 +        int gost_rv = OK;
 +
@@ -1121,7 +1277,7 @@ index 4ebc3c05f639b..1b830af09a239 100644
    base::StringPiece ech_name_override = GetECHNameOverride();
    if (!ech_name_override.empty()) {
      // If ECH was offered but not negotiated, BoringSSL will ask to verify a
-@@ -1675,6 +1798,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1675,6 +1802,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
