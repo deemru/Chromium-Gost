@@ -1,6 +1,6 @@
-From 44243efda0bbe097e2748667149abd20f4b79acb Mon Sep 17 00:00:00 2001
+From 9bf02a17189b5e14aaa3fbff378112227f0b52be Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
-Date: Tue, 6 May 2025 12:58:18 +0300
+Date: Wed, 28 May 2025 00:52:34 +0300
 Subject: [PATCH] search_engines_data.patch (yandex)
 
 ---
@@ -8,57 +8,57 @@ Subject: [PATCH] search_engines_data.patch (yandex)
  1 file changed, 6 insertions(+), 6 deletions(-)
 
 diff --git a/definitions/prepopulated_engines.json b/definitions/prepopulated_engines.json
-index 347439d..b847f89 100644
+index d422412..b96ecd9 100644
 --- a/definitions/prepopulated_engines.json
 +++ b/definitions/prepopulated_engines.json
-@@ -942,7 +942,7 @@
-       "keyword": "yandex.by",
+@@ -993,7 +993,7 @@
        "favicon_url": "https://yastatic.net/s3/web4static/_/v2/v9YNE_BX0evwMHbDyd0NZv8ReK0.png",
+       "base_builtin_resource_id": "IDR_SEARCH_ENGINE_YANDEX",
        "logo_url": "https://storage.ape.yandex.net/get/browser/Doodles/yandex/drawable-xxhdpi/yandex.png",
 -      "search_url": "https://yandex.by/{yandex:searchPath}?text={searchTerms}",
 +      "search_url": "https://yandex.by/{yandex:searchPath}?text={searchTerms}&from=cr_gost&{yandex:referralID}",
        "suggest_url": "https://suggest.yandex.by/suggest-ff.cgi?part={searchTerms}&{google:cursorPosition}",
        "image_url": "https://yandex.by/images/search/?rpt=imageview",
        "image_url_post_params": "upfile={google:imageThumbnail},original_width={google:imageOriginalWidth},original_height={google:imageOriginalHeight},prg=1",
-@@ -955,7 +955,7 @@
-       "name": "Yandex",
+@@ -1007,7 +1007,7 @@
        "keyword": "yandex.com",
        "favicon_url": "https://yastatic.net/s3/web4static/_/v2/v9YNE_BX0evwMHbDyd0NZv8ReK0.png",
+       "base_builtin_resource_id": "IDR_SEARCH_ENGINE_YANDEX",
 -      "search_url": "https://yandex.com/{yandex:searchPath}?text={searchTerms}",
 +      "search_url": "https://yandex.com/{yandex:searchPath}?text={searchTerms}&from=cr_gost&{yandex:referralID}",
        "suggest_url": "https://suggest.yandex.com/suggest-ff.cgi?part={searchTerms}&{google:cursorPosition}",
        "image_url": "https://yandex.com/images/search?rpt=imageview",
        "image_url_post_params": "upfile={google:imageThumbnail},original_width={google:imageOriginalWidth},original_height={google:imageOriginalHeight},prg=1",
-@@ -980,7 +980,7 @@
-       "keyword": "yandex.kz",
+@@ -1033,7 +1033,7 @@
        "favicon_url": "https://yastatic.net/lego/_/pDu9OWAQKB0s2J9IojKpiS_Eho.ico",
+       "base_builtin_resource_id": "IDR_SEARCH_ENGINE_YANDEX",
        "logo_url": "https://storage.ape.yandex.net/get/browser/Doodles/yandex/drawable-xxhdpi/yandex.png",
 -      "search_url": "https://yandex.kz/{yandex:searchPath}?text={searchTerms}",
 +      "search_url": "https://yandex.kz/{yandex:searchPath}?text={searchTerms}&from=cr_gost&{yandex:referralID}",
        "suggest_url": "https://suggest.yandex.kz/suggest-ff.cgi?part={searchTerms}&{google:cursorPosition}",
        "image_url": "https://yandex.kz/images/search/?rpt=imageview",
        "image_url_post_params": "upfile={google:imageThumbnail},original_width={google:imageOriginalWidth},original_height={google:imageOriginalHeight},prg=1",
-@@ -994,7 +994,7 @@
-       "keyword": "yandex.ru",
+@@ -1048,7 +1048,7 @@
        "favicon_url": "https://yastatic.net/lego/_/pDu9OWAQKB0s2J9IojKpiS_Eho.ico",
+       "base_builtin_resource_id": "IDR_SEARCH_ENGINE_YANDEX",
        "logo_url": "https://storage.ape.yandex.net/get/browser/Doodles/yandex/drawable-xxhdpi/yandex.png",
 -      "search_url": "https://yandex.ru/{yandex:searchPath}?text={searchTerms}&{yandex:referralID}",
 +      "search_url": "https://yandex.ru/{yandex:searchPath}?text={searchTerms}&from=cr_gost&{yandex:referralID}",
        "suggest_url": "https://suggest.yandex.ru/suggest-ff.cgi?part={searchTerms}&{google:cursorPosition}",
        "image_url": "https://yandex.ru/images/search/?rpt=imageview",
        "image_url_post_params": "upfile={google:imageThumbnail},original_width={google:imageOriginalWidth},original_height={google:imageOriginalHeight},prg=1",
-@@ -1007,7 +1007,7 @@
-       "name": "Yandex",
+@@ -1062,7 +1062,7 @@
        "keyword": "yandex.com.tr",
        "favicon_url": "https://yastatic.net/lego/_/rBTjd6UOPk5913OSn5ZQVYMTQWQ.ico",
+       "base_builtin_resource_id": "IDR_SEARCH_ENGINE_YANDEX",
 -      "search_url": "https://www.yandex.com.tr/{yandex:searchPath}?text={searchTerms}",
 +      "search_url": "https://www.yandex.com.tr/{yandex:searchPath}?text={searchTerms}&from=cr_gost&{yandex:referralID}",
        "suggest_url": "https://suggest.yandex.com.tr/suggest-ff.cgi?part={searchTerms}&{google:cursorPosition}",
        "image_url": "https://yandex.com.tr/gorsel/search?rpt=imageview",
        "image_url_post_params": "upfile={google:imageThumbnail},original_width={google:imageOriginalWidth},original_height={google:imageOriginalHeight},prg=1",
-@@ -1021,7 +1021,7 @@
-       "keyword": "yandex.ua",
+@@ -1077,7 +1077,7 @@
        "favicon_url": "https://yastatic.net/lego/_/pDu9OWAQKB0s2J9IojKpiS_Eho.ico",
+       "base_builtin_resource_id": "IDR_SEARCH_ENGINE_YANDEX",
        "logo_url": "https://storage.ape.yandex.net/get/browser/Doodles/yandex/drawable-xxhdpi/yandex.png",
 -      "search_url": "https://yandex.ua/{yandex:searchPath}?text={searchTerms}",
 +      "search_url": "https://yandex.ua/{yandex:searchPath}?text={searchTerms}&from=cr_gost&{yandex:referralID}",
