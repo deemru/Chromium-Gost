@@ -1,4 +1,4 @@
-From 6961a9877b6eb4ac6e3eafdb3b9b16c4529c0bc0 Mon Sep 17 00:00:00 2001
+From ccb95803b25ee4c9e1bdf338095b24fed04ebcdd Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 28 May 2025 00:41:58 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -31,7 +31,7 @@ Subject: [PATCH] chromium GOSTSSL
  components/search_engines/keyword_table.cc    |   4 +
  .../search_engines/search_terms_data.cc       |   2 +-
  .../search_engines/template_url_data_util.cc  |   6 +-
- .../template_url_prepopulate_data.cc          |   6 +-
+ .../template_url_prepopulate_data.cc          |  12 +-
  .../service_host/utility_process_host.cc      |   5 +
  content/browser/storage_partition_impl.cc     |   9 +
  net/base/features.cc                          |   4 +-
@@ -60,7 +60,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.gn                |   1 +
  .../cr_components/searchbox/searchbox.html    |   7 +
- 56 files changed, 794 insertions(+), 48 deletions(-)
+ 56 files changed, 798 insertions(+), 50 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
 index 97f843f8133c4..db34af649d90c 100644
@@ -776,21 +776,27 @@ index 3a737ad3c13ab..111129a6f051d 100644
      if (string_value) {
        contextual_search_url = *string_value;
 diff --git a/components/search_engines/template_url_prepopulate_data.cc b/components/search_engines/template_url_prepopulate_data.cc
-index 377ddeb6cf363..28573d44848da 100644
+index 377ddeb6cf363..2ab60d8e6e150 100644
 --- a/components/search_engines/template_url_prepopulate_data.cc
 +++ b/components/search_engines/template_url_prepopulate_data.cc
-@@ -72,6 +72,10 @@ std::vector<std::unique_ptr<TemplateURLData>> GetOverriddenTemplateURLData(
-     }
+@@ -135,8 +135,14 @@ std::vector<std::unique_ptr<TemplateURLData>> GetPrepopulatedEngines(
+     return t_urls;
    }
  
+-  return base::ToVector(regional_prepopulated_engines,
+-                        &PrepopulatedEngineToTemplateURLData);
++  t_urls = base::ToVector(regional_prepopulated_engines,
++                          &PrepopulatedEngineToTemplateURLData);
++
 +  if (!base::Contains(t_urls, yandex_ru.id, &TemplateURLData::prepopulate_id)) {
-+    t_urls.push_back(TemplateURLDataFromPrepopulatedEngine(yandex_com));
++    t_urls.push_back(TemplateURLDataFromPrepopulatedEngine(yandex_ru));
 +  }
 +
-   base::UmaHistogramEnumeration(
-       "Search.SearchProviderOverrideStatus",
-       !t_urls.empty() ? SearchProviderOverrideStatus::kPrefHasValidUrls
-@@ -222,7 +226,7 @@ std::unique_ptr<TemplateURLData> GetPrepopulatedFallbackSearch(
++  return t_urls;
+ }
+ 
+ std::unique_ptr<TemplateURLData> GetPrepopulatedEngine(
+@@ -222,7 +228,7 @@ std::unique_ptr<TemplateURLData> GetPrepopulatedFallbackSearch(
      std::vector<const TemplateURLPrepopulateData::PrepopulatedEngine*>
          regional_prepopulated_engines) {
    return FindPrepopulatedEngineInternal(prefs, regional_prepopulated_engines,
