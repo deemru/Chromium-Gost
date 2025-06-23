@@ -1,4 +1,4 @@
-From 3ac5d353f22cebe5e88b2565ed5872e6ae8059df Mon Sep 17 00:00:00 2001
+From c62aa2b65b53784e0c3a0165ed66605d0ecc1946 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Tue, 6 May 2025 12:31:50 +0300
 Subject: [PATCH] extensions-manifestv2.patch (ifdef)
@@ -12,10 +12,10 @@ Subject: [PATCH] extensions-manifestv2.patch (ifdef)
  5 files changed, 19 insertions(+), 1 deletion(-)
 
 diff --git a/chrome/browser/extensions/api/developer_private/extension_info_generator_desktop.cc b/chrome/browser/extensions/api/developer_private/extension_info_generator_desktop.cc
-index 72e902ffdc893..499d682a8c8ab 100644
+index 9758eba0cbe85..432100a6eafbe 100644
 --- a/chrome/browser/extensions/api/developer_private/extension_info_generator_desktop.cc
 +++ b/chrome/browser/extensions/api/developer_private/extension_info_generator_desktop.cc
-@@ -61,6 +61,7 @@ void ExtensionInfoGenerator::FillExtensionInfo(
+@@ -54,6 +54,7 @@ void ExtensionInfoGenerator::FillExtensionInfo(
      info.controlled_info.emplace();
      info.controlled_info->text =
          l10n_util::GetStringUTF8(IDS_EXTENSIONS_INSTALL_LOCATION_ENTERPRISE);
@@ -23,14 +23,14 @@ index 72e902ffdc893..499d682a8c8ab 100644
    } else {
      // Create Safety Hub information for any non-enterprise extension.
      developer::SafetyCheckWarningReason warning_reason =
-@@ -72,6 +73,7 @@ void ExtensionInfoGenerator::FillExtensionInfo(
+@@ -65,6 +66,7 @@ void ExtensionInfoGenerator::FillExtensionInfo(
            ExtensionSafetyCheckUtils::GetSafetyCheckWarningStrings(
                warning_reason, state);
      }
 +#endif
    }
  
-   // Dependent extensions.
+   // Pinned to toolbar.
 diff --git a/chrome/browser/extensions/extension_management.cc b/chrome/browser/extensions/extension_management.cc
 index ae782891ad341..e44f9fb64f8d6 100644
 --- a/chrome/browser/extensions/extension_management.cc
@@ -72,10 +72,10 @@ index ae782891ad341..e44f9fb64f8d6 100644
  
  bool ExtensionManagement::IsAllowedByUnpublishedAvailabilityPolicy(
 diff --git a/chrome/browser/extensions/manifest_v2_experiment_manager.cc b/chrome/browser/extensions/manifest_v2_experiment_manager.cc
-index 13f7aab6198b2..ef275b90b0159 100644
+index 08b7de6995162..0884f9a051f7e 100644
 --- a/chrome/browser/extensions/manifest_v2_experiment_manager.cc
 +++ b/chrome/browser/extensions/manifest_v2_experiment_manager.cc
-@@ -146,6 +146,7 @@ bool ManifestV2ExperimentManagerFactory::ServiceIsCreatedWithBrowserContext()
+@@ -145,6 +145,7 @@ bool ManifestV2ExperimentManagerFactory::ServiceIsCreatedWithBrowserContext()
  
  // Determines the current stage of the MV2 deprecation experiments.
  MV2ExperimentStage CalculateCurrentExperimentStage() {
@@ -83,7 +83,7 @@ index 13f7aab6198b2..ef275b90b0159 100644
    // Return the "highest" stage that is currently active for the user.
    if (base::FeatureList::IsEnabled(
            extensions_features::kExtensionManifestV2Unsupported)) {
-@@ -162,6 +163,7 @@ MV2ExperimentStage CalculateCurrentExperimentStage() {
+@@ -161,6 +162,7 @@ MV2ExperimentStage CalculateCurrentExperimentStage() {
      return MV2ExperimentStage::kWarning;
    }
  
@@ -91,7 +91,7 @@ index 13f7aab6198b2..ef275b90b0159 100644
    return MV2ExperimentStage::kNone;
  }
  
-@@ -201,6 +203,9 @@ PrefMap GetGlobalNoticeAcknowledgedPrefFor(
+@@ -200,6 +202,9 @@ PrefMap GetGlobalNoticeAcknowledgedPrefFor(
  // Returns true if legacy extensions should be disabled, looking at both
  // experiment stage and global state.
  bool ShouldDisableLegacyExtensions(MV2ExperimentStage stage) {
@@ -101,7 +101,7 @@ index 13f7aab6198b2..ef275b90b0159 100644
    if (g_allow_mv2_for_testing) {
      // We allow legacy MV2 extensions for testing purposes.
      return false;
-@@ -214,6 +219,7 @@ bool ShouldDisableLegacyExtensions(MV2ExperimentStage stage) {
+@@ -213,6 +218,7 @@ bool ShouldDisableLegacyExtensions(MV2ExperimentStage stage) {
      case MV2ExperimentStage::kUnsupported:
        return true;
    }
@@ -123,10 +123,10 @@ index f769bdb059156..f01ffd22ec9d4 100644
  #if BUILDFLAG(IS_ANDROID)
    source->AddResourcePath("images/product_logo.png",
 diff --git a/extensions/common/extension.cc b/extensions/common/extension.cc
-index cd6a7eb4b6d8d..af24c9f835cb8 100644
+index f82aaf92ad07f..5e2f8f6cba3ee 100644
 --- a/extensions/common/extension.cc
 +++ b/extensions/common/extension.cc
-@@ -96,6 +96,7 @@ bool IsManifestSupported(int manifest_version,
+@@ -104,6 +104,7 @@ bool IsManifestSupported(int manifest_version,
    // Supported versions are always safe.
    if (manifest_version >= kMinimumSupportedManifestVersion &&
        manifest_version <= kMaximumSupportedManifestVersion) {
@@ -134,7 +134,7 @@ index cd6a7eb4b6d8d..af24c9f835cb8 100644
      // Emit a warning for unpacked extensions on Manifest V2 warning that
      // MV2 is deprecated.
      if (type == Manifest::TYPE_EXTENSION && manifest_version == 2 &&
-@@ -103,6 +104,7 @@ bool IsManifestSupported(int manifest_version,
+@@ -111,6 +112,7 @@ bool IsManifestSupported(int manifest_version,
          !g_silence_deprecated_manifest_version_warnings) {
        *warning = errors::kManifestV2IsDeprecatedWarning;
      }
