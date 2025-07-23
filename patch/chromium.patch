@@ -1,4 +1,4 @@
-From 257e9556e0f4f93ba054531a4e030b02abf3ca15 Mon Sep 17 00:00:00 2001
+From a4b9f73a0eeb6ec0be7aaf11168f7fe2f45ac7eb Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Mon, 23 Jun 2025 14:43:18 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -11,6 +11,7 @@ Subject: [PATCH] chromium GOSTSSL
  chrome/app/theme/chromium/BRANDING            |  16 +-
  .../api/messaging/launch_context_posix.cc     |  12 +
  chrome/browser/history/top_sites_factory.cc   |   4 +-
+ ...credential_manager_support_reporter_win.cc |   2 +-
  chrome/browser/resources/new_tab_page/app.ts  |   6 +-
  .../browser/resources/new_tab_page/logo.css   |   5 +-
  chrome/browser/resources/new_tab_page/logo.ts |   2 +
@@ -61,7 +62,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.gn                |   1 +
  .../cr_components/searchbox/searchbox.html    |   7 +
- 57 files changed, 798 insertions(+), 50 deletions(-)
+ 58 files changed, 799 insertions(+), 51 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
 index 86007c8b041c4..6ae7871cab490 100644
@@ -129,10 +130,10 @@ index 5c3bf0094808b..c31b729c10b2a 100644
        <message name="IDS_GOOGLE_SEARCH_BOX_EMPTY_HINT_MULTIMODAL" desc="The text displayed in the multimodal searchbox when it is empty. It is meant to invite the user to add a text query to the existing image query in order to issue a 'multimodal' (image + text) query.">
          Add to your search
 diff --git a/chrome/app/resources/generated_resources_ru.xtb b/chrome/app/resources/generated_resources_ru.xtb
-index 09b3e9a5fc520..b38e9a5718b36 100644
+index 1bd7767ac17fe..d9d4b2779f802 100644
 --- a/chrome/app/resources/generated_resources_ru.xtb
 +++ b/chrome/app/resources/generated_resources_ru.xtb
-@@ -5945,7 +5945,7 @@
+@@ -5946,7 +5946,7 @@
  <translation id="5153234146675181447">Удаление телефона</translation>
  <translation id="5153907427821264830"><ph name="STATUS" /> • <ph name="MESSAGE" /></translation>
  <translation id="5154108062446123722"><ph name="PRINTING_DESTINATION" /> – дополнительные настройки</translation>
@@ -209,6 +210,19 @@ index aecedc21ab3bf..2d1b2c00199ee 100644
    DCHECK(prepopulated_pages);
    PrefService* pref_service = profile->GetPrefs();
    bool hide_web_store_icon =
+diff --git a/chrome/browser/metrics/key_credential_manager_support_reporter_win.cc b/chrome/browser/metrics/key_credential_manager_support_reporter_win.cc
+index 436bc47cadcb1..3c922aaefade9 100644
+--- a/chrome/browser/metrics/key_credential_manager_support_reporter_win.cc
++++ b/chrome/browser/metrics/key_credential_manager_support_reporter_win.cc
+@@ -43,7 +43,7 @@ enum KeyCredentialManagerAvailability {
+ 
+ BASE_FEATURE(kReportKeyCredentialManagerSupportWinFeature,
+              "ReportKeyCredentialManagerSupportWin",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ void ReportIsSupportedOutcome(KeyCredentialManagerAvailability availability) {
+   base::UmaHistogramEnumeration(
 diff --git a/chrome/browser/resources/new_tab_page/app.ts b/chrome/browser/resources/new_tab_page/app.ts
 index d01166d168d87..77c4d5ee634d7 100644
 --- a/chrome/browser/resources/new_tab_page/app.ts
