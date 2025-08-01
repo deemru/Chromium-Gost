@@ -43,9 +43,9 @@ void gostssl_server_proxy( SSL * s, const char * data, size_t len );
 // Hooks
 DLLEXPORT void gostssl_certhook( void * cert, int size );
 DLLEXPORT void gostssl_verifyhook( void * s, const char * host, int32_t * gost_status, char offline );
-DLLEXPORT void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost );
+DLLEXPORT void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost, const char ** issuers, int * issuers_lens, int issuers_count );
 DLLEXPORT void gostssl_isgostcerthook( void * cert, int size, int * is_gost );
-DLLEXPORT void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size, const char * ciphers, const char * tlsmode );
+DLLEXPORT void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size, const char * ciphers, const char * tlsmode, const char * issuersfilter );
 DLLEXPORT int gostssl_is_msspi( SSL * s );
 DLLEXPORT char gostssl_certificate_info( const char * cert, size_t size, const char ** info, size_t * len );
 
@@ -93,6 +93,7 @@ static const SSL_CIPHER * tls_C106 = NULL;
 static const SSL_CIPHER * tls_FF85 = NULL;
 
 static int g_tlsmode = 2;
+static int g_issuersfilter = 1;
 
 #define TLS_FLAG_V1_0 ( 1 << 0 )
 #define TLS_FLAG_V1_1 ( 1 << 1 )
@@ -359,7 +360,8 @@ typedef enum
 }
 WORKER_DB_ACTION;
 
-static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, const char * cachestring = NULL, const void * cert = NULL, int size = 0, const char * ciphers = NULL, const char * tlsmode = NULL )
+static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, const char * cachestring = NULL, const void * cert = NULL, int size = 0,
+                                     const char * ciphers = NULL, const char * tlsmode = NULL, const char * issuersfilter = NULL )
 {
     GostSSL_Worker * w = NULL;
 
@@ -405,6 +407,7 @@ static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, con
         msspi_set_cipherlist( w->h, ciphers );
         w->tlsmode = atoi( tlsmode );
         g_tlsmode = w->tlsmode;
+        g_issuersfilter = atoi( issuersfilter );
         if( w->tlsmode == 1 )
             w->host_status = GOSTSSL_HOST_YES;
         else
@@ -648,7 +651,8 @@ int gostssl_shutdown( SSL * s, int * is_gost )
 
 #define B2C(x) ( x < 0xA ? x + '0' : x + 'A' - 10 )
 
-void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size, const char * ciphers, const char * tlsmode )
+void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size,
+                         const char * ciphers, const char * tlsmode, const char * issuersfilter )
 {
     BYTE * bb = (BYTE *)cachestring;
     std::vector<BYTE> cc;
@@ -661,7 +665,7 @@ void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const vo
         cc[i * 2 + 1] = B2C( Fx );
     }
     cc[len * 2] = 0;
-    workers_api( s, WDB_NEW, (char *)&cc[0], cert, size, ciphers, tlsmode );
+    workers_api( s, WDB_NEW, (char *)&cc[0], cert, size, ciphers, tlsmode, issuersfilter );
 }
 
 int gostssl_connect( SSL * s, int * is_gost )
@@ -829,7 +833,29 @@ static BOOL CertHasUsage( PCCERT_CONTEXT pcert, const char * oid )
     return FALSE;
 }
 
-void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost )
+static BOOL CertMatchesIssuerList( PCCERT_CONTEXT pcert, const char ** issuers, int * issuers_lens, int issuers_count )
+{
+    if( g_issuersfilter == 0 )
+        return TRUE;
+
+    if( issuers_count == 0 || !issuers || !issuers_lens )
+        return TRUE;
+
+    PBYTE certIssuer = pcert->pCertInfo->Issuer.pbData;
+    int certIssuerLen = (int)pcert->pCertInfo->Issuer.cbData;
+    
+    for( int i = 0; i < issuers_count; i++ )
+    {
+        if( issuers_lens[i] == certIssuerLen && 
+            0 == memcmp( issuers[i], certIssuer, issuers_lens[i] ) )
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost,
+                              const char ** issuers, int * issuers_lens, int issuers_count )
 {
     *is_gost = g_tlsmode == 1 ? 1 : 0;
     *count = 0;
@@ -857,10 +883,11 @@ void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, in
          pcert = CertFindCertificateInStore( hStore, PKCS_7_ASN_ENCODING | X509_ASN_ENCODING, 0, CERT_FIND_ANY, 0, pcert ) )
     {
         DWORD dw = 0;
-        // basic TLS client cert filtering
+        // basic TLS client cert filtering + issuers filtering
         if(    CertVerifyTimeValidity( NULL, pcert->pCertInfo ) == 0
             && CertGetCertificateContextProperty( pcert, CERT_KEY_PROV_INFO_PROP_ID, NULL, &dw ) 
-            && CertHasUsage( pcert, szOID_PKIX_KP_CLIENT_AUTH ) )
+            && CertHasUsage( pcert, szOID_PKIX_KP_CLIENT_AUTH )
+            && CertMatchesIssuerList( pcert, issuers, issuers_lens, issuers_count ) )
         {
             g_certbufs.push_back( std::string( (char *)pcert->pbCertEncoded, pcert->cbCertEncoded ) );
             g_certlens.push_back( (int)g_certbufs[i].size() );
