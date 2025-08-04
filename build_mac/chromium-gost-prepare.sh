@@ -8,13 +8,13 @@ export GOST_BRANCH=GOSTSSL-$CHROMIUM_TAG
 
 cd $CHROMIUM_PATH/.git || exit
 cd $BORINGSSL_PATH/.git || exit
-cd $CHROMIUM_PATH/third_party/search_engines_data/resources && git reset HEAD~ --hard
+cd $CHROMIUM_PATH/third_party/search_engines_data/resources && git reset HEAD~ --hard && git clean -fd
 
 cd $BORINGSSL_PATH
-git reset HEAD~ --hard
+git reset HEAD~ --hard && git clean -fd
 
 cd $CHROMIUM_PATH
-git reset HEAD~ --hard
+git reset HEAD~ --hard && git clean -fd
 git fetch origin tag $CHROMIUM_TAG --no-tags
 git checkout -f -b temp tags/$CHROMIUM_TAG
 git show-ref --quiet refs/heads/$GOST_BRANCH && git branch -D $GOST_BRANCH
