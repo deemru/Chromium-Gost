@@ -45,9 +45,10 @@ DLLEXPORT void gostssl_certhook( void * cert, int size );
 DLLEXPORT void gostssl_verifyhook( void * s, const char * host, int32_t * gost_status, char offline );
 DLLEXPORT void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost, const char ** issuers, int * issuers_lens, int issuers_count );
 DLLEXPORT void gostssl_isgostcerthook( void * cert, int size, int * is_gost );
-DLLEXPORT void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size, const char * ciphers, const char * tlsmode, const char * issuersfilter );
+DLLEXPORT void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size );
 DLLEXPORT int gostssl_is_msspi( SSL * s );
 DLLEXPORT char gostssl_certificate_info( const char * cert, size_t size, const char ** info, size_t * len );
+DLLEXPORT void gostssl_commandline( const char * ciphers, const char * tlsmode, const char * issuersfilter );
 
 }
 
@@ -92,8 +93,9 @@ static const SSL_CIPHER * tls_C105 = NULL;
 static const SSL_CIPHER * tls_C106 = NULL;
 static const SSL_CIPHER * tls_FF85 = NULL;
 
+static std::string & g_ciphers = *new std::string;
 static int g_tlsmode = 2;
-static int g_issuersfilter = 1;
+static int g_issuersfilter = 2;
 
 #define TLS_FLAG_V1_0 ( 1 << 0 )
 #define TLS_FLAG_V1_1 ( 1 << 1 )
@@ -360,8 +362,7 @@ typedef enum
 }
 WORKER_DB_ACTION;
 
-static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, const char * cachestring = NULL, const void * cert = NULL, int size = 0,
-                                     const char * ciphers = NULL, const char * tlsmode = NULL, const char * issuersfilter = NULL )
+static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, const char * cachestring = NULL, const void * cert = NULL, int size = 0 )
 {
     GostSSL_Worker * w = NULL;
 
@@ -404,10 +405,8 @@ static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, con
         }
 
         msspi_set_cert_cb( w->h, (msspi_cert_cb)gostssl_cert_cb );
-        msspi_set_cipherlist( w->h, ciphers );
-        w->tlsmode = atoi( tlsmode );
-        g_tlsmode = w->tlsmode;
-        g_issuersfilter = atoi( issuersfilter );
+        msspi_set_cipherlist( w->h, g_ciphers.c_str() );
+        w->tlsmode = g_tlsmode;
         if( w->tlsmode == 1 )
             w->host_status = GOSTSSL_HOST_YES;
         else
@@ -651,8 +650,44 @@ int gostssl_shutdown( SSL * s, int * is_gost )
 
 #define B2C(x) ( x < 0xA ? x + '0' : x + 'A' - 10 )
 
-void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size,
-                         const char * ciphers, const char * tlsmode, const char * issuersfilter )
+void gostssl_commandline( const char * ciphers, const char * tlsmode, const char * issuersfilter )
+{
+    if( ciphers && strlen( ciphers ) )
+        g_ciphers = ciphers;
+    else
+    {
+        g_ciphers = "C104:C105:C103:C106:C100:C101:C102:FF85:0081"; // GOST
+        g_ciphers += ":";
+        g_ciphers += "1301:1302"; // TLS 1.3 AES
+        g_ciphers += ":";
+        g_ciphers += "C02C:C02B:C024:C023:C00A:C009"; // TLS 1.2 ECDSA
+        g_ciphers += ":";
+        g_ciphers += "C030:C02F:C028:C027:C014:C013:009D:009C:003D:003C:0035:002F:000A"; // TLS RSA
+    }
+  
+    if( tlsmode && strlen( tlsmode ) )
+        g_tlsmode = atoi( tlsmode );
+    else
+        g_tlsmode = 2;
+        /*
+            2 - переключение boringssl <> msspi без разрыва соединения (по умолчанию)
+            1 - принудительная работа только msspi
+            0 - переключение boringssl <> msspi с разрывом соединения
+            -1 - принудительная работа только boringssl
+        */
+  
+    if( issuersfilter && strlen( issuersfilter ) )
+        g_issuersfilter = atoi( issuersfilter );
+    else
+        g_issuersfilter = 2;
+        /*  Фильтрация пользовательских сертификатов по списку издателей:
+            2 - включена при наличии подходящих сертификатов (по умолчанию)
+            1 - включена
+            0 - отключена
+        */
+}
+
+void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size )
 {
     BYTE * bb = (BYTE *)cachestring;
     std::vector<BYTE> cc;
@@ -665,7 +700,7 @@ void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const vo
         cc[i * 2 + 1] = B2C( Fx );
     }
     cc[len * 2] = 0;
-    workers_api( s, WDB_NEW, (char *)&cc[0], cert, size, ciphers, tlsmode, issuersfilter );
+    workers_api( s, WDB_NEW, (char *)&cc[0], cert, size );
 }
 
 int gostssl_connect( SSL * s, int * is_gost )
@@ -916,6 +951,8 @@ void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, in
         }
     }
 
+    CertCloseStore( hStore, 0 );
+
     if( i )
     {
         *certs = &g_certs[0];
@@ -925,8 +962,11 @@ void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, in
         *count = i;
         *is_gost = 1;
     }
-
-    CertCloseStore( hStore, 0 );
+    else
+    if( g_issuersfilter == 2 && issuers_count != 0 )
+    {
+        gostssl_clientcertshook( certs, lens, names, count, is_gost, NULL, NULL, 0 );
+    }
 }
 
 int gostssl_is_msspi( SSL * s )

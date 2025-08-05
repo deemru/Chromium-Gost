@@ -8,9 +8,9 @@ cd %CHROMIUM_PATH%\.git || goto :finish
 cd %BORINGSSL_PATH%\.git || goto :finish
 
 cd %CHROMIUM_PATH%
-cmd /C "git format-patch HEAD~1 --stdout > %CHROMIUM_GOST_REPO%patch\extra\extensions-manifestv2_ifdef.stage.patch"
+cmd /C "git format-patch HEAD~2..HEAD~1 --stdout > %CHROMIUM_GOST_REPO%patch\extra\extensions-manifestv2_ifdef.stage.patch"
 cd %CHROMIUM_PATH%
-cmd /C "git format-patch HEAD~2..HEAD~1 --stdout > %CHROMIUM_GOST_REPO%patch\chromium.stage.patch"
+cmd /C "git format-patch HEAD~1 --stdout > %CHROMIUM_GOST_REPO%patch\chromium.stage.patch"
 cd %BORINGSSL_PATH%
 cmd /C "git format-patch HEAD~1 --stdout > %CHROMIUM_GOST_REPO%patch\boringssl.stage.patch"
 cd %CHROMIUM_PATH%\third_party\search_engines_data\resources

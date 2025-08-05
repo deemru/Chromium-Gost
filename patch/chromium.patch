@@ -1,4 +1,4 @@
-From a4b9f73a0eeb6ec0be7aaf11168f7fe2f45ac7eb Mon Sep 17 00:00:00 2001
+From 864fa70659d3119b1b2ff4e7acd39c7773c600e0 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Mon, 23 Jun 2025 14:43:18 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -9,7 +9,7 @@ Subject: [PATCH] chromium GOSTSSL
  chrome/app/generated_resources.grd            |   2 -
  .../app/resources/generated_resources_ru.xtb  |   2 +-
  chrome/app/theme/chromium/BRANDING            |  16 +-
- .../api/messaging/launch_context_posix.cc     |  12 +
+ .../api/messaging/launch_context_posix.cc     |  12 ++
  chrome/browser/history/top_sites_factory.cc   |   4 +-
  ...credential_manager_support_reporter_win.cc |   2 +-
  chrome/browser/resources/new_tab_page/app.ts  |   6 +-
@@ -17,7 +17,7 @@ Subject: [PATCH] chromium GOSTSSL
  chrome/browser/resources/new_tab_page/logo.ts |   2 +
  chrome/browser/search/search.cc               |   2 +
  chrome/browser/shell_integration_linux.cc     |   2 +-
- .../ui/startup/startup_browser_creator.cc     | 132 ++++++++++-
+ .../ui/startup/startup_browser_creator.cc     | 132 +++++++++++-
  .../toolbar/chrome_labs/chrome_labs_utils.cc  |   2 +
  .../browser/ui/views/certificate_selector.cc  |  20 +-
  .../views/toolbar/browser_app_menu_button.cc  |   2 +-
@@ -33,7 +33,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../search_engines/search_terms_data.cc       |   2 +-
  .../search_engines/template_url_data_util.cc  |   6 +-
  .../template_url_prepopulate_data.cc          |  12 +-
- .../service_host/utility_process_host.cc      |   5 +
+ .../service_host/utility_process_host.cc      |   6 +
  content/browser/storage_partition_impl.cc     |   9 +
  net/base/net_error_list.h                     |   5 +
  net/cert/cert_verify_proc.cc                  |  23 ++
@@ -43,12 +43,12 @@ Subject: [PATCH] chromium GOSTSSL
  net/socket/socket.h                           |   4 +
  net/socket/ssl_client_socket.cc               |   9 +
  net/socket/ssl_client_socket.h                |   4 +
- net/socket/ssl_client_socket_impl.cc          | 212 ++++++++++++++++++
+ net/socket/ssl_client_socket_impl.cc          | 197 ++++++++++++++++++
  net/socket/ssl_client_socket_impl.h           |   8 +
  net/spdy/spdy_session.cc                      |   5 +
- net/ssl/client_cert_store_mac.cc              |  31 +++
- net/ssl/client_cert_store_nss.cc              |  33 +++
- net/ssl/client_cert_store_win.cc              |  32 +++
+ net/ssl/client_cert_store_mac.cc              |  70 +++++++
+ net/ssl/client_cert_store_nss.cc              |  72 +++++++
+ net/ssl/client_cert_store_win.cc              |  71 +++++++
  net/ssl/openssl_ssl_util.cc                   |   4 +
  net/ssl/ssl_cipher_suite_names.cc             |  69 ++++++
  net/ssl/ssl_config_service.h                  |   2 +-
@@ -62,7 +62,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.gn                |   1 +
  .../cr_components/searchbox/searchbox.html    |   7 +
- 58 files changed, 799 insertions(+), 51 deletions(-)
+ 58 files changed, 902 insertions(+), 51 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
 index 86007c8b041c4..6ae7871cab490 100644
@@ -820,10 +820,10 @@ index 377ddeb6cf363..2ab60d8e6e150 100644
  }
  
 diff --git a/content/browser/service_host/utility_process_host.cc b/content/browser/service_host/utility_process_host.cc
-index 7db71d28fa054..5449d653f62a2 100644
+index 7db71d28fa054..9f4960346ca10 100644
 --- a/content/browser/service_host/utility_process_host.cc
 +++ b/content/browser/service_host/utility_process_host.cc
-@@ -385,6 +385,11 @@ bool UtilityProcessHost::StartProcess() {
+@@ -385,6 +385,12 @@ bool UtilityProcessHost::StartProcess() {
  
    // Browser command-line switches to propagate to the utility process.
    static const char* const kSwitchNames[] = {
@@ -831,6 +831,7 @@ index 7db71d28fa054..5449d653f62a2 100644
 +      "ciphers",
 +      "tlsmode",
 +      "verifymode",
++      "issuersfilter",
 +#endif // GOSTSSL
        network::switches::kAdditionalTrustTokenKeyCommitments,
        network::switches::kForceEffectiveConnectionType,
@@ -1056,7 +1057,7 @@ index 3672a5f12e3cf..4b72e46282860 100644
    void NotifySSLConfigChanged(SSLConfigChangeType change_type);
    void NotifySSLConfigForServersChanged(
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 43d5cc124cc35..1bd228bc7bf89 100644
+index 43d5cc124cc35..6b511e7f651fb 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
 @@ -29,6 +29,7 @@
@@ -1067,13 +1068,14 @@ index 43d5cc124cc35..1bd228bc7bf89 100644
  #include "base/values.h"
  #include "build/build_config.h"
  #include "crypto/ec_private_key.h"
-@@ -332,6 +333,100 @@ int SSLClientSocketImpl::ExportKeyingMaterial(
+@@ -332,6 +333,101 @@ int SSLClientSocketImpl::ExportKeyingMaterial(
    return OK;
  }
  
 +#ifndef NO_GOSTSSL
 +extern "C" {
-+void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size, const char * ciphers, const char * tlsmode );
++void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size );
++void gostssl_commandline( const char * ciphers, const char * tlsmode, const char * issuersfilter );
 +void gostssl_certhook( void * cert, int size );
 +void gostssl_verifyhook( void * s, const char * host, int32_t * gost_status, char offline );
 +int gostssl_is_msspi( SSL * s );
@@ -1168,7 +1170,7 @@ index 43d5cc124cc35..1bd228bc7bf89 100644
  int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
    // this has never worked for layered sockets. CHECK to detect any consumers
-@@ -350,6 +445,52 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
+@@ -350,6 +446,36 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
      return rv;
    }
  
@@ -1182,46 +1184,30 @@ index 43d5cc124cc35..1bd228bc7bf89 100644
 +      len = (int)CRYPTO_BUFFER_len(client_cert_.get()->cert_buffer());
 +    }
 +    static bool once = false;
-+    static std::string& ciphers = *new std::string;
-+    static std::string& tlsmode = *new std::string;
 +    if (once == false)
 +    {
 +      once = true;
 +      base::CommandLine* command_line = base::CommandLine::ForCurrentProcess();
++      std::string ciphers;
 +      if (command_line->HasSwitch("ciphers"))
 +        ciphers = command_line->GetSwitchValueASCII("ciphers");
-+      if (ciphers == "")
-+      {
-+        ciphers = "C104:C105:C103:C106:C100:C101:C102:FF85:0081"; // GOST
-+        ciphers += ":";
-+        ciphers += "1301:1302"; // TLS 1.3 AES
-+        ciphers += ":";
-+        ciphers += "C02C:C02B:C024:C023:C00A:C009"; // TLS 1.2 ECDSA
-+        ciphers += ":";
-+        ciphers += "C030:C02F:C028:C027:C014:C013:009D:009C:003D:003C:0035:002F:000A"; // TLS RSA
-+      }
++      std::string tlsmode;
 +      if (command_line->HasSwitch("tlsmode"))
 +        tlsmode = command_line->GetSwitchValueASCII("tlsmode");
-+      /*
-+        2 - переключение boringssl <> msspi без разрыва соединения (по умолчанию)
-+        1 - принудительная работа только msspi
-+        0 - переключение boringssl <> msspi с разрывом соединения
-+       -1 - принудительная работа только boringssl
-+      */
-+      if (tlsmode == "")
-+      {
-+        tlsmode = "2";
-+      }
++      std::string issuersfilter;
++      if (command_line->HasSwitch("issuersfilter"))
++        issuersfilter = command_line->GetSwitchValueASCII("issuersfilter");
++      gostssl_commandline( ciphers.c_str(), tlsmode.c_str(), issuersfilter.c_str() );
 +    }
 +    std::string cachestring = std::to_string(context_->seqnum_) + "@" + host_and_port().ToString();
-+    gostssl_newsession(ssl_.get(), cachestring.data(), cachestring.size(), cert, len, ciphers.c_str(), tlsmode.c_str());
++    gostssl_newsession(ssl_.get(), cachestring.data(), cachestring.size(), cert, len);
 +  }
 +#endif // GOSTSSL
 +
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -880,6 +1021,9 @@ int SSLClientSocketImpl::DoHandshake() {
+@@ -880,6 +1006,9 @@ int SSLClientSocketImpl::DoHandshake() {
        return ERR_IO_PENDING;
      }
      if (ssl_error == SSL_ERROR_WANT_CERTIFICATE_VERIFY) {
@@ -1231,7 +1217,7 @@ index 43d5cc124cc35..1bd228bc7bf89 100644
        DCHECK(cert_verifier_request_);
        next_handshake_state_ = STATE_HANDSHAKE;
        return ERR_IO_PENDING;
-@@ -1053,6 +1197,62 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
+@@ -1053,6 +1182,62 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
      return HandleVerifyResult();
    }
  
@@ -1294,7 +1280,7 @@ index 43d5cc124cc35..1bd228bc7bf89 100644
    std::string_view ech_name_override = GetECHNameOverride();
    if (!ech_name_override.empty()) {
      // If ECH was offered but not negotiated, BoringSSL will ask to verify a
-@@ -1488,6 +1688,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1488,6 +1673,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
@@ -1349,35 +1335,81 @@ index 6d1fdf8cfee76..6731675d1f7e6 100644
    CHECK(GetSSLInfo(&ssl_info));
  
 diff --git a/net/ssl/client_cert_store_mac.cc b/net/ssl/client_cert_store_mac.cc
-index 65319a3674b13..298d6cf5bd3be 100644
+index 65319a3674b13..f18cc796e1c3d 100644
 --- a/net/ssl/client_cert_store_mac.cc
 +++ b/net/ssl/client_cert_store_mac.cc
-@@ -300,6 +300,12 @@ void AddIdentity(ScopedCFTypeRef<SecIdentityRef> sec_identity,
+@@ -19,6 +19,7 @@
+ 
+ #include "base/apple/osstatus_logging.h"
+ #include "base/apple/scoped_cftyperef.h"
++#include "base/command_line.h"
+ #include "base/feature_list.h"
+ #include "base/functional/bind.h"
+ #include "base/functional/callback.h"
+@@ -300,6 +301,13 @@ void AddIdentity(ScopedCFTypeRef<SecIdentityRef> sec_identity,
    }
  }
  
 +#ifndef NO_GOSTSSL
 +extern "C" {
-+void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost );
++void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost, const char ** issuers, int * issuers_lens, int issuers_count );
++void gostssl_commandline( const char * ciphers, const char * tlsmode, const char * issuersfilter );
 +}
 +#endif // GOSTSSL
 +
  ClientCertIdentityList GetClientCertsOnBackgroundThread(
      scoped_refptr<const SSLCertRequestInfo> request) {
    std::string server_domain = request->host_and_port.host();
-@@ -403,6 +409,31 @@ ClientCertIdentityList GetClientCertsOnBackgroundThread(
+@@ -403,6 +411,68 @@ ClientCertIdentityList GetClientCertsOnBackgroundThread(
    GetClientCertsImpl(std::move(preferred_identity),
                       std::move(regular_identities), *request, true,
                       &selected_identities);
 +
 +#ifndef NO_GOSTSSL
 +  {
++    static bool once = false;
++    if (once == false)
++    {
++      once = true;
++      base::CommandLine* command_line = base::CommandLine::ForCurrentProcess();
++      std::string ciphers;
++      if (command_line->HasSwitch("ciphers"))
++        ciphers = command_line->GetSwitchValueASCII("ciphers");
++      std::string tlsmode;
++      if (command_line->HasSwitch("tlsmode"))
++        tlsmode = command_line->GetSwitchValueASCII("tlsmode");
++      std::string issuersfilter;
++      if (command_line->HasSwitch("issuersfilter"))
++        issuersfilter = command_line->GetSwitchValueASCII("issuersfilter");
++      gostssl_commandline( ciphers.c_str(), tlsmode.c_str(), issuersfilter.c_str() );
++    }
++
 +    char ** certs;
 +    int * lens;
 +    int count;
 +    int is_gost;
 +
-+    gostssl_clientcertshook( &certs, &lens, NULL, &count, &is_gost );
++    const size_t crg_issuers_count = request->cert_authorities.size();
++
++    if( crg_issuers_count > 0 )
++    {
++      std::vector<const char *> crg_issuers( crg_issuers_count );
++      std::vector<int> crg_issuers_lens( crg_issuers_count );
++
++      for( size_t i = 0; i < crg_issuers_count; i++ )
++      {
++        crg_issuers[i] = request->cert_authorities[i].data();
++        crg_issuers_lens[i] = (int)request->cert_authorities[i].size();
++      }
++
++      gostssl_clientcertshook( &certs, &lens, NULL, &count, &is_gost,
++                               crg_issuers.data(), crg_issuers_lens.data(), (int)crg_issuers_count );
++    }
++    else
++    {
++      gostssl_clientcertshook( &certs, &lens, NULL, &count, &is_gost,
++                               nullptr, nullptr, 0 );
++    }
 +
 +    if( is_gost )
 +    {
@@ -1398,35 +1430,81 @@ index 65319a3674b13..298d6cf5bd3be 100644
  }
  
 diff --git a/net/ssl/client_cert_store_nss.cc b/net/ssl/client_cert_store_nss.cc
-index 7bfbd6f5acf06..0f1ae75bd9696 100644
+index 7bfbd6f5acf06..bba6ec16756df 100644
 --- a/net/ssl/client_cert_store_nss.cc
 +++ b/net/ssl/client_cert_store_nss.cc
-@@ -185,6 +185,12 @@ void ClientCertStoreNSS::FilterCertsOnWorkerThread(
+@@ -13,6 +13,7 @@
+ #include <utility>
+ #include <vector>
+ 
++#include "base/command_line.h"
+ #include "base/functional/bind.h"
+ #include "base/functional/callback_helpers.h"
+ #include "base/location.h"
+@@ -185,6 +186,13 @@ void ClientCertStoreNSS::FilterCertsOnWorkerThread(
    }
  }
  
 +#ifndef NO_GOSTSSL
 +extern "C" {
-+void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost );
++void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost, const char ** issuers, int * issuers_lens, int issuers_count );
++void gostssl_commandline( const char * ciphers, const char * tlsmode, const char * issuersfilter );
 +}
 +#endif // GOSTSSL
 +
  // static
  ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
      scoped_refptr<crypto::CryptoModuleBlockingPasswordDelegate>
-@@ -200,6 +206,33 @@ ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
+@@ -200,6 +208,70 @@ ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
    GetPlatformCertsOnWorkerThread(std::move(password_delegate), CertFilter(),
                                   &selected_identities);
    FilterCertsOnWorkerThread(&selected_identities, *request);
 +
 +#ifndef NO_GOSTSSL
 +  {
++    static bool once = false;
++    if (once == false)
++    {
++      once = true;
++      base::CommandLine* command_line = base::CommandLine::ForCurrentProcess();
++      std::string ciphers;
++      if (command_line->HasSwitch("ciphers"))
++        ciphers = command_line->GetSwitchValueASCII("ciphers");
++      std::string tlsmode;
++      if (command_line->HasSwitch("tlsmode"))
++        tlsmode = command_line->GetSwitchValueASCII("tlsmode");
++      std::string issuersfilter;
++      if (command_line->HasSwitch("issuersfilter"))
++        issuersfilter = command_line->GetSwitchValueASCII("issuersfilter");
++      gostssl_commandline( ciphers.c_str(), tlsmode.c_str(), issuersfilter.c_str() );
++    }
++
 +    char ** certs;
 +    int * lens;
 +    int count;
 +    int is_gost;
 +
-+    gostssl_clientcertshook( &certs, &lens, NULL, &count, &is_gost );
++    const size_t crg_issuers_count = request->cert_authorities.size();
++
++    if( crg_issuers_count > 0 )
++    {
++      std::vector<const char *> crg_issuers( crg_issuers_count );
++      std::vector<int> crg_issuers_lens( crg_issuers_count );
++
++      for( size_t i = 0; i < crg_issuers_count; i++ )
++      {
++        crg_issuers[i] = request->cert_authorities[i].data();
++        crg_issuers_lens[i] = (int)request->cert_authorities[i].size();
++      }
++
++      gostssl_clientcertshook( &certs, &lens, NULL, &count, &is_gost,
++                               crg_issuers.data(), crg_issuers_lens.data(), (int)crg_issuers_count );
++    }
++    else
++    {
++      gostssl_clientcertshook( &certs, &lens, NULL, &count, &is_gost,
++                               nullptr, nullptr, 0 );
++    }
 +
 +    if( is_gost )
 +    {
@@ -1449,34 +1527,80 @@ index 7bfbd6f5acf06..0f1ae75bd9696 100644
  }
  
 diff --git a/net/ssl/client_cert_store_win.cc b/net/ssl/client_cert_store_win.cc
-index a1d19255b26e6..a616827bb4304 100644
+index a1d19255b26e6..6f91877248332 100644
 --- a/net/ssl/client_cert_store_win.cc
 +++ b/net/ssl/client_cert_store_win.cc
-@@ -111,6 +111,12 @@ static BOOL WINAPI ClientCertFindCallback(PCCERT_CONTEXT cert_context,
+@@ -19,6 +19,7 @@
+ #define SECURITY_WIN32
+ #include <security.h>
+ 
++#include "base/command_line.h"
+ #include "base/functional/bind.h"
+ #include "base/functional/callback.h"
+ #include "base/functional/callback_helpers.h"
+@@ -111,6 +112,13 @@ static BOOL WINAPI ClientCertFindCallback(PCCERT_CONTEXT cert_context,
    return TRUE;
  }
  
 +#ifndef NO_GOSTSSL
 +extern "C" {
-+void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost );
++void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost, const char ** issuers, int * issuers_lens, int issuers_count );
++void gostssl_commandline( const char * ciphers, const char * tlsmode, const char * issuersfilter );
 +}
 +#endif // GOSTSSL
 +
  ClientCertIdentityList GetClientCertsImpl(HCERTSTORE cert_store,
                                            const SSLCertRequestInfo& request) {
    ClientCertIdentityList selected_identities;
-@@ -211,6 +217,32 @@ ClientCertIdentityList GetClientCertsImpl(HCERTSTORE cert_store,
+@@ -211,6 +219,69 @@ ClientCertIdentityList GetClientCertsImpl(HCERTSTORE cert_store,
      }
    }
  
 +#ifndef NO_GOSTSSL
 +  {
++    static bool once = false;
++    if (once == false)
++    {
++      once = true;
++      base::CommandLine* command_line = base::CommandLine::ForCurrentProcess();
++      std::string ciphers;
++      if (command_line->HasSwitch("ciphers"))
++        ciphers = command_line->GetSwitchValueASCII("ciphers");
++      std::string tlsmode;
++      if (command_line->HasSwitch("tlsmode"))
++        tlsmode = command_line->GetSwitchValueASCII("tlsmode");
++      std::string issuersfilter;
++      if (command_line->HasSwitch("issuersfilter"))
++        issuersfilter = command_line->GetSwitchValueASCII("issuersfilter");
++      gostssl_commandline( ciphers.c_str(), tlsmode.c_str(), issuersfilter.c_str() );
++    }
++
 +    char ** certs;
 +    int * lens;
 +    int count;
 +    int is_gost;
 +
-+    gostssl_clientcertshook( &certs, &lens, NULL, &count, &is_gost );
++    const size_t crg_issuers_count = request.cert_authorities.size();
++
++    if( crg_issuers_count > 0 )
++    {
++      std::vector<const char *> crg_issuers( crg_issuers_count );
++      std::vector<int> crg_issuers_lens( crg_issuers_count );
++
++      for( size_t i = 0; i < crg_issuers_count; i++ )
++      {
++        crg_issuers[i] = request.cert_authorities[i].data();
++        crg_issuers_lens[i] = (int)request.cert_authorities[i].size();
++      }
++
++      gostssl_clientcertshook( &certs, &lens, NULL, &count, &is_gost,
++                               crg_issuers.data(), crg_issuers_lens.data(), (int)crg_issuers_count );
++    }
++    else
++    {
++      gostssl_clientcertshook( &certs, &lens, NULL, &count, &is_gost,
++                               nullptr, nullptr, 0 );
++    }
 +
 +    if( is_gost )
 +    {
