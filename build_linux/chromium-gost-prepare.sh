@@ -20,7 +20,7 @@ git checkout -f -b temp tags/$CHROMIUM_TAG
 git show-ref --quiet refs/heads/$GOST_BRANCH && git branch -D $GOST_BRANCH
 git checkout -f -b $GOST_BRANCH tags/$CHROMIUM_TAG
 git branch -D temp
-gclient sync --with_branch_heads -D
+gclient sync --force --reset --upstream -D --with_branch_heads
 git am --3way --ignore-space-change < $CHROMIUM_GOST_REPO/patch/chromium.patch || exit
 git am --3way --ignore-space-change < $CHROMIUM_GOST_REPO/patch/extra/extensions-manifestv2_ifdef.patch || exit
 
