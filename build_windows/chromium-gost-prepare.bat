@@ -7,13 +7,13 @@ set GOST_BRANCH=GOSTSSL-%CHROMIUM_TAG%
 
 cd %CHROMIUM_PATH%\.git || goto :finish
 cd %BORINGSSL_PATH%\.git || goto :finish
-cd %CHROMIUM_PATH%\third_party\search_engines_data\resources && call git reset HEAD~ --hard && call git clean -fd
+cd %CHROMIUM_PATH%\third_party\search_engines_data\resources && call git reset HEAD --hard && call git clean -fd
 
 cd %BORINGSSL_PATH%
-call git reset HEAD~ --hard && call git clean -fd
+call git reset HEAD --hard && call git clean -fd
 
 cd %CHROMIUM_PATH%
-call git reset HEAD~ --hard && call git clean -fd
+call git reset HEAD --hard && call git clean -fd
 call git fetch origin tag %CHROMIUM_TAG% --no-tags
 call git checkout -f -b temp tags/%CHROMIUM_TAG%
 call git show-ref --quiet refs/heads/%GOST_BRANCH% && call git branch -D %GOST_BRANCH%
