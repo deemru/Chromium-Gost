@@ -1,21 +1,21 @@
-From c0b2aae601c30a33a7f423fa591dc34b57341316 Mon Sep 17 00:00:00 2001
+From d735a0b7434ccb3e1a22d3b5f3f6078639ab5f00 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
-Date: Tue, 6 May 2025 12:31:50 +0300
+Date: Wed, 6 Aug 2025 01:20:24 +0300
 Subject: [PATCH] extensions-manifestv2.patch (ifdef)
 
 ---
- .../developer_private/extension_info_generator_desktop.cc | 2 ++
+ .../api/developer_private/extension_info_generator.cc     | 2 ++
  chrome/browser/extensions/extension_management.cc         | 8 ++++++++
  .../browser/extensions/manifest_v2_experiment_manager.cc  | 6 ++++++
  chrome/browser/ui/webui/extensions/extensions_ui.cc       | 2 +-
  extensions/common/extension.cc                            | 2 ++
  5 files changed, 19 insertions(+), 1 deletion(-)
 
-diff --git a/chrome/browser/extensions/api/developer_private/extension_info_generator_desktop.cc b/chrome/browser/extensions/api/developer_private/extension_info_generator_desktop.cc
-index 9758eba0cbe85..432100a6eafbe 100644
---- a/chrome/browser/extensions/api/developer_private/extension_info_generator_desktop.cc
-+++ b/chrome/browser/extensions/api/developer_private/extension_info_generator_desktop.cc
-@@ -54,6 +54,7 @@ void ExtensionInfoGenerator::FillExtensionInfo(
+diff --git a/chrome/browser/extensions/api/developer_private/extension_info_generator.cc b/chrome/browser/extensions/api/developer_private/extension_info_generator.cc
+index 99e7a64feec78..10e3041333c5e 100644
+--- a/chrome/browser/extensions/api/developer_private/extension_info_generator.cc
++++ b/chrome/browser/extensions/api/developer_private/extension_info_generator.cc
+@@ -595,6 +595,7 @@ void ExtensionInfoGenerator::FillExtensionInfo(const Extension& extension,
      info.controlled_info.emplace();
      info.controlled_info->text =
          l10n_util::GetStringUTF8(IDS_EXTENSIONS_INSTALL_LOCATION_ENTERPRISE);
@@ -23,19 +23,19 @@ index 9758eba0cbe85..432100a6eafbe 100644
    } else {
      // Create Safety Hub information for any non-enterprise extension.
      developer::SafetyCheckWarningReason warning_reason =
-@@ -65,6 +66,7 @@ void ExtensionInfoGenerator::FillExtensionInfo(
-           ExtensionSafetyCheckUtils::GetSafetyCheckWarningStrings(
+@@ -607,6 +608,7 @@ void ExtensionInfoGenerator::FillExtensionInfo(const Extension& extension,
                warning_reason, state);
      }
-+#endif
    }
++#endif
  
-   // Pinned to toolbar.
+   bool is_enabled = state == developer::ExtensionState::kEnabled;
+ 
 diff --git a/chrome/browser/extensions/extension_management.cc b/chrome/browser/extensions/extension_management.cc
-index ae782891ad341..e44f9fb64f8d6 100644
+index 7d55128c575fc..887252a762a86 100644
 --- a/chrome/browser/extensions/extension_management.cc
 +++ b/chrome/browser/extensions/extension_management.cc
-@@ -322,6 +322,9 @@ bool ExtensionManagement::IsAllowedManifestVersion(
+@@ -355,6 +355,9 @@ bool ExtensionManagement::IsAllowedManifestVersion(
      int manifest_version,
      const std::string& extension_id,
      Manifest::Type manifest_type) {
@@ -45,7 +45,7 @@ index ae782891ad341..e44f9fb64f8d6 100644
    bool enabled_by_default =
        !base::FeatureList::IsEnabled(
            extensions_features::kExtensionsManifestV3Only) ||
-@@ -347,6 +350,7 @@ bool ExtensionManagement::IsAllowedManifestVersion(
+@@ -380,6 +383,7 @@ bool ExtensionManagement::IsAllowedManifestVersion(
               installation_mode == ManagedInstallationMode::kForced ||
               installation_mode == ManagedInstallationMode::kRecommended;
    }
@@ -53,7 +53,7 @@ index ae782891ad341..e44f9fb64f8d6 100644
  }
  
  bool ExtensionManagement::IsAllowedManifestVersion(const Extension* extension) {
-@@ -367,6 +371,9 @@ bool ExtensionManagement::IsExemptFromMV2DeprecationByPolicy(
+@@ -400,6 +404,9 @@ bool ExtensionManagement::IsExemptFromMV2DeprecationByPolicy(
      return false;
    }
  
@@ -63,7 +63,7 @@ index ae782891ad341..e44f9fb64f8d6 100644
    switch (global_settings_->manifest_v2_setting) {
      case internal::GlobalSettings::ManifestV2Setting::kDefault:
        // Default browser behavior. Not exempt.
-@@ -387,6 +394,7 @@ bool ExtensionManagement::IsExemptFromMV2DeprecationByPolicy(
+@@ -420,6 +427,7 @@ bool ExtensionManagement::IsExemptFromMV2DeprecationByPolicy(
    }
  
    return false;
@@ -110,20 +110,20 @@ index 08b7de6995162..0884f9a051f7e 100644
  
  // Returns true if the given `stage` is one in which extension enablement should
 diff --git a/chrome/browser/ui/webui/extensions/extensions_ui.cc b/chrome/browser/ui/webui/extensions/extensions_ui.cc
-index f769bdb059156..f01ffd22ec9d4 100644
+index 7f00cde25c95b..64bb58da80df1 100644
 --- a/chrome/browser/ui/webui/extensions/extensions_ui.cc
 +++ b/chrome/browser/ui/webui/extensions/extensions_ui.cc
-@@ -490,7 +490,7 @@ content::WebUIDataSource* CreateAndAddExtensionsSource(Profile* profile,
+@@ -482,7 +482,7 @@ content::WebUIDataSource* CreateAndAddExtensionsSource(Profile* profile,
            extensions_features::kExtensionsMenuAccessControlWithPermittedSites));
    source->AddBoolean(
        "safetyHubThreeDotDetails",
 -      base::FeatureList::IsEnabled(features::kSafetyHubThreeDotDetails));
 +      false);
  
- #if BUILDFLAG(IS_ANDROID)
-   source->AddResourcePath("images/product_logo.png",
+   // MV2 deprecation.
+   auto* mv2_experiment_manager = ManifestV2ExperimentManager::Get(profile);
 diff --git a/extensions/common/extension.cc b/extensions/common/extension.cc
-index f82aaf92ad07f..5e2f8f6cba3ee 100644
+index d92362bb785bf..539a63e877c80 100644
 --- a/extensions/common/extension.cc
 +++ b/extensions/common/extension.cc
 @@ -104,6 +104,7 @@ bool IsManifestSupported(int manifest_version,
