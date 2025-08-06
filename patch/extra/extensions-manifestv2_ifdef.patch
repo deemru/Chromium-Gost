@@ -1,4 +1,4 @@
-From d735a0b7434ccb3e1a22d3b5f3f6078639ab5f00 Mon Sep 17 00:00:00 2001
+From fd8fd66323d3aa8a5c67194d5d100203c2100892 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 6 Aug 2025 01:20:24 +0300
 Subject: [PATCH] extensions-manifestv2.patch (ifdef)
@@ -12,7 +12,7 @@ Subject: [PATCH] extensions-manifestv2.patch (ifdef)
  5 files changed, 19 insertions(+), 1 deletion(-)
 
 diff --git a/chrome/browser/extensions/api/developer_private/extension_info_generator.cc b/chrome/browser/extensions/api/developer_private/extension_info_generator.cc
-index 99e7a64feec78..10e3041333c5e 100644
+index 99e7a64feec78..05923fdabc906 100644
 --- a/chrome/browser/extensions/api/developer_private/extension_info_generator.cc
 +++ b/chrome/browser/extensions/api/developer_private/extension_info_generator.cc
 @@ -595,6 +595,7 @@ void ExtensionInfoGenerator::FillExtensionInfo(const Extension& extension,
@@ -23,14 +23,14 @@ index 99e7a64feec78..10e3041333c5e 100644
    } else {
      // Create Safety Hub information for any non-enterprise extension.
      developer::SafetyCheckWarningReason warning_reason =
-@@ -607,6 +608,7 @@ void ExtensionInfoGenerator::FillExtensionInfo(const Extension& extension,
+@@ -606,6 +607,7 @@ void ExtensionInfoGenerator::FillExtensionInfo(const Extension& extension,
+           ExtensionSafetyCheckUtils::GetSafetyCheckWarningStrings(
                warning_reason, state);
      }
-   }
 +#endif
+   }
  
    bool is_enabled = state == developer::ExtensionState::kEnabled;
- 
 diff --git a/chrome/browser/extensions/extension_management.cc b/chrome/browser/extensions/extension_management.cc
 index 7d55128c575fc..887252a762a86 100644
 --- a/chrome/browser/extensions/extension_management.cc
