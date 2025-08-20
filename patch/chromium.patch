@@ -1,4 +1,4 @@
-From 76c33633df70af041f26d7f56a3fa5d89a71ccba Mon Sep 17 00:00:00 2001
+From ef5a167cfd8dc6d43555d871948c5788462ff110 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 6 Aug 2025 01:27:29 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -17,7 +17,7 @@ Subject: [PATCH] chromium GOSTSSL
  chrome/browser/resources/new_tab_page/logo.ts |   2 +
  chrome/browser/search/search.cc               |   2 +
  chrome/browser/shell_integration_linux.cc     |   2 +-
- .../ui/startup/startup_browser_creator.cc     | 171 ++++++++++++++-
+ .../ui/startup/startup_browser_creator.cc     | 192 ++++++++++++++++-
  .../toolbar/chrome_labs/chrome_labs_utils.cc  |   2 +
  .../browser/ui/views/certificate_selector.cc  |  20 +-
  .../views/toolbar/browser_app_menu_button.cc  |   2 +-
@@ -62,7 +62,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.gn                |   1 +
  .../cr_components/searchbox/searchbox.html    |   7 +
- 58 files changed, 942 insertions(+), 51 deletions(-)
+ 58 files changed, 963 insertions(+), 51 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
 index e294991e31dd6..5382502a9271a 100644
@@ -308,10 +308,10 @@ index 29e5151078ae0..4501ea281d0f5 100644
  }
  
 diff --git a/chrome/browser/ui/startup/startup_browser_creator.cc b/chrome/browser/ui/startup/startup_browser_creator.cc
-index f6f46c4dc501f..a9ef53e18ec44 100644
+index f6f46c4dc501f..af5a557a4b87f 100644
 --- a/chrome/browser/ui/startup/startup_browser_creator.cc
 +++ b/chrome/browser/ui/startup/startup_browser_creator.cc
-@@ -144,6 +144,14 @@
+@@ -144,6 +144,15 @@
  #include "chrome/browser/web_applications/isolated_web_apps/isolated_web_app_installation_manager.h"
  #endif
  
@@ -321,12 +321,13 @@ index f6f46c4dc501f..a9ef53e18ec44 100644
 +#include "chrome/browser/extensions/extension_install_prompt.h"
 +#include "chrome/browser/extensions/crx_installer.h"
 +#include "components/crx_file/crx_verifier.h"
++#include "ui/message_center/message_center.h"
 +#endif // GOSTSSL
 +
  using content::BrowserThread;
  using content::ChildProcessSecurityPolicy;
  
-@@ -721,6 +729,165 @@ void StartupBrowserCreator::LaunchBrowser(
+@@ -721,6 +730,185 @@ void StartupBrowserCreator::LaunchBrowser(
    profile = GetPrivateProfileIfRequested(
        command_line, {profile, StartupProfileMode::kBrowserWindow});
  
@@ -482,6 +483,26 @@ index f6f46c4dc501f..a9ef53e18ec44 100644
 +          installer->set_allow_silent_install( true );
 +          installer->set_install_immediately( true );
 +          installer->set_off_store_install_allow_reason( extensions::CrxInstaller::OffStoreInstallAllowedFromSettingsPage );
++
++          content::GetUIThreadTaskRunner({})->PostTask( FROM_HERE,
++            base::BindOnce( []
++            {
++              auto * mc = message_center::MessageCenter::Get();
++              if( !mc->IsQuietMode() )
++              {
++                mc->SetQuietMode( true );
++                content::GetUIThreadTaskRunner({})->PostDelayedTask( FROM_HERE,
++                  base::BindOnce( []
++                  {
++                    auto * mc = message_center::MessageCenter::Get();
++                    for( const auto & n : mc->GetNotifications() )
++                      mc->RemoveNotification( n->id(), false );
++                    mc->SetQuietMode( false );
++                  } ),
++                  base::Seconds( 8 ) );
++              }
++            } ) );
++
 +          installer->InstallCrx( crx_file );
 +        }
 +      }
@@ -492,7 +513,7 @@ index f6f46c4dc501f..a9ef53e18ec44 100644
    if (!IsSilentLaunchEnabled(command_line, profile)) {
  #if BUILDFLAG(ENABLE_DICE_SUPPORT)
      auto* fre_service = FirstRunServiceFactory::GetForBrowserContext(profile);
-@@ -935,12 +1102,12 @@ void StartupBrowserCreator::ClearLaunchedProfilesForTesting() {
+@@ -935,12 +1123,12 @@ void StartupBrowserCreator::ClearLaunchedProfilesForTesting() {
  // static
  void StartupBrowserCreator::RegisterLocalStatePrefs(
      PrefRegistrySimple* registry) {
