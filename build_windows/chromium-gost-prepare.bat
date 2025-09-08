@@ -27,6 +27,8 @@ perl -pi -e "s/Chromium/Chromium-Gost/g" chrome\app\chromium_strings.grd
 for %%f in (chrome\app\resources\chromium_strings*.xtb) do perl -pi -e "s/Chromium/Chromium-Gost/g" %%f
 copy /y %CHROMIUM_GOST_REPO%\extra\chromium-gost.ico chrome\app\theme\chromium\win\chromium.ico
 copy /y %CHROMIUM_GOST_REPO%\extra\chromium-gost.ico chrome\installer\mini_installer\mini_installer.ico
+copy /y %CHROMIUM_GOST_REPO%\extra\win\Logo.png chrome\app\theme\chromium\win\tiles\Logo.png
+copy /y %CHROMIUM_GOST_REPO%\extra\win\SmallLogo.png chrome\app\theme\chromium\win\tiles\SmallLogo.png
 
 copy /y %CHROMIUM_GOST_REPO%\extra\colored_header.svg chrome\browser\resources\new_tab_page\icons\colored_header.svg
 copy /y %CHROMIUM_GOST_REPO%\extra\chromium-gost.svg chrome\browser\resources\new_tab_page\icons\google_logo.svg
