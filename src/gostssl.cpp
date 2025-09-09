@@ -792,15 +792,14 @@ int gostssl_connect( SSL * s, int * is_gost )
             CertFreeCertificateContext( certcheck );
         }
 
+        if( 1 != boring_set_connected_cb( w->s, alpn, alpn_len, version, cipher_id, group_id, &servercerts_bufs[0], &servercerts_lens[0], servercerts_count ) )
+            return 0;
+
         w->host_status = GOSTSSL_HOST_YES;
         host_status_set( w->host_string, GOSTSSL_HOST_YES );
         w->connected = true;
 
-        char ssl_ret = boring_set_connected_cb( w->s, alpn, alpn_len, version, cipher_id, group_id, &servercerts_bufs[0], &servercerts_lens[0], servercerts_count );
-        if( ssl_ret != 1 )
-            return -1;
-
-        return 1;
+        return boring_set_connected_final_cb( w->s );
     }
 
     return msspi_to_ssl_state_ret( msspi_state( w->h ), s, ret );

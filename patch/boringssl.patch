@@ -1,4 +1,4 @@
-From 9b8fa131bfbe6e5ed7b6acf96b1f847f5a6ec526 Mon Sep 17 00:00:00 2001
+From 5c2a8afe707ed3b6a7183746dd97b8ece04b6793 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 5 Feb 2025 01:29:03 +0300
 Subject: [PATCH] boringssl GOSTSSL
@@ -459,7 +459,7 @@ index 724a0f272..5e365f774 100644
        alg_bits = 256;
        strength_bits = 256;
 diff --git a/ssl/ssl_lib.cc b/ssl/ssl_lib.cc
-index aa8ef8a0c..8ba5b5412 100644
+index aa8ef8a0c..145fd19db 100644
 --- a/ssl/ssl_lib.cc
 +++ b/ssl/ssl_lib.cc
 @@ -385,6 +385,165 @@ static int ssl_session_cmp(const SSL_SESSION *a, const SSL_SESSION *b) {
@@ -616,7 +616,7 @@ index aa8ef8a0c..8ba5b5412 100644
 +    }
 +  }
 +
-+  return boring_set_connected_final_cb(ssl);
++  return 1;
 +}
 +
 +char gostssl() {
