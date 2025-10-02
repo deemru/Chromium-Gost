@@ -1,4 +1,4 @@
-From 140af6c9e0f44a2774928ddad786f325875f4d8c Mon Sep 17 00:00:00 2001
+From d54806b21849ce42d2602ab81cbff8a5bdde1f72 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 6 Aug 2025 01:41:03 +0300
 Subject: [PATCH] search_engines_data.patch (yandex)
@@ -8,12 +8,12 @@ Subject: [PATCH] search_engines_data.patch (yandex)
  1 file changed, 5 insertions(+), 5 deletions(-)
 
 diff --git a/definitions/prepopulated_engines.json b/definitions/prepopulated_engines.json
-index 931ed5f..591d95e 100644
+index c7a8cb2..101b84a 100644
 --- a/definitions/prepopulated_engines.json
 +++ b/definitions/prepopulated_engines.json
 @@ -920,7 +920,7 @@
        "favicon_url": "https://yastatic.net/s3/web4static/_/v2/v9YNE_BX0evwMHbDyd0NZv8ReK0.png",
-       "base_builtin_resource_id": "IDR_SEARCH_ENGINE_YANDEX",
+       "base_builtin_resource_id": "SEARCH_ENGINE_YANDEX",
        "logo_url": "https://storage.ape.yandex.net/get/browser/Doodles/chrome_ru/logo.png",
 -      "search_url": "https://yandex.by/{yandex:searchPath}?text={searchTerms}",
 +      "search_url": "https://yandex.by/{yandex:searchPath}?text={searchTerms}&from=cr_gost&{yandex:referralID}",
@@ -22,7 +22,7 @@ index 931ed5f..591d95e 100644
        "image_url_post_params": "upfile={google:imageThumbnail},original_width={google:imageOriginalWidth},original_height={google:imageOriginalHeight},prg=1",
 @@ -935,7 +935,7 @@
        "favicon_url": "https://yastatic.net/s3/web4static/_/v2/v9YNE_BX0evwMHbDyd0NZv8ReK0.png",
-       "base_builtin_resource_id": "IDR_SEARCH_ENGINE_YANDEX",
+       "base_builtin_resource_id": "SEARCH_ENGINE_YANDEX",
        "logo_url": "https://storage.ape.yandex.net/get/browser/Doodles/chrome_com/logo.png",
 -      "search_url": "https://yandex.com/{yandex:searchPath}?text={searchTerms}",
 +      "search_url": "https://yandex.com/{yandex:searchPath}?text={searchTerms}&from=cr_gost&{yandex:referralID}",
@@ -31,7 +31,7 @@ index 931ed5f..591d95e 100644
        "image_url_post_params": "upfile={google:imageThumbnail},original_width={google:imageOriginalWidth},original_height={google:imageOriginalHeight},prg=1",
 @@ -961,7 +961,7 @@
        "favicon_url": "https://yastatic.net/lego/_/pDu9OWAQKB0s2J9IojKpiS_Eho.ico",
-       "base_builtin_resource_id": "IDR_SEARCH_ENGINE_YANDEX",
+       "base_builtin_resource_id": "SEARCH_ENGINE_YANDEX",
        "logo_url": "https://storage.ape.yandex.net/get/browser/Doodles/chrome_kz/logo.png",
 -      "search_url": "https://yandex.kz/{yandex:searchPath}?text={searchTerms}",
 +      "search_url": "https://yandex.kz/{yandex:searchPath}?text={searchTerms}&from=cr_gost&{yandex:referralID}",
@@ -40,7 +40,7 @@ index 931ed5f..591d95e 100644
        "image_url_post_params": "upfile={google:imageThumbnail},original_width={google:imageOriginalWidth},original_height={google:imageOriginalHeight},prg=1",
 @@ -976,7 +976,7 @@
        "favicon_url": "https://yastatic.net/lego/_/pDu9OWAQKB0s2J9IojKpiS_Eho.ico",
-       "base_builtin_resource_id": "IDR_SEARCH_ENGINE_YANDEX",
+       "base_builtin_resource_id": "SEARCH_ENGINE_YANDEX",
        "logo_url": "https://storage.ape.yandex.net/get/browser/Doodles/chrome_ru/logo.png",
 -      "search_url": "https://yandex.ru/{yandex:searchPath}?text={searchTerms}&{yandex:referralID}",
 +      "search_url": "https://yandex.ru/{yandex:searchPath}?text={searchTerms}&from=cr_gost&{yandex:referralID}",
@@ -49,7 +49,7 @@ index 931ed5f..591d95e 100644
        "image_url_post_params": "upfile={google:imageThumbnail},original_width={google:imageOriginalWidth},original_height={google:imageOriginalHeight},prg=1",
 @@ -991,7 +991,7 @@
        "favicon_url": "https://yastatic.net/lego/_/rBTjd6UOPk5913OSn5ZQVYMTQWQ.ico",
-       "base_builtin_resource_id": "IDR_SEARCH_ENGINE_YANDEX",
+       "base_builtin_resource_id": "SEARCH_ENGINE_YANDEX",
        "logo_url": "https://storage.ape.yandex.net/get/browser/Doodles/chrome_tr/logo.png",
 -      "search_url": "https://www.yandex.com.tr/{yandex:searchPath}?text={searchTerms}",
 +      "search_url": "https://www.yandex.com.tr/{yandex:searchPath}?text={searchTerms}&from=cr_gost&{yandex:referralID}",
