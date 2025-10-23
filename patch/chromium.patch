@@ -1,6 +1,6 @@
-From a1948b6aeb33d82970d078ad08346af317bd13a4 Mon Sep 17 00:00:00 2001
+From 7f2e3126801ae183d9b859a9d1bc74995c6fb275 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
-Date: Thu, 2 Oct 2025 13:48:04 +0300
+Date: Thu, 23 Oct 2025 15:48:13 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
@@ -51,7 +51,7 @@ Subject: [PATCH] chromium GOSTSSL
  net/ssl/client_cert_store_win.cc              |  71 ++++++
  net/ssl/openssl_ssl_util.cc                   |   4 +
  net/ssl/ssl_cipher_suite_names.cc             |  69 ++++++
- net/ssl/ssl_config_service.h                  |   2 +-
+ net/ssl/ssl_config_service.cc                 |   2 +-
  net/ssl/ssl_platform_key_util.cc              |  22 ++
  net/ssl/ssl_platform_key_util.h               |   7 +
  sandbox/policy/features.cc                    |   6 +-
@@ -61,14 +61,14 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.cc  |   8 +
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.gn                |   1 +
- .../cr_components/searchbox/searchbox.html    |   7 +
- 58 files changed, 957 insertions(+), 52 deletions(-)
+ .../cr_components/searchbox/searchbox.ts      |   8 +-
+ 58 files changed, 954 insertions(+), 56 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
-index 9fd2e83b2a7bc..69d2a5ce56ca7 100644
+index 0753724487493..c78afd4e7f1cf 100644
 --- a/chrome/BUILD.gn
 +++ b/chrome/BUILD.gn
-@@ -1509,7 +1509,7 @@ group("extra_resources") {
+@@ -1513,7 +1513,7 @@ group("extra_resources") {
    ]
  }
  
@@ -77,7 +77,7 @@ index 9fd2e83b2a7bc..69d2a5ce56ca7 100644
    if (!is_mac) {
      _preinstalled_apps_target_type = "copy"
    } else {
-@@ -1526,6 +1526,10 @@ if (is_chrome_branded && !is_android) {
+@@ -1530,6 +1530,10 @@ if (is_chrome_branded && !is_android) {
      }
  
      sources = [ "browser/resources/default_apps/external_extensions.json" ]
@@ -88,7 +88,7 @@ index 9fd2e83b2a7bc..69d2a5ce56ca7 100644
  
      if (!is_mac) {
        outputs = [ "$root_out_dir/default_apps/{{source_file_part}}" ]
-@@ -1553,7 +1557,7 @@ if (!is_android) {
+@@ -1557,7 +1561,7 @@ if (!is_android) {
        deps = [ ":resource_allowlist" ]
      }
  
@@ -116,10 +116,10 @@ index 79bf119fba775..2350f4b1d19e9 100644
  </dict>
  </plist>
 diff --git a/chrome/app/generated_resources.grd b/chrome/app/generated_resources.grd
-index e6ee19f528b15..7d61e03a5cf49 100644
+index 873f67b36de4d..34cf3b4685471 100644
 --- a/chrome/app/generated_resources.grd
 +++ b/chrome/app/generated_resources.grd
-@@ -7591,10 +7591,8 @@ Keep your key file in a safe place. You will need it to create new versions of y
+@@ -7557,10 +7557,8 @@ Keep your key file in a safe place. You will need it to create new versions of y
  
        <!-- NTP -->
        <message name="IDS_GOOGLE_SEARCH_BOX_EMPTY_HINT_MD" desc="The text displayed in the fakebox (on the New Tab page) when it is empty, Google is the default search engine, and the Material Design UI is enabled.">
@@ -131,10 +131,10 @@ index e6ee19f528b15..7d61e03a5cf49 100644
        <message name="IDS_GOOGLE_SEARCH_BOX_EMPTY_HINT_MULTIMODAL" desc="The text displayed in the multimodal searchbox when it is empty. It is meant to invite the user to add a text query to the existing image query in order to issue a 'multimodal' (image + text) query.">
          Add to your search
 diff --git a/chrome/app/resources/generated_resources_ru.xtb b/chrome/app/resources/generated_resources_ru.xtb
-index cf360189e0f2b..a315933440e09 100644
+index 71380e7b57e65..629296b0e82ce 100644
 --- a/chrome/app/resources/generated_resources_ru.xtb
 +++ b/chrome/app/resources/generated_resources_ru.xtb
-@@ -6017,7 +6017,7 @@
+@@ -6033,7 +6033,7 @@
  <translation id="5153234146675181447">Удаление телефона</translation>
  <translation id="5153907427821264830"><ph name="STATUS" /> • <ph name="MESSAGE" /></translation>
  <translation id="5154108062446123722"><ph name="PRINTING_DESTINATION" /> – дополнительные настройки</translation>
@@ -225,10 +225,10 @@ index 436bc47cadcb1..3c922aaefade9 100644
  void ReportIsSupportedOutcome(KeyCredentialManagerAvailability availability) {
    base::UmaHistogramEnumeration(
 diff --git a/chrome/browser/resources/new_tab_page/app.ts b/chrome/browser/resources/new_tab_page/app.ts
-index c6b24d7eb9b49..c5b556a50ab00 100644
+index 84c27c8cd2d63..45e38129ad768 100644
 --- a/chrome/browser/resources/new_tab_page/app.ts
 +++ b/chrome/browser/resources/new_tab_page/app.ts
-@@ -302,15 +302,15 @@ export class AppElement extends AppElementBase {
+@@ -327,15 +327,15 @@ export class AppElement extends AppElementBase {
    protected accessor logoEnabled_: boolean =
        loadTimeData.getBoolean('logoEnabled');
    protected accessor oneGoogleBarEnabled_: boolean =
@@ -248,8 +248,8 @@ index c6b24d7eb9b49..c5b556a50ab00 100644
    protected accessor browserPromoLimit_: number =
        loadTimeData.getInteger('browserPromoLimit');
    protected accessor browserPromoCompletedLimit_: number =
-@@ -319,7 +319,7 @@ export class AppElement extends AppElementBase {
-   private accessor modulesLoaded_: number = MODULE_LOAD_IN_PROGRESS;
+@@ -346,7 +346,7 @@ export class AppElement extends AppElementBase {
+       ModuleLoadStatus.MODULE_LOAD_IN_PROGRESS;
    protected accessor modulesShownToUser: boolean = false;
    protected accessor microsoftModuleEnabled_: boolean =
 -      loadTimeData.getBoolean('microsoftModuleEnabled');
@@ -294,7 +294,7 @@ index ac93b867d21c4..00ac8c1ff201a 100644
  
    override connectedCallback() {
 diff --git a/chrome/browser/search/search.cc b/chrome/browser/search/search.cc
-index cf0b8c4656e61..a0dbcc62f2309 100644
+index 86564e6286685..c15b7d59e3454 100644
 --- a/chrome/browser/search/search.cc
 +++ b/chrome/browser/search/search.cc
 @@ -174,6 +174,8 @@ struct NewTabURLDetails {
@@ -320,11 +320,11 @@ index bfae36964fe66..88c9bda5e216e 100644
  }
  
 diff --git a/chrome/browser/ui/startup/startup_browser_creator.cc b/chrome/browser/ui/startup/startup_browser_creator.cc
-index 2a10728ee12e6..f664f11747ee2 100644
+index 6ff41e1296678..8e9d00bf1f390 100644
 --- a/chrome/browser/ui/startup/startup_browser_creator.cc
 +++ b/chrome/browser/ui/startup/startup_browser_creator.cc
-@@ -144,6 +144,17 @@
- #include "chrome/browser/web_applications/isolated_web_apps/isolated_web_app_installation_manager.h"
+@@ -145,6 +145,17 @@
+ #include "chrome/browser/web_applications/isolated_web_apps/install/isolated_web_app_installation_manager.h"
  #endif
  
 +#ifndef NO_GOSTSSL
@@ -341,7 +341,7 @@ index 2a10728ee12e6..f664f11747ee2 100644
  using content::BrowserThread;
  using content::ChildProcessSecurityPolicy;
  
-@@ -720,6 +731,170 @@ void StartupBrowserCreator::LaunchBrowser(
+@@ -721,6 +732,170 @@ void StartupBrowserCreator::LaunchBrowser(
    profile = GetPrivateProfileIfRequested(
        command_line, {profile, StartupProfileMode::kBrowserWindow});
  
@@ -512,7 +512,7 @@ index 2a10728ee12e6..f664f11747ee2 100644
    if (!IsSilentLaunchEnabled(command_line, profile)) {
  #if BUILDFLAG(ENABLE_DICE_SUPPORT)
      auto* fre_service = FirstRunServiceFactory::GetForBrowserContext(profile);
-@@ -941,12 +1116,12 @@ void StartupBrowserCreator::ClearLaunchedProfilesForTesting() {
+@@ -942,12 +1117,12 @@ void StartupBrowserCreator::ClearLaunchedProfilesForTesting() {
  // static
  void StartupBrowserCreator::RegisterLocalStatePrefs(
      PrefRegistrySimple* registry) {
@@ -541,7 +541,7 @@ index f837d8763eb59..b30a47010a7aa 100644
    if (chrome::GetChannel() == version_info::Channel::STABLE) {
      return false;
 diff --git a/chrome/browser/ui/views/certificate_selector.cc b/chrome/browser/ui/views/certificate_selector.cc
-index 7505c2a3fce87..2246eaf21a164 100644
+index b24b673375533..e63cd38a23359 100644
 --- a/chrome/browser/ui/views/certificate_selector.cc
 +++ b/chrome/browser/ui/views/certificate_selector.cc
 @@ -77,8 +77,8 @@ bool UseGlicDevFlow(content::WebContents* contents) {
@@ -563,9 +563,9 @@ index 7505c2a3fce87..2246eaf21a164 100644
    };
    std::vector<Row> rows_;
  };
-@@ -118,6 +119,15 @@ CertificateSelector::CertificateTableModel::CertificateTableModel(
-       row.serial = base::UTF8ToUTF16(base::HexEncode(
-           cert->serial_number().data(), cert->serial_number().size()));
+@@ -117,6 +118,15 @@ CertificateSelector::CertificateTableModel::CertificateTableModel(
+     if (cert->serial_number().size() < std::numeric_limits<size_t>::max() / 2) {
+       row.serial = base::UTF8ToUTF16(base::HexEncode(cert->serial_number()));
      }
 +    base::Time::Exploded start_exploded, expiry_exploded;
 +    cert->valid_start().UTCExplode(&start_exploded);
@@ -579,7 +579,7 @@ index 7505c2a3fce87..2246eaf21a164 100644
      rows_.push_back(row);
    }
  }
-@@ -141,6 +151,8 @@ std::u16string CertificateSelector::CertificateTableModel::GetText(
+@@ -140,6 +150,8 @@ std::u16string CertificateSelector::CertificateTableModel::GetText(
        return row.provider;
      case IDS_CERT_SELECTOR_SERIAL_COLUMN:
        return row.serial;
@@ -588,7 +588,7 @@ index 7505c2a3fce87..2246eaf21a164 100644
      default:
        NOTREACHED();
    }
-@@ -280,14 +292,14 @@ void CertificateSelector::InitWithText(
+@@ -279,14 +291,14 @@ void CertificateSelector::InitWithText(
  
    std::vector<ui::TableColumn> columns;
    columns.emplace_back(IDS_CERT_SELECTOR_SUBJECT_COLUMN, ui::TableColumn::LEFT,
@@ -727,10 +727,10 @@ index 0f331c3e0f2a3..87626fc3e119b 100644
  
  #
 diff --git a/chrome/installer/setup/install_worker.cc b/chrome/installer/setup/install_worker.cc
-index e92470fe15e08..bbb1b0403834b 100644
+index 3393a297bb712..e826a39ff5ec8 100644
 --- a/chrome/installer/setup/install_worker.cc
 +++ b/chrome/installer/setup/install_worker.cc
-@@ -297,6 +297,7 @@ void AddChromeWorkItems(const InstallParams& install_params,
+@@ -272,6 +272,7 @@ void AddChromeWorkItems(const InstallParams& install_params,
        ->set_best_effort(true);
  }
  
@@ -738,7 +738,7 @@ index e92470fe15e08..bbb1b0403834b 100644
  // Adds work items to register the Elevation Service with Windows. Only for
  // system level installs.
  void AddElevationServiceWorkItems(const base::FilePath& elevation_service_path,
-@@ -320,6 +321,7 @@ void AddElevationServiceWorkItems(const base::FilePath& elevation_service_path,
+@@ -295,6 +296,7 @@ void AddElevationServiceWorkItems(const base::FilePath& elevation_service_path,
    install_service_work_item->set_best_effort(true);
    list->AddWorkItem(install_service_work_item);
  }
@@ -746,7 +746,7 @@ index e92470fe15e08..bbb1b0403834b 100644
  
  // Adds work items to register or unregister the elevated tracing service.
  void AddTracingServiceWorkItems(const InstallationState& original_state,
-@@ -1016,10 +1018,12 @@ void AddInstallWorkItems(const InstallParams& install_params,
+@@ -991,10 +993,12 @@ void AddInstallWorkItems(const InstallParams& install_params,
        installer_state.root_key(),
        GetNotificationHelperPath(target_path, new_version), install_list);
  
@@ -773,7 +773,7 @@ index 8c44d2265b3d3..abb330fdab7a3 100644
                        os_info.c_str(), product.c_str());
    return user_agent;
 diff --git a/components/search_engines/keyword_table.cc b/components/search_engines/keyword_table.cc
-index 92edd005302c0..58cc775ad905f 100644
+index 445dd1a9019f1..8144cbd14734b 100644
 --- a/components/search_engines/keyword_table.cc
 +++ b/components/search_engines/keyword_table.cc
 @@ -568,7 +568,9 @@ std::optional<TemplateURLData> KeywordTable::GetKeywordDataFromStatement(
@@ -849,7 +849,7 @@ index a2e3713ded520..803aabd1ac6a3 100644
      if (string_value) {
        contextual_search_url = *string_value;
 diff --git a/components/search_engines/template_url_prepopulate_data.cc b/components/search_engines/template_url_prepopulate_data.cc
-index f73bf881ac259..5fce49b58ac07 100644
+index b35f076b335d3..67313f6a25484 100644
 --- a/components/search_engines/template_url_prepopulate_data.cc
 +++ b/components/search_engines/template_url_prepopulate_data.cc
 @@ -134,8 +134,14 @@ std::vector<std::unique_ptr<TemplateURLData>> GetPrepopulatedEngines(
@@ -869,7 +869,7 @@ index f73bf881ac259..5fce49b58ac07 100644
  }
  
  std::unique_ptr<TemplateURLData> GetPrepopulatedEngine(
-@@ -235,7 +241,7 @@ std::unique_ptr<TemplateURLData> GetPrepopulatedFallbackSearch(
+@@ -261,7 +267,7 @@ std::unique_ptr<TemplateURLData> GetPrepopulatedFallbackSearch(
      std::vector<const TemplateURLPrepopulateData::PrepopulatedEngine*>
          regional_prepopulated_engines) {
    return FindPrepopulatedEngineInternal(prefs, regional_prepopulated_engines,
@@ -896,10 +896,10 @@ index ab48c8b88a7cf..f4582d0105ad6 100644
        network::switches::kForceEffectiveConnectionType,
        network::switches::kHostResolverRules,
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
-index 946811361c992..162873ae82e62 100644
+index 4c53df5d97ea9..51f76f549a2bf 100644
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
-@@ -173,6 +173,10 @@
+@@ -174,6 +174,10 @@
  #include "services/service_manager/public/cpp/interface_provider.h"
  #endif  // BUILDFLAG(IS_ANDROID)
  
@@ -910,7 +910,7 @@ index 946811361c992..162873ae82e62 100644
  #if BUILDFLAG(ENABLE_LIBRARY_CDMS)
  #include "content/browser/media/cdm_storage_common.h"
  #include "content/browser/media/cdm_storage_manager.h"
-@@ -605,6 +609,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
+@@ -606,6 +610,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
        scoped_refptr<net::X509Certificate> cert,
        scoped_refptr<net::SSLPrivateKey> private_key) override {
      DCHECK_CURRENTLY_ON(BrowserThread::UI);
@@ -939,7 +939,7 @@ index e9840288eca3a..f4a09445920fe 100644
  // indicate a fatal error.  Typically this error will be generated as a
  // notification to wait for some external notification that the IO operation
 diff --git a/net/cert/cert_verify_proc.cc b/net/cert/cert_verify_proc.cc
-index c7002940e197e..2d90e084c587a 100644
+index cb3302d5cd552..1e3eac7d6721e 100644
 --- a/net/cert/cert_verify_proc.cc
 +++ b/net/cert/cert_verify_proc.cc
 @@ -438,6 +438,12 @@ CertVerifyProc::CertVerifyProc(scoped_refptr<CRLSet> crl_set)
@@ -1039,10 +1039,10 @@ index c6c544bec555a..11c9d941f217e 100644
    std::string state_or_province_name;
    std::string country_name;
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index 195a25486249c..b624dc77a64fe 100644
+index c5566af010a05..b90a7fc1dd913 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
-@@ -2052,6 +2052,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
+@@ -2066,6 +2066,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
        return OK;
      }
    }
@@ -1116,7 +1116,7 @@ index 8ed97016ed76e..1579b98edba18 100644
    void NotifySSLConfigChanged(SSLConfigChangeType change_type);
    void NotifySSLConfigForServersChanged(
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 6d472298deb3b..ca500fbf7afed 100644
+index 9cb2c324e9df1..af1b793076d0d 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
 @@ -14,6 +14,7 @@
@@ -1285,7 +1285,7 @@ index 6d472298deb3b..ca500fbf7afed 100644
    CHECK(cipher);
    // Historically, the "group" was known as "curve".
    ssl_info->key_exchange_group = SSL_get_curve_id(ssl_.get());
-@@ -886,6 +1017,9 @@ int SSLClientSocketImpl::DoHandshake() {
+@@ -900,6 +1031,9 @@ int SSLClientSocketImpl::DoHandshake() {
        return ERR_IO_PENDING;
      }
      if (ssl_error == SSL_ERROR_WANT_CERTIFICATE_VERIFY) {
@@ -1295,7 +1295,7 @@ index 6d472298deb3b..ca500fbf7afed 100644
        DCHECK(cert_verifier_request_);
        next_handshake_state_ = STATE_HANDSHAKE;
        return ERR_IO_PENDING;
-@@ -1059,6 +1193,62 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
+@@ -1073,6 +1207,62 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
      return HandleVerifyResult();
    }
  
@@ -1358,7 +1358,7 @@ index 6d472298deb3b..ca500fbf7afed 100644
    std::string_view ech_name_override = GetECHNameOverride();
    if (!ech_name_override.empty()) {
      // If ECH was offered but not negotiated, BoringSSL will ask to verify a
-@@ -1513,6 +1703,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1527,6 +1717,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
@@ -1508,7 +1508,7 @@ index c92d91d72dd8f..56958a7e9d18c 100644
  }
  
 diff --git a/net/ssl/client_cert_store_nss.cc b/net/ssl/client_cert_store_nss.cc
-index 7bfbd6f5acf06..bba6ec16756df 100644
+index 049a61fefb810..9d887b50761ee 100644
 --- a/net/ssl/client_cert_store_nss.cc
 +++ b/net/ssl/client_cert_store_nss.cc
 @@ -13,6 +13,7 @@
@@ -1519,8 +1519,8 @@ index 7bfbd6f5acf06..bba6ec16756df 100644
  #include "base/functional/bind.h"
  #include "base/functional/callback_helpers.h"
  #include "base/location.h"
-@@ -185,6 +186,13 @@ void ClientCertStoreNSS::FilterCertsOnWorkerThread(
-   }
+@@ -133,6 +134,13 @@ void ClientCertStoreNSS::FilterCertsOnWorkerThread(
+   FilterMatchingClientCertIdentities(identities, request, sources);
  }
  
 +#ifndef NO_GOSTSSL
@@ -1533,7 +1533,7 @@ index 7bfbd6f5acf06..bba6ec16756df 100644
  // static
  ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
      scoped_refptr<crypto::CryptoModuleBlockingPasswordDelegate>
-@@ -200,6 +208,70 @@ ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
+@@ -148,6 +156,70 @@ ClientCertIdentityList ClientCertStoreNSS::GetAndFilterCertsOnWorkerThread(
    GetPlatformCertsOnWorkerThread(std::move(password_delegate), CertFilter(),
                                   &selected_identities);
    FilterCertsOnWorkerThread(&selected_identities, *request);
@@ -1802,19 +1802,19 @@ index c97eaf3c238ca..b909eb7d5e8e2 100644
    obsolete_ssl |= ObsoleteSSLStatusForCipherSuite(cipher_suite);
  
    obsolete_ssl |= ObsoleteSSLStatusForSignature(signature_algorithm);
-diff --git a/net/ssl/ssl_config_service.h b/net/ssl/ssl_config_service.h
-index 14f90c7525f93..711c28b204dd0 100644
---- a/net/ssl/ssl_config_service.h
-+++ b/net/ssl/ssl_config_service.h
-@@ -44,7 +44,7 @@ struct NET_EXPORT SSLContextConfig {
-   std::vector<uint16_t> disabled_cipher_suites;
- 
-   // Controls whether post-quantum key agreement in TLS connections is allowed.
--  bool post_quantum_key_agreement_enabled = true;
-+  bool post_quantum_key_agreement_enabled = false;
- 
-   // Controls whether ECH is enabled.
-   bool ech_enabled = true;
+diff --git a/net/ssl/ssl_config_service.cc b/net/ssl/ssl_config_service.cc
+index 5ea21db9dac36..a656f91922202 100644
+--- a/net/ssl/ssl_config_service.cc
++++ b/net/ssl/ssl_config_service.cc
+@@ -21,7 +21,7 @@ namespace {
+ // group (X25519MLKEM768) to BoringSSL's kDefaultSupportedGroupIds and
+ // evaluating BoringSSL's default logic for selecting key shares.
+ const SSLNamedGroupInfo kDefaultSSLSupportedGroups[] = {
+-    {.group_id = SSL_GROUP_X25519_MLKEM768, .send_key_share = true},
++//    {.group_id = SSL_GROUP_X25519_MLKEM768, .send_key_share = true},
+     {.group_id = SSL_GROUP_X25519, .send_key_share = true},
+     {.group_id = SSL_GROUP_SECP256R1, .send_key_share = false},
+     {.group_id = SSL_GROUP_SECP384R1, .send_key_share = false},
 diff --git a/net/ssl/ssl_platform_key_util.cc b/net/ssl/ssl_platform_key_util.cc
 index 987a2254cf618..04da6ab681c95 100644
 --- a/net/ssl/ssl_platform_key_util.cc
@@ -1874,36 +1874,34 @@ index 2b2634c68884a..3884282913fb2 100644
  NET_EXPORT_PRIVATE bssl::UniquePtr<EVP_PKEY> GetClientCertPublicKey(
      const X509Certificate* certificate);
 diff --git a/sandbox/policy/features.cc b/sandbox/policy/features.cc
-index 4786faa56aa97..215bac984e7f7 100644
+index fdf2079400e1e..649add780c957 100644
 --- a/sandbox/policy/features.cc
 +++ b/sandbox/policy/features.cc
-@@ -29,7 +29,7 @@ BASE_FEATURE(kNetworkServiceSandbox,
+@@ -25,13 +25,13 @@ BASE_FEATURE(kNetworkServiceSandbox, base::FEATURE_DISABLED_BY_DEFAULT);
+ // If the network service sandbox is enabled and |kNetworkServiceSyscallFilter|
+ // is disabled, a seccomp-BPF filter will still be applied but it will not
  // disallow any syscalls.
- BASE_FEATURE(kNetworkServiceSyscallFilter,
-              "NetworkServiceSyscallFilter",
--             base::FEATURE_ENABLED_BY_DEFAULT);
-+             base::FEATURE_DISABLED_BY_DEFAULT);
+-BASE_FEATURE(kNetworkServiceSyscallFilter, base::FEATURE_ENABLED_BY_DEFAULT);
++BASE_FEATURE(kNetworkServiceSyscallFilter, base::FEATURE_DISABLED_BY_DEFAULT);
  // Enables a fine-grained file path allowlist for the network service.
  // Only has an effect if IsNetworkSandboxEnabled() returns true.
  // If the network service sandbox is enabled and |kNetworkServiceFileAllowlist|
-@@ -37,7 +37,7 @@ BASE_FEATURE(kNetworkServiceSyscallFilter,
+ // is disabled, a file path allowlist will still be applied, but the policy will
  // allow everything.
- BASE_FEATURE(kNetworkServiceFileAllowlist,
-              "NetworkServiceFileAllowlist",
--             base::FEATURE_ENABLED_BY_DEFAULT);
-+             base::FEATURE_DISABLED_BY_DEFAULT);
+-BASE_FEATURE(kNetworkServiceFileAllowlist, base::FEATURE_ENABLED_BY_DEFAULT);
++BASE_FEATURE(kNetworkServiceFileAllowlist, base::FEATURE_DISABLED_BY_DEFAULT);
  #endif  // BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
  #endif  // !BUILDFLAG(IS_MAC) && !BUILDFLAG(IS_FUCHSIA)
  
-@@ -52,7 +52,7 @@ BASE_FEATURE(kWinSboxDisableExtensionPoints,
+@@ -44,7 +44,7 @@ BASE_FEATURE(kWinSboxDisableExtensionPoints,
+ 
+ // Enables Print Compositor Low Privilege AppContainer. Note, this might be
  // overridden and disabled by policy.
- BASE_FEATURE(kPrintCompositorLPAC,
-              "PrintCompositorLPAC",
--             base::FEATURE_DISABLED_BY_DEFAULT);
-+             base::FEATURE_DISABLED_BY_DEFAULT); // DISABLED
+-BASE_FEATURE(kPrintCompositorLPAC, base::FEATURE_DISABLED_BY_DEFAULT);
++BASE_FEATURE(kPrintCompositorLPAC, base::FEATURE_DISABLED_BY_DEFAULT); // DISABLED
  
  // Enables Renderer AppContainer
- BASE_FEATURE(kRendererAppContainer,
+ BASE_FEATURE(kRendererAppContainer, base::FEATURE_DISABLED_BY_DEFAULT);
 diff --git a/sandbox/policy/mac/common.sb b/sandbox/policy/mac/common.sb
 index 9726d7a49ac59..25ebb6e6e2a63 100644
 --- a/sandbox/policy/mac/common.sb
@@ -1969,11 +1967,11 @@ index 39282ab6be12d..524a4a3e9b12e 100644
  
    // Enable image load policies.
 diff --git a/services/network/public/mojom/ssl_config.mojom b/services/network/public/mojom/ssl_config.mojom
-index 746a317fb7d61..110d74b27ef3f 100644
+index 781f80ede2e0a..8dc48b8c43709 100644
 --- a/services/network/public/mojom/ssl_config.mojom
 +++ b/services/network/public/mojom/ssl_config.mojom
-@@ -38,7 +38,7 @@ struct SSLConfig {
-   array<string> client_cert_pooling_policy;
+@@ -78,7 +78,7 @@ struct SSLConfig {
+   SSLNamedGroupsPreset named_groups_preset = kDefault;
  
    // Controls whether post-quantum key agreement in TLS connections is allowed.
 -  bool post_quantum_key_agreement_enabled = true;
@@ -2085,21 +2083,24 @@ index 31174ca1c7525..bccea49cc9e55 100644
    public = rebase_path(all_headers, ".", "src")
    friend = [ ":*" ]
    deps = [ "//third_party/boringssl/src/third_party/fiat:fiat_license" ]
-diff --git a/ui/webui/resources/cr_components/searchbox/searchbox.html b/ui/webui/resources/cr_components/searchbox/searchbox.html
-index 7b2291b28d8b7..dc58d812236e0 100644
---- a/ui/webui/resources/cr_components/searchbox/searchbox.html
-+++ b/ui/webui/resources/cr_components/searchbox/searchbox.html
-@@ -1,4 +1,11 @@
- <style include="cr-icons">
-+  #voiceSearchButton {
-+    visibility: hidden;
-+  }
-+  #lensSearchButton {
-+    visibility: hidden;
-+  }
-+
-   :host {
-     /* Embedders should define --cr-searchbox-min-width. */
-     --cr-searchbox-width: var(--cr-searchbox-min-width);
+diff --git a/ui/webui/resources/cr_components/searchbox/searchbox.ts b/ui/webui/resources/cr_components/searchbox/searchbox.ts
+index 1c26042d13004..2a335ae69e13d 100644
+--- a/ui/webui/resources/cr_components/searchbox/searchbox.ts
++++ b/ui/webui/resources/cr_components/searchbox/searchbox.ts
+@@ -421,10 +421,10 @@ export class SearchboxElement extends SearchboxElementBase {
+   private accessor pastedInInput_: boolean = false;
+   protected accessor searchboxIcon_: string =
+       loadTimeData.getString('searchboxDefaultIcon');
+-  protected accessor searchboxVoiceSearchEnabled_: boolean =
+-      loadTimeData.getBoolean('searchboxVoiceSearch');
+-  protected accessor searchboxLensSearchEnabled_: boolean =
+-      loadTimeData.getBoolean('searchboxLensSearch');
++  protected accessor searchboxVoiceSearchEnabled_: boolean = false
++      //loadTimeData.getBoolean('searchboxVoiceSearch');
++  protected accessor searchboxLensSearchEnabled_: boolean = false
++      //loadTimeData.getBoolean('searchboxLensSearch');
+   protected accessor result_: AutocompleteResult|null = null;
+   protected accessor selectedMatch_: AutocompleteMatch|null = null;
+   protected accessor selectedMatchIndex_: number = -1;
 -- 
 
