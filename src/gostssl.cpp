@@ -279,7 +279,7 @@ typedef enum
 }
 WORKER_DB_ACTION;
 
-int gostssl_cert_cb( GostSSL_Worker * w );
+static int gostssl_cert_cb( GostSSL_Worker * w );
 
 static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, const char * cachestring = NULL, const char * cert = NULL, int size = 0 )
 {
