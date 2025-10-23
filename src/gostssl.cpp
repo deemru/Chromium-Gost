@@ -47,7 +47,7 @@ DLLEXPORT void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t ***
 DLLEXPORT void gostssl_isgostcerthook( void * cert, int size, int * is_gost );
 DLLEXPORT void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size );
 DLLEXPORT int gostssl_is_msspi( SSL * s );
-DLLEXPORT char gostssl_certificate_info( const char * cert, size_t size, const char ** info, size_t * len );
+DLLEXPORT int gostssl_certificate_info( const char * cert, size_t size, const char ** info, size_t * len );
 DLLEXPORT void gostssl_commandline( const char * ciphers, const char * tlsmode, const char * issuersfilter );
 
 }
@@ -179,7 +179,10 @@ struct GostSSL_Worker
         s = NULL;
         host_status = GOSTSSL_HOST_AUTO;
         tlsmode = 2;
+        set_certs = false;
+        verified = false;
         connected = false;
+        finalized = false;
     }
 
     ~GostSSL_Worker()
@@ -194,8 +197,12 @@ struct GostSSL_Worker
     std::string host_string;
     std::vector<char> boring_hello;
     std::vector<char> server_proxy;
+    std::vector<char> client_cert;
     int tlsmode;
+    bool set_certs;
+    bool verified;
     bool connected;
+    bool finalized;
 };
 
 static int gostssl_read_cb( GostSSL_Worker * w, void * buf, int len )
@@ -218,10 +225,335 @@ static int gostssl_write_cb( GostSSL_Worker * w, const void * buf, int len )
     return boring_BIO_write( w->s, buf, len );
 }
 
+typedef std::map< void *, GostSSL_Worker * > WORKERS_DB;
+typedef std::unordered_map< std::string, GOSTSSL_HOST_STATUS > HOST_STATUSES_DB;
+typedef std::pair< std::string, GOSTSSL_HOST_STATUS > HOST_STATUSES_DB_PAIR;
+
+static WORKERS_DB & workers_db = *( new WORKERS_DB() );
+static HOST_STATUSES_DB & host_statuses_db = *( new HOST_STATUSES_DB() );
+static std::recursive_mutex & gmutex = *( new std::recursive_mutex() );
+
+static void host_status_set( std::string & site, GOSTSSL_HOST_STATUS status )
+{
+    std::unique_lock<std::recursive_mutex> lck( gmutex );
+
+    HOST_STATUSES_DB::iterator lb = host_statuses_db.find( site );
+
+    if( lb != host_statuses_db.end() )
+    {
+        if( lb->second != GOSTSSL_HOST_NO && lb->second != GOSTSSL_HOST_YES )
+            lb->second = status;
+    }
+    else
+    {
+        host_statuses_db.insert( lb, HOST_STATUSES_DB_PAIR( site, status ) );
+    }
+}
+
+static GOSTSSL_HOST_STATUS host_status_first( std::string & site )
+{
+    (void)site;
+    return GOSTSSL_HOST_AUTO;
+}
+
+static GOSTSSL_HOST_STATUS host_status_get( std::string & site )
+{
+    if( host_statuses_db.size() )
+    {
+        std::unique_lock<std::recursive_mutex> lck( gmutex );
+
+        HOST_STATUSES_DB::iterator lb = host_statuses_db.find( site );
+
+        if( lb != host_statuses_db.end() )
+            return lb->second;
+    }
+
+    return host_status_first( site );
+}
+
+typedef enum
+{
+    WDB_SEARCH,
+    WDB_NEW,
+    WDB_FREE,
+}
+WORKER_DB_ACTION;
+
+int gostssl_cert_cb( GostSSL_Worker * w );
+
+static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, const char * cachestring = NULL, const char * cert = NULL, int size = 0 )
+{
+    GostSSL_Worker * w = NULL;
+
+    if( action == WDB_NEW )
+    {
+        w = new GostSSL_Worker();
+        w->h = msspi_open( w, (msspi_read_cb)gostssl_read_cb, (msspi_write_cb)gostssl_write_cb );
+
+        if( !w->h )
+        {
+            delete w;
+            return NULL;
+        }
+
+        w->host_string = s->hostname.get() ? s->hostname.get() : "*";
+        w->host_string += ":";
+        w->host_string += cachestring ? cachestring : "*";
+        w->host_status = host_status_get( w->host_string );
+
+        int tls_flags = gostssl_init();
+        if( tls_flags && tls_flags != TLS_FLAG_V1_0 )
+        {
+            int min = TLS1_3_VERSION;
+            if( tls_flags & TLS_FLAG_V1_0 )
+                min = TLS1_VERSION;
+            else if( tls_flags & TLS_FLAG_V1_1 )
+                min = TLS1_1_VERSION;
+            else if( tls_flags & TLS_FLAG_V1_2 )
+                min = TLS1_2_VERSION;
+
+            int max = TLS1_VERSION;
+            if( tls_flags & TLS_FLAG_V1_3 )
+                max = TLS1_3_VERSION;
+            else if( tls_flags & TLS_FLAG_V1_2 )
+                max = TLS1_2_VERSION;
+            else if( tls_flags & TLS_FLAG_V1_1 )
+                max = TLS1_1_VERSION;
+
+            msspi_set_version( w->h, min, max );
+        }
+
+        msspi_set_cert_cb( w->h, (msspi_cert_cb)gostssl_cert_cb );
+        msspi_set_cipherlist( w->h, g_ciphers.c_str() );
+        w->tlsmode = g_tlsmode;
+        if( w->tlsmode == 1 )
+            w->host_status = GOSTSSL_HOST_YES;
+        else
+        if( w->tlsmode == -1 )
+            w->host_status = GOSTSSL_HOST_NO;
+        w->s = (SSL *)s;
+
+        if( s->hostname.get() )
+            msspi_set_hostname( w->h, s->hostname.get() );
+        if( cachestring )
+            msspi_set_cachestring( w->h, cachestring );
+        if( s->config->alpn_client_proto_list.size() )
+            msspi_set_alpn( w->h, (const char *)s->config->alpn_client_proto_list.data(), s->config->alpn_client_proto_list.size() );
+        if( cert && size )
+            w->client_cert.assign( cert, cert + size );
+    }
+
+    std::unique_lock<std::recursive_mutex> lck( gmutex );
+
+    WORKERS_DB::iterator lb = workers_db.lower_bound( (void *)s );
+
+    if( lb != workers_db.end() && !( workers_db.key_comp()( (void *)s, lb->first ) ) )
+    {
+        GostSSL_Worker * w_found = lb->second;
+
+        if( action == WDB_NEW )
+        {
+            delete w_found;
+            lb->second = w;
+            return w;
+        }
+        else if( action == WDB_FREE )
+        {
+            if( w_found->host_status >= GOSTSSL_HOST_PROBING &&
+                w_found->host_status <= GOSTSSL_HOST_PROBING_END )
+            {
+                GOSTSSL_HOST_STATUS status;
+
+                if( w_found->host_status == GOSTSSL_HOST_PROBING_END )
+                    status = GOSTSSL_HOST_AUTO;
+                else
+                    status = (GOSTSSL_HOST_STATUS)( (int)w_found->host_status + 1 );
+
+                host_status_set( w_found->host_string, status );
+            }
+
+            delete w_found;
+            workers_db.erase( lb );
+            return NULL;
+        }
+
+        return w_found;
+    }
+
+    if( action == WDB_NEW )
+        workers_db.insert( lb, WORKERS_DB::value_type( (void *)s, w ) );
+
+    return w;
+}
+
 static PCCERT_CONTEXT gcert = NULL;
+
+static int gostssl_set_certs( GostSSL_Worker * w )
+{
+    if( w->set_certs )
+      return 1;
+
+    // SERVER CERTIFICATES
+    std::vector<const char *> servercerts_bufs;
+    std::vector<int> servercerts_lens;
+    size_t servercerts_count;
+    {
+        if( !msspi_get_peerchain( w->h, 0, NULL, NULL, &servercerts_count ) )
+            return 0;
+
+        servercerts_bufs.resize( servercerts_count );
+        servercerts_lens.resize( servercerts_count );
+
+        if( !msspi_get_peerchain( w->h, 0, &servercerts_bufs[0], &servercerts_lens[0], &servercerts_count ) )
+            return 0;
+    }
+
+    {
+        int ret = boring_hook_set_certs( w->s, &servercerts_bufs[0], &servercerts_lens[0], servercerts_count );
+        if( ret != 1 )
+            return ret;
+    }
+
+    host_status_set( w->host_string, GOSTSSL_HOST_YES );
+    w->host_status = GOSTSSL_HOST_YES;
+    w->set_certs = true;
+    return 1;
+}
+
+static int gostssl_verify_peer( GostSSL_Worker * w )
+{
+    if( w->verified )
+      return 1;
+
+    if( !w->set_certs )
+      return 0;
+
+    {
+        int ret = boring_hook_verify_peer(w->s);
+        if( ret != 1 )
+            return ret;
+    }
+
+    w->verified = true;
+    return 1;
+}
+
+static int msspi_to_ssl_version( DWORD dwProtocol )
+{
+    switch( dwProtocol )
+    {
+        case 0x00000301:
+        case 0x00000040 /*SP_PROT_TLS1_SERVER*/:
+        case 0x00000080 /*SP_PROT_TLS1_CLIENT*/:
+            return TLS1_VERSION;
+
+        case 0x00000302:
+        case 0x00000100 /*SP_PROT_TLS1_1_SERVER*/:
+        case 0x00000200 /*SP_PROT_TLS1_1_CLIENT*/:
+            return TLS1_1_VERSION;
+
+        case 0x00000303:
+        case 0x00000400 /*SP_PROT_TLS1_2_SERVER*/:
+        case 0x00000800 /*SP_PROT_TLS1_2_CLIENT*/:
+            return TLS1_2_VERSION;
+
+        case 0x00000304:
+        case 0x00001000 /*SP_PROT_TLS1_3_SERVER*/:
+        case 0x00002000 /*SP_PROT_TLS1_3_CLIENT*/:
+            return TLS1_3_VERSION;
+
+        default:
+            return SSL3_VERSION;
+    }
+}
+
+static int gostssl_connected( GostSSL_Worker * w )
+{
+    if( w->connected )
+      return 1;
+
+    // SERVER CERTS
+    {
+        int ret = gostssl_set_certs( w );
+        if( ret != 1 )
+            return ret;
+    }
+
+    // ALPN
+    const char * alpn;
+    size_t alpn_len;
+    {
+        alpn = msspi_get_alpn( w->h );
+
+        if( !alpn )
+            alpn = "http/1.1";
+
+        alpn_len = strlen( alpn );
+    }
+
+    // VERSION + CIPHER + GROUP_ID
+    uint16_t version;
+    uint16_t cipher_id;
+    uint16_t group_id;
+    {
+        PSecPkgContext_CipherInfo cipher_info = msspi_get_cipherinfo( w->h );
+
+        if( !cipher_info )
+            return 0;
+
+        version = (uint16_t)msspi_to_ssl_version( cipher_info->dwProtocol );
+        cipher_id = (uint16_t)cipher_info->dwCipherSuite;
+        group_id = (uint16_t)cipher_info->dwKeyType;
+    }
+
+    {
+        int ret = boring_hook_connected( w->s, alpn, alpn_len, version, cipher_id, group_id );
+        if( ret != 1 )
+            return 0;
+    }
+
+    w->connected = true;
+    return 1;
+}
+
+static int gostssl_finalized( GostSSL_Worker * w )
+{
+    if( w->finalized )
+      return 1;
+
+    {
+        int ret = gostssl_verify_peer( w );
+        if( ret != 1 )
+          return ret;
+    }
+    {
+        int ret = boring_hook_finalized( w->s );
+        if( ret != 1 )
+            return ret;
+    }
+
+    w->finalized = true;
+    return 1;
+}
 
 static int gostssl_cert_cb( GostSSL_Worker * w )
 {
+    {
+      int ret = gostssl_set_certs( w );
+      if( ret != 1 )
+        return ret;
+    }
+    {
+      int ret = gostssl_verify_peer( w );
+      if( ret != 1 )
+        return ret;
+    }
+
+    if( w->client_cert.size() )
+    {
+        msspi_set_mycert( w->h, w->client_cert.data(), w->client_cert.size() );
+    } 
+    else
     if( w->s->config->cert && w->s->config->cert->cert_cb )
     {
         if( gcert )
@@ -243,7 +575,7 @@ static int gostssl_cert_cb( GostSSL_Worker * w )
                 lens.resize( count );
 
                 if( msspi_get_issuerlist( w->h, &bufs[0], &lens[0], &count ) )
-                    boring_set_ca_names_cb( w->s, &bufs[0], &lens[0], count );
+                    boring_hook_ca_names( w->s, &bufs[0], &lens[0], count );
             }
         }
 
@@ -308,165 +640,6 @@ void gostssl_isgostcerthook( void * cert, int size, int * is_gost )
     return;
 }
 
-typedef std::map< void *, GostSSL_Worker * > WORKERS_DB;
-typedef std::unordered_map< std::string, GOSTSSL_HOST_STATUS > HOST_STATUSES_DB;
-typedef std::pair< std::string, GOSTSSL_HOST_STATUS > HOST_STATUSES_DB_PAIR;
-
-static WORKERS_DB & workers_db = *( new WORKERS_DB() );
-static HOST_STATUSES_DB & host_statuses_db = *( new HOST_STATUSES_DB() );
-static std::recursive_mutex & gmutex = *( new std::recursive_mutex() );
-
-static void host_status_set( std::string & site, GOSTSSL_HOST_STATUS status )
-{
-    std::unique_lock<std::recursive_mutex> lck( gmutex );
-
-    HOST_STATUSES_DB::iterator lb = host_statuses_db.find( site );
-
-    if( lb != host_statuses_db.end() )
-    {
-        if( lb->second != GOSTSSL_HOST_NO && lb->second != GOSTSSL_HOST_YES )
-            lb->second = status;
-    }
-    else
-    {
-        host_statuses_db.insert( lb, HOST_STATUSES_DB_PAIR( site, status ) );
-    }
-}
-
-GOSTSSL_HOST_STATUS host_status_first( std::string & site )
-{
-    (void)site;
-    return GOSTSSL_HOST_AUTO;
-}
-
-GOSTSSL_HOST_STATUS host_status_get( std::string & site )
-{
-    if( host_statuses_db.size() )
-    {
-        std::unique_lock<std::recursive_mutex> lck( gmutex );
-
-        HOST_STATUSES_DB::iterator lb = host_statuses_db.find( site );
-
-        if( lb != host_statuses_db.end() )
-            return lb->second;
-    }
-
-    return host_status_first( site );
-}
-
-typedef enum
-{
-    WDB_SEARCH,
-    WDB_NEW,
-    WDB_FREE,
-}
-WORKER_DB_ACTION;
-
-static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, const char * cachestring = NULL, const void * cert = NULL, int size = 0 )
-{
-    GostSSL_Worker * w = NULL;
-
-    if( action == WDB_NEW )
-    {
-        w = new GostSSL_Worker();
-        w->h = msspi_open( w, (msspi_read_cb)gostssl_read_cb, (msspi_write_cb)gostssl_write_cb );
-
-        if( !w->h )
-        {
-            delete w;
-            return NULL;
-        }
-
-        w->host_string = s->hostname.get() ? s->hostname.get() : "*";
-        w->host_string += ":";
-        w->host_string += cachestring ? cachestring : "*";
-        w->host_status = host_status_get( w->host_string );
-
-        int tls_flags = gostssl_init();
-        if( tls_flags && tls_flags != TLS_FLAG_V1_0 )
-        {
-            int min = TLS1_3_VERSION;
-            if( tls_flags & TLS_FLAG_V1_0 )
-                min = TLS1_VERSION;
-            else if( tls_flags & TLS_FLAG_V1_1 )
-                min = TLS1_1_VERSION;
-            else if( tls_flags & TLS_FLAG_V1_2 )
-                min = TLS1_2_VERSION;
-
-            int max = TLS1_VERSION;
-            if( tls_flags & TLS_FLAG_V1_3 )
-                max = TLS1_3_VERSION;
-            else if( tls_flags & TLS_FLAG_V1_2 )
-                max = TLS1_2_VERSION;
-            else if( tls_flags & TLS_FLAG_V1_1 )
-                max = TLS1_1_VERSION;
-
-            msspi_set_version( w->h, min, max );
-        }
-
-        msspi_set_cert_cb( w->h, (msspi_cert_cb)gostssl_cert_cb );
-        msspi_set_cipherlist( w->h, g_ciphers.c_str() );
-        w->tlsmode = g_tlsmode;
-        if( w->tlsmode == 1 )
-            w->host_status = GOSTSSL_HOST_YES;
-        else
-        if( w->tlsmode == -1 )
-            w->host_status = GOSTSSL_HOST_NO;
-        w->s = (SSL *)s;
-
-        if( s->hostname.get() )
-            msspi_set_hostname( w->h, s->hostname.get() );
-        if( cachestring )
-            msspi_set_cachestring( w->h, cachestring );
-        if( s->config->alpn_client_proto_list.size() )
-            msspi_set_alpn( w->h, (const char *)s->config->alpn_client_proto_list.data(), s->config->alpn_client_proto_list.size() );
-        if( cert && size )
-            msspi_set_mycert( w->h, (const char *)cert, size );
-    }
-
-    std::unique_lock<std::recursive_mutex> lck( gmutex );
-
-    WORKERS_DB::iterator lb = workers_db.lower_bound( (void *)s );
-
-    if( lb != workers_db.end() && !( workers_db.key_comp()( (void *)s, lb->first ) ) )
-    {
-        GostSSL_Worker * w_found = lb->second;
-
-        if( action == WDB_NEW )
-        {
-            delete w_found;
-            lb->second = w;
-            return w;
-        }
-        else if( action == WDB_FREE )
-        {
-            if( w_found->host_status >= GOSTSSL_HOST_PROBING &&
-                w_found->host_status <= GOSTSSL_HOST_PROBING_END )
-            {
-                GOSTSSL_HOST_STATUS status;
-
-                if( w_found->host_status == GOSTSSL_HOST_PROBING_END )
-                    status = GOSTSSL_HOST_AUTO;
-                else
-                    status = (GOSTSSL_HOST_STATUS)( (int)w_found->host_status + 1 );
-
-                host_status_set( w_found->host_string, status );
-            }
-
-            delete w_found;
-            workers_db.erase( lb );
-            return NULL;
-        }
-
-        return w_found;
-    }
-
-    if( action == WDB_NEW )
-        workers_db.insert( lb, WORKERS_DB::value_type( (void *)s, w ) );
-
-    return w;
-}
-
 int gostssl_tls_gost_required( SSL * s, const SSL_CIPHER * cipher )
 {
     GostSSL_Worker * w = workers_api( s, WDB_SEARCH );
@@ -518,43 +691,19 @@ void gostssl_server_proxy( SSL * s, const char * data, size_t len )
         w->server_proxy.insert( w->server_proxy.end(), data, data + len );
 }
 
-static int msspi_to_ssl_version( DWORD dwProtocol )
-{
-    switch( dwProtocol )
-    {
-        case 0x00000301:
-        case 0x00000040 /*SP_PROT_TLS1_SERVER*/:
-        case 0x00000080 /*SP_PROT_TLS1_CLIENT*/:
-            return TLS1_VERSION;
-
-        case 0x00000302:
-        case 0x00000100 /*SP_PROT_TLS1_1_SERVER*/:
-        case 0x00000200 /*SP_PROT_TLS1_1_CLIENT*/:
-            return TLS1_1_VERSION;
-
-        case 0x00000303:
-        case 0x00000400 /*SP_PROT_TLS1_2_SERVER*/:
-        case 0x00000800 /*SP_PROT_TLS1_2_CLIENT*/:
-            return TLS1_2_VERSION;
-
-        case 0x00000304:
-        case 0x00001000 /*SP_PROT_TLS1_3_SERVER*/:
-        case 0x00002000 /*SP_PROT_TLS1_3_CLIENT*/:
-            return TLS1_3_VERSION;
-
-        default:
-            return SSL3_VERSION;
-    }
-}
-
-static int msspi_to_ssl_state_ret( int state, SSL * s, int ret )
+static int msspi_to_ssl_state_ret( GostSSL_Worker * w, int state, SSL * s, int ret )
 {
     if( state & MSSPI_ERROR )
         s->s3->rwstate = SSL_NOTHING;
     else if( state & MSSPI_SENT_SHUTDOWN && state & MSSPI_RECEIVED_SHUTDOWN )
         s->s3->rwstate = SSL_NOTHING;
     else if( state & MSSPI_X509_LOOKUP )
-        s->s3->rwstate = SSL_ERROR_WANT_X509_LOOKUP;
+    {
+        if( w->verified )
+            s->s3->rwstate = SSL_ERROR_WANT_X509_LOOKUP;
+        else
+            s->s3->rwstate = SSL_ERROR_WANT_CERTIFICATE_VERIFY;
+    }
     else if( state & MSSPI_WRITING )
     {
         if( state & MSSPI_LAST_PROC_WRITE )
@@ -585,7 +734,7 @@ static int msspi_to_ssl_state_ret( int state, SSL * s, int ret )
     return ret;
 }
 
-static MSSPI_HANDLE get_msspi( const SSL * s, int * is_gost )
+static GostSSL_Worker * get_worker( const SSL * s, int * is_gost )
 {
     GostSSL_Worker * w = workers_api( s, WDB_SEARCH );
 
@@ -596,48 +745,52 @@ static MSSPI_HANDLE get_msspi( const SSL * s, int * is_gost )
     }
 
     *is_gost = TRUE;
-    return w->h;
+    return w;
 }
 
 int gostssl_read( SSL * s, void * buf, int len, int * is_gost )
 {
-    MSSPI_HANDLE h = get_msspi( s, is_gost );
-    if( !h )
+    GostSSL_Worker * w = get_worker( s, is_gost );
+    if( !w )
         return 0;
+    MSSPI_HANDLE h = w->h;
 
     int ret = msspi_read( h, buf, len );
-    return msspi_to_ssl_state_ret( msspi_state( h ), s, ret );
+    return msspi_to_ssl_state_ret( w, msspi_state( h ), s, ret );
 }
 
 int gostssl_peek( SSL * s, void * buf, int len, int * is_gost )
 {
-    MSSPI_HANDLE h = get_msspi( s, is_gost );
-    if( !h )
+    GostSSL_Worker * w = get_worker( s, is_gost );
+    if( !w )
         return 0;
+    MSSPI_HANDLE h = w->h;
 
     int ret = msspi_peek( h, buf, len );
-    return msspi_to_ssl_state_ret( msspi_state( h ), s, ret );
+    return msspi_to_ssl_state_ret( w, msspi_state( h ), s, ret );
 }
 
 int gostssl_write( SSL * s, const void * buf, int len, int * is_gost )
 {
-    MSSPI_HANDLE h = get_msspi( s, is_gost );
-    if( !h )
+    GostSSL_Worker * w = get_worker( s, is_gost );
+    if( !w )
         return 0;
+    MSSPI_HANDLE h = w->h;
 
     int ret = msspi_write( h, buf, len );
-    return msspi_to_ssl_state_ret( msspi_state( h ), s, ret );
+    return msspi_to_ssl_state_ret( w, msspi_state( h ), s, ret );
 }
 
 int gostssl_shutdown( SSL * s, int * is_gost )
 {
-    MSSPI_HANDLE h = get_msspi( s, is_gost );
-    if( !h )
+    GostSSL_Worker * w = get_worker( s, is_gost );
+    if( !w )
         return 0;
+    MSSPI_HANDLE h = w->h;
 
     int ret = msspi_shutdown( h );
     int state = msspi_state( h );
-    msspi_to_ssl_state_ret( state, s, ret );
+    msspi_to_ssl_state_ret( w, state, s, ret );
 
     if( ret < 0 )
         return -1;
@@ -700,7 +853,7 @@ void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const vo
         cc[i * 2 + 1] = B2C( Fx );
     }
     cc[len * 2] = 0;
-    workers_api( s, WDB_NEW, (char *)&cc[0], cert, size );
+    workers_api( s, WDB_NEW, (char *)&cc[0], (const char *)cert, size );
 }
 
 int gostssl_connect( SSL * s, int * is_gost )
@@ -716,93 +869,23 @@ int gostssl_connect( SSL * s, int * is_gost )
 
     *is_gost = TRUE;
 
-    if( w->connected ) // handshake finished, cert verify left
-      return boring_set_connected_final_cb( w->s );
+    if( w->connected )
+      return gostssl_finalized( w );
 
     int ret = msspi_connect( w->h );
 
     if( ret == 1 )
     {
-        s->s3->rwstate = SSL_NOTHING;
-
-        // ALPN
-        const char * alpn;
-        size_t alpn_len;
         {
-            alpn = msspi_get_alpn( w->h );
-
-            if( !alpn )
-                alpn = "http/1.1";
-
-            alpn_len = strlen( alpn );
+          int ret = gostssl_connected( w );
+          if( ret != 1 )
+            return ret;
         }
 
-        // VERSION + CIPHER
-        uint16_t version;
-        uint16_t cipher_id;
-        uint16_t group_id;
-        {
-            PSecPkgContext_CipherInfo cipher_info = msspi_get_cipherinfo( w->h );
-
-            if( !cipher_info )
-                return 0;
-
-            version = (uint16_t)msspi_to_ssl_version( cipher_info->dwProtocol );
-            cipher_id = (uint16_t)cipher_info->dwCipherSuite;
-            group_id = (uint16_t)cipher_info->dwKeyType;
-        }
-
-        // SERVER CERTIFICATES
-        std::vector<const char *> servercerts_bufs;
-        std::vector<int> servercerts_lens;
-        size_t servercerts_count;
-        {
-            if( !msspi_get_peerchain( w->h, 0, NULL, NULL, &servercerts_count ) )
-                return 0;
-
-            servercerts_bufs.resize( servercerts_count );
-            servercerts_lens.resize( servercerts_count );
-
-            if( !msspi_get_peerchain( w->h, 0, &servercerts_bufs[0], &servercerts_lens[0], &servercerts_count ) )
-                return 0;
-        }
-
-        // force GOST for broken clients and IIS (regsvr32 -u cpcng.dll)
-        if( cipher_id != 0x0081 &&
-            cipher_id != 0xC100 &&
-            cipher_id != 0xC101 &&
-            cipher_id != 0xC102 &&
-            cipher_id != 0xC103 &&
-            cipher_id != 0xC104 &&
-            cipher_id != 0xC105 &&
-            cipher_id != 0xC106 &&
-            cipher_id != 0xFF85 )
-        {
-            PCCERT_CONTEXT certcheck = CertCreateCertificateContext( X509_ASN_ENCODING, (BYTE *)servercerts_bufs[0], (DWORD)servercerts_lens[0] );
-
-            if( !certcheck )
-                return 0;
-
-            if( 0 == strcmp( certcheck->pCertInfo->SubjectPublicKeyInfo.Algorithm.pszObjId, szOID_CP_GOST_R3410EL ) )
-                cipher_id = 0x0081;
-            else if( 0 == strcmp( certcheck->pCertInfo->SubjectPublicKeyInfo.Algorithm.pszObjId, szOID_CP_GOST_R3410_12_256 ) ||
-                     0 == strcmp( certcheck->pCertInfo->SubjectPublicKeyInfo.Algorithm.pszObjId, szOID_CP_GOST_R3410_12_512 ) )
-                cipher_id = 0xC102;
-
-            CertFreeCertificateContext( certcheck );
-        }
-
-        if( 1 != boring_set_connected_cb( w->s, alpn, alpn_len, version, cipher_id, group_id, &servercerts_bufs[0], &servercerts_lens[0], servercerts_count ) )
-            return 0;
-
-        w->host_status = GOSTSSL_HOST_YES;
-        host_status_set( w->host_string, GOSTSSL_HOST_YES );
-        w->connected = true;
-
-        return boring_set_connected_final_cb( w->s );
+        return gostssl_finalized( w );
     }
 
-    return msspi_to_ssl_state_ret( msspi_state( w->h ), s, ret );
+    return msspi_to_ssl_state_ret( w, msspi_state( w->h ), s, ret );
 }
 
 void gostssl_free( SSL * s )
@@ -976,13 +1059,13 @@ int gostssl_is_msspi( SSL * s )
     return 1;
 }
 
-char gostssl_certificate_info( const char * cert, size_t size, const char ** info, size_t * len )
+int gostssl_certificate_info( const char * cert, size_t size, const char ** info, size_t * len )
 {
     MSSPI_CERT_HANDLE ch = msspi_cert_open( cert, size );
     if( !ch )
         return 0;
 
-    char isOK = 0;
+    int isOK = 0;
     for( ;; )
     {
         const char * cstr;

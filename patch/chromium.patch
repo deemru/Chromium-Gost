@@ -1,4 +1,4 @@
-From 0b7e4994bfd09b996670c6ea9d51226c30541839 Mon Sep 17 00:00:00 2001
+From a1948b6aeb33d82970d078ad08346af317bd13a4 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Thu, 2 Oct 2025 13:48:04 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -43,12 +43,12 @@ Subject: [PATCH] chromium GOSTSSL
  net/socket/socket.h                           |   4 +
  net/socket/ssl_client_socket.cc               |   9 +
  net/socket/ssl_client_socket.h                |   4 +
- net/socket/ssl_client_socket_impl.cc          | 198 ++++++++++++++++++
+ net/socket/ssl_client_socket_impl.cc          | 202 ++++++++++++++++++
  net/socket/ssl_client_socket_impl.h           |   8 +
  net/spdy/spdy_session.cc                      |   5 +
- net/ssl/client_cert_store_mac.cc              |  70 +++++++
+ net/ssl/client_cert_store_mac.cc              |  70 ++++++
  net/ssl/client_cert_store_nss.cc              |  72 +++++++
- net/ssl/client_cert_store_win.cc              |  71 +++++++
+ net/ssl/client_cert_store_win.cc              |  71 ++++++
  net/ssl/openssl_ssl_util.cc                   |   4 +
  net/ssl/ssl_cipher_suite_names.cc             |  69 ++++++
  net/ssl/ssl_config_service.h                  |   2 +-
@@ -62,7 +62,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.gn                |   1 +
  .../cr_components/searchbox/searchbox.html    |   7 +
- 58 files changed, 953 insertions(+), 52 deletions(-)
+ 58 files changed, 957 insertions(+), 52 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
 index 9fd2e83b2a7bc..69d2a5ce56ca7 100644
@@ -131,7 +131,7 @@ index e6ee19f528b15..7d61e03a5cf49 100644
        <message name="IDS_GOOGLE_SEARCH_BOX_EMPTY_HINT_MULTIMODAL" desc="The text displayed in the multimodal searchbox when it is empty. It is meant to invite the user to add a text query to the existing image query in order to issue a 'multimodal' (image + text) query.">
          Add to your search
 diff --git a/chrome/app/resources/generated_resources_ru.xtb b/chrome/app/resources/generated_resources_ru.xtb
-index e9f00b7c1412d..d6d5cd549256d 100644
+index cf360189e0f2b..a315933440e09 100644
 --- a/chrome/app/resources/generated_resources_ru.xtb
 +++ b/chrome/app/resources/generated_resources_ru.xtb
 @@ -6017,7 +6017,7 @@
@@ -896,7 +896,7 @@ index ab48c8b88a7cf..f4582d0105ad6 100644
        network::switches::kForceEffectiveConnectionType,
        network::switches::kHostResolverRules,
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
-index 4decf82b4af51..acac975dd415c 100644
+index 946811361c992..162873ae82e62 100644
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
 @@ -173,6 +173,10 @@
@@ -1116,7 +1116,7 @@ index 8ed97016ed76e..1579b98edba18 100644
    void NotifySSLConfigChanged(SSLConfigChangeType change_type);
    void NotifySSLConfigForServersChanged(
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 6d472298deb3b..a43ac4772ae9e 100644
+index 6d472298deb3b..ca500fbf7afed 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
 @@ -14,6 +14,7 @@
@@ -1274,7 +1274,18 @@ index 6d472298deb3b..a43ac4772ae9e 100644
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -886,6 +1013,9 @@ int SSLClientSocketImpl::DoHandshake() {
+@@ -513,6 +640,10 @@ bool SSLClientSocketImpl::GetSSLInfo(SSLInfo* ssl_info) {
+   ssl_info->ct_policy_compliance = server_cert_verify_result_.policy_compliance;
+ 
+   const SSL_CIPHER* cipher = SSL_get_current_cipher(ssl_.get());
++#ifndef NO_GOSTSSL
++  if (!cipher && IsMSSPI())
++    return true;
++#endif // GOSTSSL
+   CHECK(cipher);
+   // Historically, the "group" was known as "curve".
+   ssl_info->key_exchange_group = SSL_get_curve_id(ssl_.get());
+@@ -886,6 +1017,9 @@ int SSLClientSocketImpl::DoHandshake() {
        return ERR_IO_PENDING;
      }
      if (ssl_error == SSL_ERROR_WANT_CERTIFICATE_VERIFY) {
@@ -1284,7 +1295,7 @@ index 6d472298deb3b..a43ac4772ae9e 100644
        DCHECK(cert_verifier_request_);
        next_handshake_state_ = STATE_HANDSHAKE;
        return ERR_IO_PENDING;
-@@ -1059,6 +1189,62 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
+@@ -1059,6 +1193,62 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
      return HandleVerifyResult();
    }
  
@@ -1347,7 +1358,7 @@ index 6d472298deb3b..a43ac4772ae9e 100644
    std::string_view ech_name_override = GetECHNameOverride();
    if (!ech_name_override.empty()) {
      // If ECH was offered but not negotiated, BoringSSL will ask to verify a
-@@ -1513,6 +1699,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1513,6 +1703,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
