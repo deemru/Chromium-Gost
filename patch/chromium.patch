@@ -1,4 +1,4 @@
-From 7f2e3126801ae183d9b859a9d1bc74995c6fb275 Mon Sep 17 00:00:00 2001
+From b21dbce3248cd18679fb380b86477343cf9d0b93 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Thu, 23 Oct 2025 15:48:13 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -61,8 +61,9 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.cc  |   8 +
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.gn                |   1 +
+ ui/linux/display_server_utils.cc              |   4 +-
  .../cr_components/searchbox/searchbox.ts      |   8 +-
- 58 files changed, 954 insertions(+), 56 deletions(-)
+ 59 files changed, 956 insertions(+), 58 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
 index 0753724487493..c78afd4e7f1cf 100644
@@ -2083,6 +2084,28 @@ index 31174ca1c7525..bccea49cc9e55 100644
    public = rebase_path(all_headers, ".", "src")
    friend = [ ":*" ]
    deps = [ "//third_party/boringssl/src/third_party/fiat:fiat_license" ]
+diff --git a/ui/linux/display_server_utils.cc b/ui/linux/display_server_utils.cc
+index 61ce5e93c06b8..a48ade169d161 100644
+--- a/ui/linux/display_server_utils.cc
++++ b/ui/linux/display_server_utils.cc
+@@ -53,7 +53,7 @@ void SetOzonePlatformForLinuxIfNeeded(base::CommandLine& command_line) {
+   if (command_line.HasSwitch(switches::kOzonePlatform)) {
+     return;
+   }
+-
++#if 0
+ #if BUILDFLAG(IS_OZONE_WAYLAND)
+   auto env = base::Environment::Create();
+   std::optional<std::string> xdg_session_type =
+@@ -63,7 +63,7 @@ void SetOzonePlatformForLinuxIfNeeded(base::CommandLine& command_line) {
+     return;
+   }
+ #endif
+-
++#endif
+ #if BUILDFLAG(IS_OZONE_X11)
+   command_line.AppendSwitchASCII(switches::kOzonePlatform, "x11");
+ #endif
 diff --git a/ui/webui/resources/cr_components/searchbox/searchbox.ts b/ui/webui/resources/cr_components/searchbox/searchbox.ts
 index 1c26042d13004..2a335ae69e13d 100644
 --- a/ui/webui/resources/cr_components/searchbox/searchbox.ts
