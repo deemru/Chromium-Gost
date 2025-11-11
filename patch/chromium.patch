@@ -1,4 +1,4 @@
-From 8d6f281719a7069da2c28ef3eb739217a08c2642 Mon Sep 17 00:00:00 2001
+From 18222e85e64e4d14e4d6355f9f279825e411e451 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Thu, 23 Oct 2025 15:48:13 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -132,7 +132,7 @@ index 873f67b36de4d..34cf3b4685471 100644
        <message name="IDS_GOOGLE_SEARCH_BOX_EMPTY_HINT_MULTIMODAL" desc="The text displayed in the multimodal searchbox when it is empty. It is meant to invite the user to add a text query to the existing image query in order to issue a 'multimodal' (image + text) query.">
          Add to your search
 diff --git a/chrome/app/resources/generated_resources_ru.xtb b/chrome/app/resources/generated_resources_ru.xtb
-index 941a4cc1a6275..bc354e2f98daf 100644
+index db62fa11789cb..8f01e77199ed4 100644
 --- a/chrome/app/resources/generated_resources_ru.xtb
 +++ b/chrome/app/resources/generated_resources_ru.xtb
 @@ -6029,7 +6029,7 @@
@@ -1117,7 +1117,7 @@ index 8ed97016ed76e..1579b98edba18 100644
    void NotifySSLConfigChanged(SSLConfigChangeType change_type);
    void NotifySSLConfigForServersChanged(
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 9cb2c324e9df1..ad1314e1c8c1c 100644
+index 9cb2c324e9df1..54e7094258f12 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
 @@ -14,6 +14,7 @@
@@ -1174,33 +1174,33 @@ index 9cb2c324e9df1..ad1314e1c8c1c 100644
 +  case 0:
 +    gost_rv = OK;
 +    break;
-+  case CERT_E_CN_NO_MATCH:
-+  case CERT_E_INVALID_NAME:
++  case (uint32_t)CERT_E_CN_NO_MATCH:
++  case (uint32_t)CERT_E_INVALID_NAME:
 +    gost_rv = ERR_CERT_COMMON_NAME_INVALID;
 +    cert_status |= CERT_STATUS_COMMON_NAME_INVALID;
 +    break;
-+  case CERT_E_UNTRUSTEDROOT:
-+  case TRUST_E_CERT_SIGNATURE:
-+  case CERT_E_UNTRUSTEDTESTROOT:
-+  case CERT_E_CHAINING:
++  case (uint32_t)CERT_E_UNTRUSTEDROOT:
++  case (uint32_t)TRUST_E_CERT_SIGNATURE:
++  case (uint32_t)CERT_E_UNTRUSTEDTESTROOT:
++  case (uint32_t)CERT_E_CHAINING:
 +    gost_rv = ERR_CERT_AUTHORITY_INVALID;
 +    cert_status |= CERT_STATUS_AUTHORITY_INVALID;
 +    break;
-+  case CERT_E_EXPIRED:
-+  case CERT_E_VALIDITYPERIODNESTING:
++  case (uint32_t)CERT_E_EXPIRED:
++  case (uint32_t)CERT_E_VALIDITYPERIODNESTING:
 +    gost_rv = ERR_CERT_DATE_INVALID;
 +    cert_status |= CERT_STATUS_DATE_INVALID;
 +    break;
-+  case CRYPT_E_NO_REVOCATION_CHECK:
-+  case CERT_E_REVOCATION_FAILURE:
++  case (uint32_t)CRYPT_E_NO_REVOCATION_CHECK:
++  case (uint32_t)CERT_E_REVOCATION_FAILURE:
 +    gost_rv = ERR_CERT_NO_REVOCATION_MECHANISM;
 +    cert_status |= CERT_STATUS_NO_REVOCATION_MECHANISM;
 +    break;
-+  case CRYPT_E_REVOCATION_OFFLINE:
++  case (uint32_t)CRYPT_E_REVOCATION_OFFLINE:
 +    gost_rv = ERR_CERT_UNABLE_TO_CHECK_REVOCATION;
 +    cert_status |= CERT_STATUS_UNABLE_TO_CHECK_REVOCATION;
 +    break;
-+  case CRYPT_E_REVOKED:
++  case (uint32_t)CRYPT_E_REVOKED:
 +    gost_rv = ERR_CERT_REVOKED;
 +    cert_status |= CERT_STATUS_REVOKED;
 +    break;
