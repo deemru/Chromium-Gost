@@ -915,7 +915,7 @@ void gostssl_verifyhook( void * s, const char * host, int * is_gost, uint32_t * 
     //   other codes = verification failed with specific error
 
     // Mask off CERT_STATUS_NO_REVOCATION_MECHANISM
-    if( *verify_result == CRYPT_E_NO_REVOCATION_CHECK )
+    if( *verify_result == (uint32_t)CRYPT_E_NO_REVOCATION_CHECK )
         *verify_result = 0;
 }
 
