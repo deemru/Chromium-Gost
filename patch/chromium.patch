@@ -1,4 +1,4 @@
-From b21dbce3248cd18679fb380b86477343cf9d0b93 Mon Sep 17 00:00:00 2001
+From 8d6f281719a7069da2c28ef3eb739217a08c2642 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Thu, 23 Oct 2025 15:48:13 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -17,7 +17,7 @@ Subject: [PATCH] chromium GOSTSSL
  chrome/browser/resources/new_tab_page/logo.ts |   2 +
  chrome/browser/search/search.cc               |   2 +
  chrome/browser/shell_integration_linux.cc     |   2 +-
- .../ui/startup/startup_browser_creator.cc     | 179 +++++++++++++++-
+ .../ui/startup/startup_browser_creator.cc     | 179 ++++++++++++++-
  .../toolbar/chrome_labs/chrome_labs_utils.cc  |   2 +
  .../browser/ui/views/certificate_selector.cc  |  20 +-
  .../views/toolbar/browser_app_menu_button.cc  |   1 +
@@ -43,7 +43,7 @@ Subject: [PATCH] chromium GOSTSSL
  net/socket/socket.h                           |   4 +
  net/socket/ssl_client_socket.cc               |   9 +
  net/socket/ssl_client_socket.h                |   4 +
- net/socket/ssl_client_socket_impl.cc          | 202 ++++++++++++++++++
+ net/socket/ssl_client_socket_impl.cc          | 204 ++++++++++++++++++
  net/socket/ssl_client_socket_impl.h           |   8 +
  net/spdy/spdy_session.cc                      |   5 +
  net/ssl/client_cert_store_mac.cc              |  70 ++++++
@@ -63,7 +63,7 @@ Subject: [PATCH] chromium GOSTSSL
  third_party/boringssl/BUILD.gn                |   1 +
  ui/linux/display_server_utils.cc              |   4 +-
  .../cr_components/searchbox/searchbox.ts      |   8 +-
- 59 files changed, 956 insertions(+), 58 deletions(-)
+ 59 files changed, 958 insertions(+), 58 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
 index 0753724487493..c78afd4e7f1cf 100644
@@ -132,10 +132,10 @@ index 873f67b36de4d..34cf3b4685471 100644
        <message name="IDS_GOOGLE_SEARCH_BOX_EMPTY_HINT_MULTIMODAL" desc="The text displayed in the multimodal searchbox when it is empty. It is meant to invite the user to add a text query to the existing image query in order to issue a 'multimodal' (image + text) query.">
          Add to your search
 diff --git a/chrome/app/resources/generated_resources_ru.xtb b/chrome/app/resources/generated_resources_ru.xtb
-index 71380e7b57e65..629296b0e82ce 100644
+index 941a4cc1a6275..bc354e2f98daf 100644
 --- a/chrome/app/resources/generated_resources_ru.xtb
 +++ b/chrome/app/resources/generated_resources_ru.xtb
-@@ -6033,7 +6033,7 @@
+@@ -6029,7 +6029,7 @@
  <translation id="5153234146675181447">Удаление телефона</translation>
  <translation id="5153907427821264830"><ph name="STATUS" /> • <ph name="MESSAGE" /></translation>
  <translation id="5154108062446123722"><ph name="PRINTING_DESTINATION" /> – дополнительные настройки</translation>
@@ -226,10 +226,10 @@ index 436bc47cadcb1..3c922aaefade9 100644
  void ReportIsSupportedOutcome(KeyCredentialManagerAvailability availability) {
    base::UmaHistogramEnumeration(
 diff --git a/chrome/browser/resources/new_tab_page/app.ts b/chrome/browser/resources/new_tab_page/app.ts
-index 84c27c8cd2d63..45e38129ad768 100644
+index 9a5fea4564f92..d3907ccf49d69 100644
 --- a/chrome/browser/resources/new_tab_page/app.ts
 +++ b/chrome/browser/resources/new_tab_page/app.ts
-@@ -327,15 +327,15 @@ export class AppElement extends AppElementBase {
+@@ -334,15 +334,15 @@ export class AppElement extends AppElementBase {
    protected accessor logoEnabled_: boolean =
        loadTimeData.getBoolean('logoEnabled');
    protected accessor oneGoogleBarEnabled_: boolean =
@@ -249,7 +249,7 @@ index 84c27c8cd2d63..45e38129ad768 100644
    protected accessor browserPromoLimit_: number =
        loadTimeData.getInteger('browserPromoLimit');
    protected accessor browserPromoCompletedLimit_: number =
-@@ -346,7 +346,7 @@ export class AppElement extends AppElementBase {
+@@ -353,7 +353,7 @@ export class AppElement extends AppElementBase {
        ModuleLoadStatus.MODULE_LOAD_IN_PROGRESS;
    protected accessor modulesShownToUser: boolean = false;
    protected accessor microsoftModuleEnabled_: boolean =
@@ -940,7 +940,7 @@ index e9840288eca3a..f4a09445920fe 100644
  // indicate a fatal error.  Typically this error will be generated as a
  // notification to wait for some external notification that the IO operation
 diff --git a/net/cert/cert_verify_proc.cc b/net/cert/cert_verify_proc.cc
-index cb3302d5cd552..1e3eac7d6721e 100644
+index cb3302d5cd552..8a11f5e419a0a 100644
 --- a/net/cert/cert_verify_proc.cc
 +++ b/net/cert/cert_verify_proc.cc
 @@ -438,6 +438,12 @@ CertVerifyProc::CertVerifyProc(scoped_refptr<CRLSet> crl_set)
@@ -949,7 +949,7 @@ index cb3302d5cd552..1e3eac7d6721e 100644
  
 +#ifndef NO_GOSTSSL
 +extern "C" {
-+void gostssl_isgostcerthook( void * cert, int size, int * is_gost );
++void gostssl_isgostcerthook( const uint8_t * cert, size_t size, int * is_gost );
 +}
 +#endif // GOSTSSL
 +
@@ -966,7 +966,7 @@ index cb3302d5cd552..1e3eac7d6721e 100644
 +      {
 +          const uint8_t * gostcert = CRYPTO_BUFFER_data( cert->cert_buffer() );
 +          size_t gostcertlen =  CRYPTO_BUFFER_len( cert->cert_buffer() );
-+          gostssl_isgostcerthook( (void *)gostcert, gostcertlen, &is_gost );
++          gostssl_isgostcerthook( gostcert, gostcertlen, &is_gost );
 +      }
 +  }
 +
@@ -1117,7 +1117,7 @@ index 8ed97016ed76e..1579b98edba18 100644
    void NotifySSLConfigChanged(SSLConfigChangeType change_type);
    void NotifySSLConfigForServersChanged(
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 9cb2c324e9df1..af1b793076d0d 100644
+index 9cb2c324e9df1..ad1314e1c8c1c 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
 @@ -14,6 +14,7 @@
@@ -1136,42 +1136,42 @@ index 9cb2c324e9df1..af1b793076d0d 100644
  #include "base/trace_event/trace_event.h"
  #include "base/values.h"
  #include "build/build_config.h"
-@@ -351,6 +353,101 @@ int SSLClientSocketImpl::ExportKeyingMaterial(
+@@ -351,6 +353,102 @@ int SSLClientSocketImpl::ExportKeyingMaterial(
    return OK;
  }
  
 +#ifndef NO_GOSTSSL
 +extern "C" {
-+void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size );
++void gostssl_newsession( SSL * s, const uint8_t * cachestring, size_t len, const uint8_t * cert, size_t size );
 +void gostssl_commandline( const char * ciphers, const char * tlsmode, const char * issuersfilter );
-+void gostssl_certhook( void * cert, int size );
-+void gostssl_verifyhook( void * s, const char * host, int32_t * gost_status, char offline );
++void gostssl_certhook( const uint8_t * cert, size_t size );
++void gostssl_verifyhook( void * s, const char * host, int * is_gost, uint32_t * verify_result, char offline );
 +int gostssl_is_msspi( SSL * s );
 +}
 +int SSLClientSocketImpl::IsMSSPI() {
 +  return gostssl_is_msspi( ssl_.get() );
 +}
-+int SSLClientSocketImpl::VerifyGOSTResult(int32_t gost_status)
++int SSLClientSocketImpl::VerifyGOSTResult(uint32_t verify_result)
 +{
 +#ifndef TRUST_E_CERT_SIGNATURE
-+#define TRUST_E_CERT_SIGNATURE          (int32_t)0x80096004L
-+#define CRYPT_E_REVOKED                 (int32_t)0x80092010L
-+#define CERT_E_UNTRUSTEDROOT            (int32_t)0x800B0109L
-+#define CERT_E_UNTRUSTEDTESTROOT        (int32_t)0x800B010DL
-+#define CERT_E_REVOCATION_FAILURE       (int32_t)0x800B010EL
-+#define CERT_E_EXPIRED                  (int32_t)0x800B0101L
-+#define CERT_E_INVALID_NAME             (int32_t)0x800B0114L
-+#define CERT_E_CN_NO_MATCH              (int32_t)0x800B010FL
-+#define CERT_E_VALIDITYPERIODNESTING    (int32_t)0x800B0102L
-+#define CRYPT_E_NO_REVOCATION_CHECK     (int32_t)0x80092012L
-+#define CRYPT_E_REVOCATION_OFFLINE      (int32_t)0x80092013L
-+#define CERT_E_CHAINING                 (int32_t)0x800B010AL
++#define TRUST_E_CERT_SIGNATURE          (uint32_t)0x80096004L
++#define CRYPT_E_REVOKED                 (uint32_t)0x80092010L
++#define CERT_E_UNTRUSTEDROOT            (uint32_t)0x800B0109L
++#define CERT_E_UNTRUSTEDTESTROOT        (uint32_t)0x800B010DL
++#define CERT_E_REVOCATION_FAILURE       (uint32_t)0x800B010EL
++#define CERT_E_EXPIRED                  (uint32_t)0x800B0101L
++#define CERT_E_INVALID_NAME             (uint32_t)0x800B0114L
++#define CERT_E_CN_NO_MATCH              (uint32_t)0x800B010FL
++#define CERT_E_VALIDITYPERIODNESTING    (uint32_t)0x800B0102L
++#define CRYPT_E_NO_REVOCATION_CHECK     (uint32_t)0x80092012L
++#define CRYPT_E_REVOCATION_OFFLINE      (uint32_t)0x80092013L
++#define CERT_E_CHAINING                 (uint32_t)0x800B010AL
 +#endif
 +
 +  int gost_rv;
 +  CertStatus cert_status = 0;
-+  switch (gost_status) {
-+  case 1:
++  switch (verify_result) {
++  case 0:
 +    gost_rv = OK;
 +    break;
 +  case CERT_E_CN_NO_MATCH:
@@ -1222,23 +1222,24 @@ index 9cb2c324e9df1..af1b793076d0d 100644
 +
 +  return gost_rv;
 +}
-+void SSLClientSocketImpl::VerifyGOSTTaskComplete(int32_t gost_status)
++void SSLClientSocketImpl::VerifyGOSTTaskComplete(uint32_t verify_result)
 +{
-+  OnVerifyComplete(VerifyGOSTResult(gost_status));
++  OnVerifyComplete(VerifyGOSTResult(verify_result));
 +}
 +void SSLClientSocketImpl::VerifyGOSTTask(const scoped_refptr<base::SequencedTaskRunner>& task_runner)
 +{
 +  auto weakPtr = weak_factory_.GetWeakPtr();
-+  int32_t gost_status;
-+  gostssl_verifyhook((void*)ssl_.get(), host_and_port_.host().c_str(), &gost_status, 0);
-+  task_runner->PostTask(FROM_HERE, base::BindOnce(&SSLClientSocketImpl::VerifyGOSTTaskComplete, weakPtr, gost_status));
++  int is_gost;
++  uint32_t verify_result;
++  gostssl_verifyhook((void*)ssl_.get(), host_and_port_.host().c_str(), &is_gost, &verify_result, 0);
++  task_runner->PostTask(FROM_HERE, base::BindOnce(&SSLClientSocketImpl::VerifyGOSTTaskComplete, weakPtr, verify_result));
 +}
 +#endif // GOSTSSL
 +
  int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
    // this has never worked for layered sockets. CHECK to detect any consumers
-@@ -369,6 +466,36 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
+@@ -369,6 +467,36 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
      return rv;
    }
  
@@ -1268,14 +1269,14 @@ index 9cb2c324e9df1..af1b793076d0d 100644
 +      gostssl_commandline( ciphers.c_str(), tlsmode.c_str(), issuersfilter.c_str() );
 +    }
 +    std::string cachestring = std::to_string(context_->seqnum_) + "@" + host_and_port().ToString();
-+    gostssl_newsession(ssl_.get(), cachestring.data(), cachestring.size(), cert, len);
++    gostssl_newsession(ssl_.get(), (const uint8_t *)cachestring.data(), cachestring.size(), (const uint8_t *)cert, len);
 +  }
 +#endif // GOSTSSL
 +
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -513,6 +640,10 @@ bool SSLClientSocketImpl::GetSSLInfo(SSLInfo* ssl_info) {
+@@ -513,6 +641,10 @@ bool SSLClientSocketImpl::GetSSLInfo(SSLInfo* ssl_info) {
    ssl_info->ct_policy_compliance = server_cert_verify_result_.policy_compliance;
  
    const SSL_CIPHER* cipher = SSL_get_current_cipher(ssl_.get());
@@ -1286,7 +1287,7 @@ index 9cb2c324e9df1..af1b793076d0d 100644
    CHECK(cipher);
    // Historically, the "group" was known as "curve".
    ssl_info->key_exchange_group = SSL_get_curve_id(ssl_.get());
-@@ -900,6 +1031,9 @@ int SSLClientSocketImpl::DoHandshake() {
+@@ -900,6 +1032,9 @@ int SSLClientSocketImpl::DoHandshake() {
        return ERR_IO_PENDING;
      }
      if (ssl_error == SSL_ERROR_WANT_CERTIFICATE_VERIFY) {
@@ -1296,7 +1297,7 @@ index 9cb2c324e9df1..af1b793076d0d 100644
        DCHECK(cert_verifier_request_);
        next_handshake_state_ = STATE_HANDSHAKE;
        return ERR_IO_PENDING;
-@@ -1073,6 +1207,62 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
+@@ -1073,6 +1208,63 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
      return HandleVerifyResult();
    }
  
@@ -1320,12 +1321,13 @@ index 9cb2c324e9df1..af1b793076d0d 100644
 +        verifymode = "3";
 +      }
 +    }
-+    int32_t gost_status;
++    int is_gost;
++    uint32_t verify_result;
 +    if (verifymode == "1")
 +    {
-+      gostssl_verifyhook((void*)ssl_.get(), host_and_port_.host().c_str(), &gost_status, 0);
-+      if (gost_status)
-+        return VerifyGOSTResult(gost_status) == OK ? ssl_verify_ok : ssl_verify_invalid;
++      gostssl_verifyhook((void*)ssl_.get(), host_and_port_.host().c_str(), &is_gost, &verify_result, 0);
++      if (is_gost)
++        return VerifyGOSTResult(verify_result) == OK ? ssl_verify_ok : ssl_verify_invalid;
 +    }
 +    else if (verifymode == "2")
 +    {
@@ -1339,10 +1341,10 @@ index 9cb2c324e9df1..af1b793076d0d 100644
 +    }
 +    else // if (verifymode == "3") // (default)
 +    {
-+      gostssl_verifyhook((void*)ssl_.get(), host_and_port_.host().c_str(), &gost_status, 1);
-+      if (gost_status)
++      gostssl_verifyhook((void*)ssl_.get(), host_and_port_.host().c_str(), &is_gost, &verify_result, 1);
++      if (is_gost)
 +      {
-+        if (gost_status != 1)
++        if (verify_result)
 +        {
 +          base::ThreadPool::PostTask(FROM_HERE, { base::TaskPriority::USER_VISIBLE, base::MayBlock() },
 +            base::BindOnce(&SSLClientSocketImpl::VerifyGOSTTask, base::Unretained(this), base::SequencedTaskRunner::GetCurrentDefault()));
@@ -1350,7 +1352,7 @@ index 9cb2c324e9df1..af1b793076d0d 100644
 +          return ssl_verify_retry;
 +        }
 +
-+        return VerifyGOSTResult(gost_status) == OK ? ssl_verify_ok : ssl_verify_invalid;
++        return VerifyGOSTResult(verify_result) == OK ? ssl_verify_ok : ssl_verify_invalid;
 +      }
 +    }
 +  }
@@ -1359,7 +1361,7 @@ index 9cb2c324e9df1..af1b793076d0d 100644
    std::string_view ech_name_override = GetECHNameOverride();
    if (!ech_name_override.empty()) {
      // If ECH was offered but not negotiated, BoringSSL will ask to verify a
-@@ -1527,6 +1717,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1527,6 +1719,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
@@ -1370,7 +1372,7 @@ index 9cb2c324e9df1..af1b793076d0d 100644
 +          CRYPTO_BUFFER_data(client_cert_.get()->cert_buffer());
 +      size_t len =
 +          CRYPTO_BUFFER_len(client_cert_.get()->cert_buffer());
-+      gostssl_certhook( (void*)cert, len );
++      gostssl_certhook( cert, len );
 +    }
 +  }
 +#endif // GOSTSSL
@@ -1379,7 +1381,7 @@ index 9cb2c324e9df1..af1b793076d0d 100644
    if (client_cert_.get()) {
      if (!client_private_key_) {
 diff --git a/net/socket/ssl_client_socket_impl.h b/net/socket/ssl_client_socket_impl.h
-index 536607686c923..45bf466a8abaf 100644
+index 536607686c923..c42e74cbcf2c3 100644
 --- a/net/socket/ssl_client_socket_impl.h
 +++ b/net/socket/ssl_client_socket_impl.h
 @@ -53,6 +53,14 @@ class NET_EXPORT_PRIVATE SSLClientSocketImpl
@@ -1390,8 +1392,8 @@ index 536607686c923..45bf466a8abaf 100644
 +  int IsMSSPI() override;
 +private:
 +  void VerifyGOSTTask(const scoped_refptr<base::SequencedTaskRunner>& task_runner);
-+  void VerifyGOSTTaskComplete(int32_t gost_status);
-+  int VerifyGOSTResult(int32_t gost_status);
++  void VerifyGOSTTaskComplete(uint32_t verify_result);
++  int VerifyGOSTResult(uint32_t verify_result);
 +public:
 +#endif // GOSTSSL
    // Takes ownership of |stream_socket|, which may already be connected.
@@ -1414,7 +1416,7 @@ index a03733471abed..6633237fed088 100644
    CHECK(GetSSLInfo(&ssl_info));
  
 diff --git a/net/ssl/client_cert_store_mac.cc b/net/ssl/client_cert_store_mac.cc
-index c92d91d72dd8f..56958a7e9d18c 100644
+index c92d91d72dd8f..140c90fe037cf 100644
 --- a/net/ssl/client_cert_store_mac.cc
 +++ b/net/ssl/client_cert_store_mac.cc
 @@ -19,6 +19,7 @@
@@ -1431,7 +1433,7 @@ index c92d91d72dd8f..56958a7e9d18c 100644
  
 +#ifndef NO_GOSTSSL
 +extern "C" {
-+void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost, const char ** issuers, int * issuers_lens, int issuers_count );
++void gostssl_clientcertshook( const uint8_t *** certs, size_t ** lens, const wchar_t *** names, size_t * count, int * is_gost, const uint8_t ** issuers, const size_t * issuers_lens, size_t issuers_count );
 +void gostssl_commandline( const char * ciphers, const char * tlsmode, const char * issuersfilter );
 +}
 +#endif // GOSTSSL
@@ -1463,26 +1465,26 @@ index c92d91d72dd8f..56958a7e9d18c 100644
 +      gostssl_commandline( ciphers.c_str(), tlsmode.c_str(), issuersfilter.c_str() );
 +    }
 +
-+    char ** certs;
-+    int * lens;
-+    int count;
++    const uint8_t ** certs;
++    size_t * lens;
++    size_t count;
 +    int is_gost;
 +
 +    const size_t crg_issuers_count = request->cert_authorities.size();
 +
 +    if( crg_issuers_count > 0 )
 +    {
-+      std::vector<const char *> crg_issuers( crg_issuers_count );
-+      std::vector<int> crg_issuers_lens( crg_issuers_count );
++      std::vector<const uint8_t *> crg_issuers( crg_issuers_count );
++      std::vector<size_t> crg_issuers_lens( crg_issuers_count );
 +
 +      for( size_t i = 0; i < crg_issuers_count; i++ )
 +      {
-+        crg_issuers[i] = request->cert_authorities[i].data();
-+        crg_issuers_lens[i] = (int)request->cert_authorities[i].size();
++        crg_issuers[i] = (const uint8_t *)request->cert_authorities[i].data();
++        crg_issuers_lens[i] = request->cert_authorities[i].size();
 +      }
 +
 +      gostssl_clientcertshook( &certs, &lens, NULL, &count, &is_gost,
-+                               crg_issuers.data(), crg_issuers_lens.data(), (int)crg_issuers_count );
++                               crg_issuers.data(), crg_issuers_lens.data(), crg_issuers_count );
 +    }
 +    else
 +    {
@@ -1493,7 +1495,7 @@ index c92d91d72dd8f..56958a7e9d18c 100644
 +    if( is_gost )
 +    {
 +      selected_identities.clear();
-+      for( int i = 0; i < count; i++ )
++      for( size_t i = 0; i < count; i++ )
 +      {
 +        scoped_refptr<X509Certificate> cert = X509Certificate::CreateFromBytes( { (const uint8_t *)certs[i], (size_t)lens[i] } );
 +        if( !cert.get() )
@@ -1509,7 +1511,7 @@ index c92d91d72dd8f..56958a7e9d18c 100644
  }
  
 diff --git a/net/ssl/client_cert_store_nss.cc b/net/ssl/client_cert_store_nss.cc
-index 049a61fefb810..9d887b50761ee 100644
+index 049a61fefb810..efdf469ede35f 100644
 --- a/net/ssl/client_cert_store_nss.cc
 +++ b/net/ssl/client_cert_store_nss.cc
 @@ -13,6 +13,7 @@
@@ -1526,7 +1528,7 @@ index 049a61fefb810..9d887b50761ee 100644
  
 +#ifndef NO_GOSTSSL
 +extern "C" {
-+void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost, const char ** issuers, int * issuers_lens, int issuers_count );
++void gostssl_clientcertshook( const uint8_t *** certs, size_t ** lens, const wchar_t *** names, size_t * count, int * is_gost, const uint8_t ** issuers, const size_t * issuers_lens, size_t issuers_count );
 +void gostssl_commandline( const char * ciphers, const char * tlsmode, const char * issuersfilter );
 +}
 +#endif // GOSTSSL
@@ -1558,26 +1560,26 @@ index 049a61fefb810..9d887b50761ee 100644
 +      gostssl_commandline( ciphers.c_str(), tlsmode.c_str(), issuersfilter.c_str() );
 +    }
 +
-+    char ** certs;
-+    int * lens;
-+    int count;
++    const uint8_t ** certs;
++    size_t * lens;
++    size_t count;
 +    int is_gost;
 +
 +    const size_t crg_issuers_count = request->cert_authorities.size();
 +
 +    if( crg_issuers_count > 0 )
 +    {
-+      std::vector<const char *> crg_issuers( crg_issuers_count );
-+      std::vector<int> crg_issuers_lens( crg_issuers_count );
++      std::vector<const uint8_t *> crg_issuers( crg_issuers_count );
++      std::vector<size_t> crg_issuers_lens( crg_issuers_count );
 +
 +      for( size_t i = 0; i < crg_issuers_count; i++ )
 +      {
-+        crg_issuers[i] = request->cert_authorities[i].data();
-+        crg_issuers_lens[i] = (int)request->cert_authorities[i].size();
++        crg_issuers[i] = (const uint8_t *)request->cert_authorities[i].data();
++        crg_issuers_lens[i] = request->cert_authorities[i].size();
 +      }
 +
 +      gostssl_clientcertshook( &certs, &lens, NULL, &count, &is_gost,
-+                               crg_issuers.data(), crg_issuers_lens.data(), (int)crg_issuers_count );
++                               crg_issuers.data(), crg_issuers_lens.data(), crg_issuers_count );
 +    }
 +    else
 +    {
@@ -1588,7 +1590,7 @@ index 049a61fefb810..9d887b50761ee 100644
 +    if( is_gost )
 +    {
 +      selected_identities.clear();
-+      for( int i = 0; i < count; i++ )
++      for( size_t i = 0; i < count; i++ )
 +      {
 +        scoped_refptr<X509Certificate> cert = X509Certificate::CreateFromBytes( { (const uint8_t *)certs[i], (size_t)lens[i] } );
 +        if( !cert.get() )
@@ -1606,7 +1608,7 @@ index 049a61fefb810..9d887b50761ee 100644
  }
  
 diff --git a/net/ssl/client_cert_store_win.cc b/net/ssl/client_cert_store_win.cc
-index 139388f0c2c15..89fb3c2ed70a5 100644
+index 139388f0c2c15..9053624f74bc4 100644
 --- a/net/ssl/client_cert_store_win.cc
 +++ b/net/ssl/client_cert_store_win.cc
 @@ -14,6 +14,7 @@
@@ -1623,7 +1625,7 @@ index 139388f0c2c15..89fb3c2ed70a5 100644
  
 +#ifndef NO_GOSTSSL
 +extern "C" {
-+void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost, const char ** issuers, int * issuers_lens, int issuers_count );
++void gostssl_clientcertshook( const uint8_t *** certs, size_t ** lens, const wchar_t *** names, size_t * count, int * is_gost, const uint8_t ** issuers, const size_t * issuers_lens, size_t issuers_count );
 +void gostssl_commandline( const char * ciphers, const char * tlsmode, const char * issuersfilter );
 +}
 +#endif // GOSTSSL
@@ -1654,26 +1656,26 @@ index 139388f0c2c15..89fb3c2ed70a5 100644
 +      gostssl_commandline( ciphers.c_str(), tlsmode.c_str(), issuersfilter.c_str() );
 +    }
 +
-+    char ** certs;
-+    int * lens;
-+    int count;
++    const uint8_t ** certs;
++    size_t * lens;
++    size_t count;
 +    int is_gost;
 +
 +    const size_t crg_issuers_count = request.cert_authorities.size();
 +
 +    if( crg_issuers_count > 0 )
 +    {
-+      std::vector<const char *> crg_issuers( crg_issuers_count );
-+      std::vector<int> crg_issuers_lens( crg_issuers_count );
++      std::vector<const uint8_t *> crg_issuers( crg_issuers_count );
++      std::vector<size_t> crg_issuers_lens( crg_issuers_count );
 +
 +      for( size_t i = 0; i < crg_issuers_count; i++ )
 +      {
-+        crg_issuers[i] = request.cert_authorities[i].data();
-+        crg_issuers_lens[i] = (int)request.cert_authorities[i].size();
++        crg_issuers[i] = (const uint8_t *)request.cert_authorities[i].data();
++        crg_issuers_lens[i] = request.cert_authorities[i].size();
 +      }
 +
 +      gostssl_clientcertshook( &certs, &lens, NULL, &count, &is_gost,
-+                               crg_issuers.data(), crg_issuers_lens.data(), (int)crg_issuers_count );
++                               crg_issuers.data(), crg_issuers_lens.data(), crg_issuers_count );
 +    }
 +    else
 +    {
@@ -1684,7 +1686,7 @@ index 139388f0c2c15..89fb3c2ed70a5 100644
 +    if( is_gost )
 +    {
 +      selected_identities.clear();
-+      for( int i = 0; i < count; i++ )
++      for( size_t i = 0; i < count; i++ )
 +      {
 +        scoped_refptr<X509Certificate> cert = X509Certificate::CreateFromBytes( { (const uint8_t *)certs[i], (size_t)lens[i] } );
 +        if( !cert.get() )
@@ -2107,7 +2109,7 @@ index 61ce5e93c06b8..a48ade169d161 100644
    command_line.AppendSwitchASCII(switches::kOzonePlatform, "x11");
  #endif
 diff --git a/ui/webui/resources/cr_components/searchbox/searchbox.ts b/ui/webui/resources/cr_components/searchbox/searchbox.ts
-index 1c26042d13004..2a335ae69e13d 100644
+index 4e5b671408390..60bfdd694715d 100644
 --- a/ui/webui/resources/cr_components/searchbox/searchbox.ts
 +++ b/ui/webui/resources/cr_components/searchbox/searchbox.ts
 @@ -421,10 +421,10 @@ export class SearchboxElement extends SearchboxElementBase {

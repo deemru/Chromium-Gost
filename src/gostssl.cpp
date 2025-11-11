@@ -41,13 +41,12 @@ void gostssl_boring_hello( SSL * s, const char * data, size_t len );
 void gostssl_server_proxy( SSL * s, const char * data, size_t len );
 
 // Hooks
-DLLEXPORT void gostssl_certhook( void * cert, int size );
-DLLEXPORT void gostssl_verifyhook( void * s, const char * host, int32_t * gost_status, char offline );
-DLLEXPORT void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost, const char ** issuers, int * issuers_lens, int issuers_count );
-DLLEXPORT void gostssl_isgostcerthook( void * cert, int size, int * is_gost );
-DLLEXPORT void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size );
+DLLEXPORT void gostssl_certhook( const uint8_t * cert, size_t size );
+DLLEXPORT void gostssl_verifyhook( void * s, const char * host, int * is_gost, uint32_t * verify_result, char offline );
+DLLEXPORT void gostssl_clientcertshook( const uint8_t *** certs, size_t ** lens, const wchar_t *** names, size_t * count, int * is_gost, const uint8_t ** issuers, const size_t * issuers_lens, size_t issuers_count );
+DLLEXPORT void gostssl_isgostcerthook( const uint8_t * cert, size_t size, int * is_gost );
+DLLEXPORT void gostssl_newsession( SSL * s, const uint8_t * cachestring, size_t len, const uint8_t * cert, size_t size );
 DLLEXPORT int gostssl_is_msspi( SSL * s );
-DLLEXPORT int gostssl_certificate_info( const char * cert, size_t size, const char ** info, size_t * len );
 DLLEXPORT void gostssl_commandline( const char * ciphers, const char * tlsmode, const char * issuersfilter );
 
 }
@@ -324,7 +323,7 @@ static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, con
         }
 
         msspi_set_cert_cb( w->h, (msspi_cert_cb)gostssl_cert_cb );
-        msspi_set_cipherlist( w->h, g_ciphers.c_str() );
+        msspi_set_cipherlist( w->h, (const uint8_t *)g_ciphers.c_str(), g_ciphers.size() );
         w->tlsmode = g_tlsmode;
         if( w->tlsmode == 1 )
             w->host_status = GOSTSSL_HOST_YES;
@@ -334,11 +333,11 @@ static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, con
         w->s = (SSL *)s;
 
         if( s->hostname.get() )
-            msspi_set_hostname( w->h, s->hostname.get() );
+            msspi_set_hostname( w->h, (const uint8_t *)s->hostname.get(), strlen( s->hostname.get() ) );
         if( cachestring )
-            msspi_set_cachestring( w->h, cachestring );
+            msspi_set_cachestring( w->h, (const uint8_t *)cachestring, strlen( cachestring ) );
         if( s->config->alpn_client_proto_list.size() )
-            msspi_set_alpn( w->h, (const char *)s->config->alpn_client_proto_list.data(), s->config->alpn_client_proto_list.size() );
+            msspi_set_alpn( w->h, (const uint8_t *)s->config->alpn_client_proto_list.data(), s->config->alpn_client_proto_list.size() );
         if( cert && size )
             w->client_cert.assign( cert, cert + size );
     }
@@ -394,8 +393,8 @@ static int gostssl_set_certs( GostSSL_Worker * w )
       return 1;
 
     // SERVER CERTIFICATES
-    std::vector<const char *> servercerts_bufs;
-    std::vector<int> servercerts_lens;
+    std::vector<const uint8_t *> servercerts_bufs;
+    std::vector<size_t> servercerts_lens;
     size_t servercerts_count;
     {
         if( !msspi_get_peerchain( w->h, 0, NULL, NULL, &servercerts_count ) )
@@ -480,15 +479,14 @@ static int gostssl_connected( GostSSL_Worker * w )
     }
 
     // ALPN
-    const char * alpn;
+    const uint8_t * alpn = NULL;
     size_t alpn_len;
     {
-        alpn = msspi_get_alpn( w->h );
-
-        if( !alpn )
-            alpn = "http/1.1";
-
-        alpn_len = strlen( alpn );
+        if( !msspi_get_alpn( w->h, &alpn, &alpn_len ) || !alpn )
+        {
+            alpn = (const uint8_t *)"http/1.1";
+            alpn_len = 8;
+        }
     }
 
     // VERSION + CIPHER + GROUP_ID
@@ -496,9 +494,9 @@ static int gostssl_connected( GostSSL_Worker * w )
     uint16_t cipher_id;
     uint16_t group_id;
     {
-        PSecPkgContext_CipherInfo cipher_info = msspi_get_cipherinfo( w->h );
+        const SecPkgContext_CipherInfo * cipher_info = NULL;
 
-        if( !cipher_info )
+        if( !msspi_get_cipherinfo( w->h, &cipher_info ) || !cipher_info )
             return 0;
 
         version = (uint16_t)msspi_to_ssl_version( cipher_info->dwProtocol );
@@ -551,8 +549,8 @@ static int gostssl_cert_cb( GostSSL_Worker * w )
 
     if( w->client_cert.size() )
     {
-        msspi_set_mycert( w->h, w->client_cert.data(), w->client_cert.size() );
-    } 
+        msspi_set_mycert( w->h, (const uint8_t *)w->client_cert.data(), w->client_cert.size() );
+    }
     else
     if( w->s->config->cert && w->s->config->cert->cert_cb )
     {
@@ -565,8 +563,8 @@ static int gostssl_cert_cb( GostSSL_Worker * w )
         // mimic ssl3_get_certificate_request
         if( !w->s->s3->hs->ca_names )
         {
-            std::vector<const char *> bufs;
-            std::vector<int> lens;
+            std::vector<const uint8_t *> bufs;
+            std::vector<size_t> lens;
             size_t count;
 
             if( msspi_get_issuerlist( w->h, NULL, NULL, &count ) )
@@ -589,7 +587,7 @@ static int gostssl_cert_cb( GostSSL_Worker * w )
 
         if( gcert )
         {
-            if( msspi_set_mycert( w->h, (const char *)gcert->pbCertEncoded, gcert->cbCertEncoded ) )
+            if( msspi_set_mycert( w->h, (const uint8_t *)gcert->pbCertEncoded, gcert->cbCertEncoded ) )
                 boring_ERR_clear_error();
 
             CertFreeCertificateContext( gcert );
@@ -600,7 +598,7 @@ static int gostssl_cert_cb( GostSSL_Worker * w )
     return 1;
 }
 
-void gostssl_certhook( void * cert, int size )
+void gostssl_certhook( const uint8_t * cert, size_t size )
 {
     if( !cert )
         return;
@@ -611,10 +609,10 @@ void gostssl_certhook( void * cert, int size )
     if( size == 0 )
         gcert = CertDuplicateCertificateContext( (PCCERT_CONTEXT)cert );
     else
-        gcert = CertCreateCertificateContext( X509_ASN_ENCODING, (BYTE *)cert, size );
+        gcert = CertCreateCertificateContext( X509_ASN_ENCODING, (const BYTE *)cert, (DWORD)size );
 }
 
-void gostssl_isgostcerthook( void * cert, int size, int * is_gost )
+void gostssl_isgostcerthook( const uint8_t * cert, size_t size, int * is_gost )
 {
     PCCERT_CONTEXT certctx = NULL;
 
@@ -623,7 +621,7 @@ void gostssl_isgostcerthook( void * cert, int size, int * is_gost )
     if( size == 0 )
         certctx = CertDuplicateCertificateContext( (PCCERT_CONTEXT)cert );
     else
-        certctx = CertCreateCertificateContext( X509_ASN_ENCODING, (BYTE *)cert, size );
+        certctx = CertCreateCertificateContext( X509_ASN_ENCODING, (const BYTE *)cert, (DWORD)size );
 
     if( !certctx || !certctx->pCertInfo || !certctx->pCertInfo->SignatureAlgorithm.pszObjId )
         return;
@@ -644,7 +642,7 @@ int gostssl_tls_gost_required( SSL * s, const SSL_CIPHER * cipher )
 {
     GostSSL_Worker * w = workers_api( s, WDB_SEARCH );
 
-    if( w && 
+    if( w &&
         ( cipher == tls_0081 ||
           cipher == tls_C100 ||
           cipher == tls_C101 ||
@@ -660,7 +658,10 @@ int gostssl_tls_gost_required( SSL * s, const SSL_CIPHER * cipher )
 
         boring_ERR_clear_error();
 #if 1 // experimental stuff
-        if( w->tlsmode == 2 && w->boring_hello.size() && w->server_proxy.size() && msspi_set_input( w->h, w->boring_hello.data(), w->boring_hello.size() ) )
+        if( w->tlsmode == 2 &&
+            w->boring_hello.size() &&
+            w->server_proxy.size() &&
+            msspi_set_input( w->h, (const uint8_t *)w->boring_hello.data(), w->boring_hello.size() ) )
         {
             w->host_status = GOSTSSL_HOST_PROBING;
             boring_ERR_put_error( ERR_LIB_SSL, 0, SSL_R_TLS_GOST_PROXY, __FILE__, __LINE__ );
@@ -817,7 +818,7 @@ void gostssl_commandline( const char * ciphers, const char * tlsmode, const char
         g_ciphers += ":";
         g_ciphers += "C030:C02F:C028:C027:C014:C013:009D:009C:003D:003C:0035:002F:000A"; // TLS RSA
     }
-  
+
     if( tlsmode && strlen( tlsmode ) )
         g_tlsmode = atoi( tlsmode );
     else
@@ -828,7 +829,7 @@ void gostssl_commandline( const char * ciphers, const char * tlsmode, const char
             0 - переключение boringssl <> msspi с разрывом соединения
             -1 - принудительная работа только boringssl
         */
-  
+
     if( issuersfilter && strlen( issuersfilter ) )
         g_issuersfilter = atoi( issuersfilter );
     else
@@ -840,9 +841,9 @@ void gostssl_commandline( const char * ciphers, const char * tlsmode, const char
         */
 }
 
-void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const void * cert, int size )
+void gostssl_newsession( SSL * s, const uint8_t * cachestring, size_t len, const uint8_t * cert, size_t size )
 {
-    BYTE * bb = (BYTE *)cachestring;
+    const uint8_t * bb = cachestring;
     std::vector<BYTE> cc;
     cc.resize( len * 2 + 1 );
     for( size_t i = 0; i < len; i++ )
@@ -853,7 +854,7 @@ void gostssl_newsession( SSL * s, const void * cachestring, size_t len, const vo
         cc[i * 2 + 1] = B2C( Fx );
     }
     cc[len * 2] = 0;
-    workers_api( s, WDB_NEW, (char *)&cc[0], (const char *)cert, size );
+    workers_api( s, WDB_NEW, (const char *)&cc[0], (const char *)cert, (int)size );
 }
 
 int gostssl_connect( SSL * s, int * is_gost )
@@ -893,42 +894,36 @@ void gostssl_free( SSL * s )
     workers_api( s, WDB_FREE );
 }
 
-void gostssl_verifyhook( void * s, const char * host, int32_t * gost_status, char offline )
+void gostssl_verifyhook( void * s, const char * host, int * is_gost, uint32_t * verify_result, char offline )
 {
-    *gost_status = 0;
+    *verify_result = (uint32_t)-1;
 
-    GostSSL_Worker * w = workers_api( (SSL *)s, WDB_SEARCH );
-
-    if( !w || w->host_status != GOSTSSL_HOST_YES )
+    GostSSL_Worker * w = get_worker( (const SSL *)s, is_gost );
+    if( !w )
         return;
 
-    msspi_set_hostname( w->h, host );
+    msspi_set_hostname( w->h, (const uint8_t *)host, strlen( host ) );
     msspi_set_verify_offline( w->h, offline );
 
-    int32_t verify_status = msspi_verify( w->h );
+    if( !msspi_verify( w->h, verify_result ) )
+        return;
 
-    switch( verify_status )
-    {
-        case MSSPI_VERIFY_OK:
-            *gost_status = 1;
-            break;
-        case MSSPI_VERIFY_ERROR:
-            *gost_status = (int32_t)CERT_E_CRITICAL;
-            break;
-        case CRYPT_E_NO_REVOCATION_CHECK:
-            // Mask off CERT_STATUS_NO_REVOCATION_MECHANISM
-            *gost_status = 1;
-            break;
-        default:
-            *gost_status = verify_status;
-    }
+    // msspi_verify returned 1: verification executed successfully
+    // verify_result contains the verification status code:
+    //   0 = verification successful
+    //   CRYPT_E_NO_REVOCATION_CHECK = no revocation mechanism (mask as success)
+    //   other codes = verification failed with specific error
+
+    // Mask off CERT_STATUS_NO_REVOCATION_MECHANISM
+    if( *verify_result == CRYPT_E_NO_REVOCATION_CHECK )
+        *verify_result = 0;
 }
 
-static std::vector<char *> & g_certs = *( new std::vector<char *>() );
-static std::vector<int> & g_certlens = *( new std::vector<int>() );
+static std::vector<const uint8_t *> & g_certs = *( new std::vector<const uint8_t *>() );
+static std::vector<size_t> & g_certlens = *( new std::vector<size_t>() );
 static std::vector<std::string> & g_certbufs = *( new std::vector<std::string>() );
 
-static std::vector<wchar_t *> & g_certnames = *( new std::vector<wchar_t *>() );
+static std::vector<const wchar_t *> & g_certnames = *( new std::vector<const wchar_t *>() );
 static std::vector<std::wstring> & g_certnamebufs = *( new std::vector<std::wstring>() );
 
 static BOOL CertHasUsage( PCCERT_CONTEXT pcert, const char * oid )
@@ -950,7 +945,7 @@ static BOOL CertHasUsage( PCCERT_CONTEXT pcert, const char * oid )
     return FALSE;
 }
 
-static BOOL CertMatchesIssuerList( PCCERT_CONTEXT pcert, const char ** issuers, int * issuers_lens, int issuers_count )
+static BOOL CertMatchesIssuerList( PCCERT_CONTEXT pcert, const uint8_t ** issuers, const size_t * issuers_lens, size_t issuers_count )
 {
     if( g_issuersfilter == 0 )
         return TRUE;
@@ -959,11 +954,11 @@ static BOOL CertMatchesIssuerList( PCCERT_CONTEXT pcert, const char ** issuers, 
         return TRUE;
 
     PBYTE certIssuer = pcert->pCertInfo->Issuer.pbData;
-    int certIssuerLen = (int)pcert->pCertInfo->Issuer.cbData;
-    
-    for( int i = 0; i < issuers_count; i++ )
+    size_t certIssuerLen = pcert->pCertInfo->Issuer.cbData;
+
+    for( size_t i = 0; i < issuers_count; i++ )
     {
-        if( issuers_lens[i] == certIssuerLen && 
+        if( issuers_lens[i] == certIssuerLen &&
             0 == memcmp( issuers[i], certIssuer, issuers_lens[i] ) )
             return TRUE;
     }
@@ -971,8 +966,8 @@ static BOOL CertMatchesIssuerList( PCCERT_CONTEXT pcert, const char ** issuers, 
     return FALSE;
 }
 
-void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, int * count, int * is_gost,
-                              const char ** issuers, int * issuers_lens, int issuers_count )
+void gostssl_clientcertshook( const uint8_t *** certs, size_t ** lens, const wchar_t *** names, size_t * count, int * is_gost,
+                              const uint8_t ** issuers, const size_t * issuers_lens, size_t issuers_count )
 {
     *is_gost = g_tlsmode == 1 ? 1 : 0;
     *count = 0;
@@ -988,7 +983,7 @@ void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, in
     if( !hStore )
         return;
 
-    int i = 0;
+    size_t i = 0;
     g_certs.clear();
     g_certlens.clear();
     g_certbufs.clear();
@@ -1002,13 +997,13 @@ void gostssl_clientcertshook( char *** certs, int ** lens, wchar_t *** names, in
         DWORD dw = 0;
         // basic TLS client cert filtering + issuers filtering
         if(    CertVerifyTimeValidity( NULL, pcert->pCertInfo ) == 0
-            && CertGetCertificateContextProperty( pcert, CERT_KEY_PROV_INFO_PROP_ID, NULL, &dw ) 
+            && CertGetCertificateContextProperty( pcert, CERT_KEY_PROV_INFO_PROP_ID, NULL, &dw )
             && CertHasUsage( pcert, szOID_PKIX_KP_CLIENT_AUTH )
             && CertMatchesIssuerList( pcert, issuers, issuers_lens, issuers_count ) )
         {
             g_certbufs.push_back( std::string( (char *)pcert->pbCertEncoded, pcert->cbCertEncoded ) );
-            g_certlens.push_back( (int)g_certbufs[i].size() );
-            g_certs.push_back( &g_certbufs[i][0] );
+            g_certlens.push_back( g_certbufs[i].size() );
+            g_certs.push_back( (const uint8_t *)&g_certbufs[i][0] );
 
             if( names )
             {
@@ -1057,132 +1052,4 @@ int gostssl_is_msspi( SSL * s )
     if( !w || w->host_status != GOSTSSL_HOST_YES )
         return 0;
     return 1;
-}
-
-int gostssl_certificate_info( const char * cert, size_t size, const char ** info, size_t * len )
-{
-    MSSPI_CERT_HANDLE ch = msspi_cert_open( cert, size );
-    if( !ch )
-        return 0;
-
-    int isOK = 0;
-    for( ;; )
-    {
-        const char * cstr;
-        size_t cstrlen;
-        static std::string certinfo;
-        certinfo.clear();
-
-        if( !msspi_cert_subject( ch, &cstr, &cstrlen, 0 ) )
-            break;
-        std::string subject = cstr;
-
-        if( !msspi_cert_issuer( ch, &cstr, &cstrlen, 0 ) )
-            break;
-        std::string issuer = cstr;
-
-        if( !msspi_cert_serial( ch, &cstr, &cstrlen ) )
-            break;
-        std::string serial = cstr;
-
-        if( !msspi_cert_keyid( ch, &cstr, &cstrlen ) )
-            break;
-        std::string keyid = cstr;
-
-        if( !msspi_cert_sha1( ch, &cstr, &cstrlen ) )
-            break;
-        std::string sha1 = cstr;
-
-        if( !msspi_cert_alg_sig( ch, &cstr, &cstrlen ) )
-            break;
-        std::string alg_sig = cstr;
-
-        if( !msspi_cert_alg_key( ch, &cstr, &cstrlen ) )
-            break;
-        std::string alg_key = cstr;
-
-        struct tm tt;
-        char buf[32];
-
-        if( !msspi_cert_time_issued( ch, &tt ) )
-            break;
-        if( 0 >= snprintf( buf, sizeof( buf ), "%d.%02d.%02d %02d:%02d:%02d", tt.tm_year, tt.tm_mon, tt.tm_mday, tt.tm_hour, tt.tm_min, tt.tm_sec ) )
-            break;
-        std::string issued = buf;
-
-        if( !msspi_cert_time_expired( ch, &tt ) )
-            break;
-        if( 0 >= snprintf( buf, sizeof( buf ), "%d.%02d.%02d %02d:%02d:%02d", tt.tm_year, tt.tm_mon, tt.tm_mday, tt.tm_hour, tt.tm_min, tt.tm_sec ) )
-            break;
-        std::string expired = buf;
-
-        certinfo = "<html><meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"><style>table { border-collapse: collapse; } body, td { font-family: monospace, monospace; padding-right: 4px; }</style><body>";
-        certinfo += "<table width=100%>";
-        certinfo += "<tr><td width=25% valign=top align=right><b>Субъект</b></td><td>" + subject + "</td></tr>";
-        certinfo += "<tr><td valign=top align=right><b>Издатель</b></td><td>" + issuer + "</td></tr>";
-        certinfo += "<tr><td valign=top align=right><b>Ключ</b></td><td>" + alg_key + "</td></tr>";
-        certinfo += "<tr><td valign=top align=right><b>Подпись</b></td><td>" + alg_sig + "</td></tr>";
-        certinfo += "<tr><td valign=top align=right><b>Серийный номер</b></td><td>" + serial + "</td></tr>";
-        certinfo += "<tr><td valign=top align=right><b>Идентификатор</b></td><td>" + keyid + "</td></tr>";
-        certinfo += "<tr><td valign=top align=right><b>Отпечаток SHA-1</b></td><td>" + sha1 + "</td></tr>";
-        certinfo += "<tr><td valign=top align=right><b>Выдан</b></td><td>" + issued + "</td></tr>";
-        certinfo += "<tr><td valign=top align=right><b>Истекает</b></td><td>" + expired + "</td></tr>";
-        certinfo += "</table>";
-
-        for( ;; )
-        {
-            MSSPI_CERT_HANDLE ch_next = msspi_cert_next( ch );
-            msspi_cert_close( ch );
-            ch = ch_next;
-
-            if( !ch )
-                break;
-
-            if( !msspi_cert_subject( ch, &cstr, &cstrlen, 0 ) )
-                break;
-            subject = cstr;
-
-            if( !msspi_cert_issuer( ch, &cstr, &cstrlen, 0 ) )
-                break;
-            issuer = cstr;
-
-            if( !msspi_cert_sha1( ch, &cstr, &cstrlen ) )
-                break;
-            sha1 = cstr;
-
-            if( !msspi_cert_alg_key( ch, &cstr, &cstrlen ) )
-                break;
-            alg_key = cstr;
-
-            if( !msspi_cert_time_expired( ch, &tt ) )
-                break;
-            if( 0 >= snprintf( buf, sizeof( buf ), "%d.%02d.%02d %02d:%02d:%02d", tt.tm_year, tt.tm_mon, tt.tm_mday, tt.tm_hour, tt.tm_min, tt.tm_sec ) )
-                break;
-            expired = buf;
-
-            certinfo += "<table width=100%><tr><td style=\"border-bottom: 4px solid #c0c0c0;\"></td></tr></table>";
-
-            if( subject == issuer )
-                certinfo += "<br><b>Корневой сертификат</b><br>";
-            else
-                certinfo += "<br><b>Промежуточный сертификат</b><br>";
-            certinfo += "<br><table width=100%>";
-            certinfo += "<tr><td width=25% valign=top align=right><b>Субъект</b></td><td>" + subject + "</td></tr>";
-            certinfo += "<tr><td valign=top align=right><b>Ключ</b></td><td>" + alg_key + "</td></tr>";
-            certinfo += "<tr><td valign=top align=right><b>Отпечаток SHA-1</b></td><td>" + sha1 + "</td></tr>";
-            certinfo += "<tr><td valign=top align=right><b>Истекает</b></td><td>" + expired + "</td></tr>";
-            certinfo += "</table>";
-        }
-
-        certinfo += "</body></html>";
-        *info = certinfo.c_str();
-        *len = certinfo.length();
-        isOK = 1;
-        break;
-    }
-
-    if( ch )
-        msspi_cert_close( ch );
-
-    return isOK;
 }
