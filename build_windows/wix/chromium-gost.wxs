@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*"
+           Name="Chromium-Gost ($(var.Platform))"
+           Language="1033"
+           Version="$(var.ProductVersion)"
+           Manufacturer="Chromium-Gost Team"
+           UpgradeCode="$(var.UpgradeCode)">
+
+    <Package InstallerVersion="500"
+             Compressed="yes"
+             InstallScope="perMachine"
+             Platform="$(var.Platform)" />
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version is already installed." />
+
+    <Media Id="1" Cabinet="crgost.cab" EmbedCab="yes" />
+
+    <?if $(var.Platform) = "x64" ?>
+    <Condition Message="This package is for 64-bit Windows only.">VersionNT64</Condition>
+    <?endif ?>
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="$(var.ProgramFilesFolder)">
+        <Directory Id="INSTALLFOLDER" Name="Chromium-Gost" />
+      </Directory>
+    </Directory>
+
+    <Feature Id="MainFeature" Title="Chromium-Gost ($(var.Platform))" Level="1">
+      <ComponentRef Id="cmpMiniInstaller" />
+    </Feature>
+
+    <DirectoryRef Id="INSTALLFOLDER">
+      <?if $(var.Platform) = "x64" ?>
+      <Component Id="cmpMiniInstaller" Guid="$(var.ComponentGuid)" Win64="yes">
+        <File Id="fileMiniInstaller"
+              Source="$(var.SourceDir)\$(var.MiniInstallerFile)"
+              KeyPath="yes" />
+      </Component>
+      <?else ?>
+      <Component Id="cmpMiniInstaller" Guid="$(var.ComponentGuid)">
+        <File Id="fileMiniInstaller"
+              Source="$(var.SourceDir)\$(var.MiniInstallerFile)"
+              KeyPath="yes" />
+      </Component>
+      <?endif ?>
+    </DirectoryRef>
+
+    <CustomAction Id="RunMiniInstaller"
+                  FileKey="fileMiniInstaller"
+                  ExeCommand="--system-level --install --do-not-launch-chrome"
+                  Execute="deferred"
+                  Return="check"
+                  Impersonate="no" />
+
+    <CustomAction Id="UninstallMiniInstaller"
+                  FileKey="fileMiniInstaller"
+                  ExeCommand="--system-level --uninstall --force-uninstall"
+                  Execute="deferred"
+                  Return="check"
+                  Impersonate="no" />
+
+    <InstallExecuteSequence>
+      <Custom Action="RunMiniInstaller" After="InstallFiles">
+        NOT Installed
+      </Custom>
+
+      <Custom Action="UninstallMiniInstaller" Before="InstallFinalize">
+        Installed AND REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE
+      </Custom>
+    </InstallExecuteSequence>
+  </Product>
+</Wix>
