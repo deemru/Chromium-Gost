@@ -4,7 +4,7 @@
            Name="Chromium-Gost ($(var.Platform))"
            Language="1033"
            Version="$(var.ProductVersion)"
-           Manufacturer="Chromium-Gost Team"
+           Manufacturer="The Chromium-Gost Authors"
            UpgradeCode="$(var.UpgradeCode)">
 
     <Package InstallerVersion="500"
@@ -57,15 +57,15 @@
                   FileKey="fileMiniInstaller"
                   ExeCommand="--system-level --uninstall --force-uninstall"
                   Execute="deferred"
-                  Return="check"
+                  Return="ignore"
                   Impersonate="no" />
 
     <InstallExecuteSequence>
       <Custom Action="RunMiniInstaller" After="InstallFiles">
-        NOT Installed
+        (NOT Installed) OR REINSTALL
       </Custom>
 
-      <Custom Action="UninstallMiniInstaller" Before="InstallFinalize">
+      <Custom Action="UninstallMiniInstaller" Before="RemoveFiles">
         Installed AND REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE
       </Custom>
     </InstallExecuteSequence>
