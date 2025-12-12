@@ -129,15 +129,15 @@ int gostssl_init()
     char tls12 = msspi_is_version_supported( TLS1_2_VERSION );
     char tls13 = msspi_is_version_supported( TLS1_3_VERSION );
 
-    char cipher_0x0081 = msspi_is_cipher_supported( 0x0081 );
-    char cipher_0xFF85 = msspi_is_cipher_supported( 0xFF85 );
-    char cipher_0xC100 = tls12 ? msspi_is_cipher_supported( 0xC100 ) : 0;
-    char cipher_0xC101 = tls12 ? msspi_is_cipher_supported( 0xC101 ) : 0;
-    char cipher_0xC102 = tls12 ? msspi_is_cipher_supported( 0xC102 ) : 0;
-    char cipher_0xC103 = tls13 ? msspi_is_cipher_supported( 0xC103 ) : 0;
-    char cipher_0xC104 = tls13 ? msspi_is_cipher_supported( 0xC104 ) : 0;
-    char cipher_0xC105 = tls13 ? msspi_is_cipher_supported( 0xC105 ) : 0;
-    char cipher_0xC106 = tls13 ? msspi_is_cipher_supported( 0xC106 ) : 0;
+    char cipher_0x0081 = msspi_is_cipher_supported( 0x0081, 0 );
+    char cipher_0xFF85 = msspi_is_cipher_supported( 0xFF85, 0 );
+    char cipher_0xC100 = tls12 ? msspi_is_cipher_supported( 0xC100, 0 ) : 0;
+    char cipher_0xC101 = tls12 ? msspi_is_cipher_supported( 0xC101, 0 ) : 0;
+    char cipher_0xC102 = tls12 ? msspi_is_cipher_supported( 0xC102, 0 ) : 0;
+    char cipher_0xC103 = tls13 ? msspi_is_cipher_supported( 0xC103, 0 ) : 0;
+    char cipher_0xC104 = tls13 ? msspi_is_cipher_supported( 0xC104, 0 ) : 0;
+    char cipher_0xC105 = tls13 ? msspi_is_cipher_supported( 0xC105, 0 ) : 0;
+    char cipher_0xC106 = tls13 ? msspi_is_cipher_supported( 0xC106, 0 ) : 0;
 
     bool cipher_tls10 = cipher_0x0081 || cipher_0xFF85;
     bool cipher_tls11 = cipher_tls10;
@@ -397,13 +397,14 @@ static int gostssl_set_certs( GostSSL_Worker * w )
     std::vector<size_t> servercerts_lens;
     size_t servercerts_count;
     {
-        if( !msspi_get_peerchain( w->h, 0, NULL, NULL, &servercerts_count ) )
+        msspi_set_verify_offline( w->h, 1 );
+        if( !msspi_get_peerchain( w->h, NULL, NULL, &servercerts_count ) )
             return 0;
 
         servercerts_bufs.resize( servercerts_count );
         servercerts_lens.resize( servercerts_count );
 
-        if( !msspi_get_peerchain( w->h, 0, &servercerts_bufs[0], &servercerts_lens[0], &servercerts_count ) )
+        if( !msspi_get_peerchain( w->h, &servercerts_bufs[0], &servercerts_lens[0], &servercerts_count ) )
             return 0;
     }
 
@@ -905,7 +906,7 @@ void gostssl_verifyhook( void * s, const char * host, int * is_gost, uint32_t * 
     msspi_set_hostname( w->h, (const uint8_t *)host, strlen( host ) );
     msspi_set_verify_offline( w->h, offline );
 
-    if( !msspi_verify( w->h, verify_result ) )
+    if( !msspi_get_verify_status( w->h, verify_result ) )
         return;
 
     // msspi_verify returned 1: verification executed successfully
