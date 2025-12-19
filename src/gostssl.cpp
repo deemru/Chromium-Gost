@@ -954,17 +954,66 @@ static BOOL CertMatchesIssuerList( PCCERT_CONTEXT pcert, const uint8_t ** issuer
     if( issuers_count == 0 || !issuers || !issuers_lens )
         return TRUE;
 
-    PBYTE certIssuer = pcert->pCertInfo->Issuer.pbData;
-    size_t certIssuerLen = pcert->pCertInfo->Issuer.cbData;
+    PCCERT_CHAIN_CONTEXT pChainContext = NULL;
+    BOOL result = FALSE;
 
-    for( size_t i = 0; i < issuers_count; i++ )
+    CERT_CHAIN_PARA ChainPara;
+    memset( &ChainPara, 0, sizeof( ChainPara ) );
+    ChainPara.cbSize = sizeof( ChainPara );
+
+    if( CertGetCertificateChain(
+        NULL,
+        pcert,
+        NULL,
+        pcert->hCertStore,
+        &ChainPara,
+        CERT_CHAIN_CACHE_END_CERT | CERT_CHAIN_CACHE_ONLY_URL_RETRIEVAL,
+        NULL,
+        &pChainContext ) )
     {
-        if( issuers_lens[i] == certIssuerLen &&
-            0 == memcmp( issuers[i], certIssuer, issuers_lens[i] ) )
-            return TRUE;
+        if( pChainContext->cChain > 0 )
+        {
+            PCERT_SIMPLE_CHAIN pSimpleChain = pChainContext->rgpChain[0];
+            for( DWORD j = 0; j < pSimpleChain->cElement; j++ )
+            {
+                PCCERT_CONTEXT cert = pSimpleChain->rgpElement[j]->pCertContext;
+                PBYTE certIssuer = cert->pCertInfo->Issuer.pbData;
+                size_t certIssuerLen = cert->pCertInfo->Issuer.cbData;
+
+                for( size_t i = 0; i < issuers_count; i++ )
+                {
+                    if( issuers_lens[i] == certIssuerLen &&
+                        0 == memcmp( issuers[i], certIssuer, issuers_lens[i] ) )
+                    {
+                        result = TRUE;
+                        break;
+                    }
+                }
+
+                if( result )
+                    break;
+            }
+        }
+
+        CertFreeCertificateChain( pChainContext );
+    }
+    else
+    {
+        PBYTE certIssuer = pcert->pCertInfo->Issuer.pbData;
+        size_t certIssuerLen = pcert->pCertInfo->Issuer.cbData;
+
+        for( size_t i = 0; i < issuers_count; i++ )
+        {
+            if( issuers_lens[i] == certIssuerLen &&
+                0 == memcmp( issuers[i], certIssuer, issuers_lens[i] ) )
+            {
+                result = TRUE;
+                break;
+            }
+        }
     }
 
-    return FALSE;
+    return result;
 }
 
 void gostssl_clientcertshook( const uint8_t *** certs, size_t ** lens, const wchar_t *** names, size_t * count, int * is_gost,
