@@ -1,4 +1,4 @@
-From 538fb1032efb047b3ff98d5364ec5ee458a6a7d2 Mon Sep 17 00:00:00 2001
+From 3c69f08bdeb52b4801f2b34e4d2bbd7beac7f21e Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 6 Aug 2025 01:41:03 +0300
 Subject: [PATCH] search_engines_data.patch (yandex)
@@ -8,7 +8,7 @@ Subject: [PATCH] search_engines_data.patch (yandex)
  1 file changed, 5 insertions(+), 5 deletions(-)
 
 diff --git a/definitions/prepopulated_engines.json b/definitions/prepopulated_engines.json
-index 35ad4c0..b3637fc 100644
+index cad6232..5b9de93 100644
 --- a/definitions/prepopulated_engines.json
 +++ b/definitions/prepopulated_engines.json
 @@ -935,7 +935,7 @@

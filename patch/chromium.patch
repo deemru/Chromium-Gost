@@ -1,6 +1,6 @@
-From a922d80eb02f657ebd122226dc8fc11d0e6a5792 Mon Sep 17 00:00:00 2001
+From 863812fdc8c7c5f8a418bc2e9ffcad553cb35ca6 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
-Date: Wed, 3 Dec 2025 15:43:45 +0300
+Date: Sun, 25 Jan 2026 12:46:18 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
@@ -66,10 +66,10 @@ Subject: [PATCH] chromium GOSTSSL
  59 files changed, 958 insertions(+), 58 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
-index d3ca849dce4a2..18c870d02f7f5 100644
+index fa036801ce974..7e2e86fba88f7 100644
 --- a/chrome/BUILD.gn
 +++ b/chrome/BUILD.gn
-@@ -1508,7 +1508,7 @@ group("extra_resources") {
+@@ -1509,7 +1509,7 @@ group("extra_resources") {
    ]
  }
  
@@ -78,7 +78,7 @@ index d3ca849dce4a2..18c870d02f7f5 100644
    if (!is_mac) {
      _preinstalled_apps_target_type = "copy"
    } else {
-@@ -1525,6 +1525,10 @@ if (is_chrome_branded && !is_android) {
+@@ -1526,6 +1526,10 @@ if (is_chrome_branded && !is_android) {
      }
  
      sources = [ "browser/resources/default_apps/external_extensions.json" ]
@@ -89,7 +89,7 @@ index d3ca849dce4a2..18c870d02f7f5 100644
  
      if (!is_mac) {
        outputs = [ "$root_out_dir/default_apps/{{source_file_part}}" ]
-@@ -1552,7 +1556,7 @@ if (!is_android) {
+@@ -1553,7 +1557,7 @@ if (!is_android) {
        deps = [ ":resource_allowlist" ]
      }
  
@@ -117,10 +117,10 @@ index 79bf119fba775..2350f4b1d19e9 100644
  </dict>
  </plist>
 diff --git a/chrome/app/generated_resources.grd b/chrome/app/generated_resources.grd
-index 9d3902f1fb9f5..484373bd1c713 100644
+index 25c2a9ad92d8d..1414543f76a6f 100644
 --- a/chrome/app/generated_resources.grd
 +++ b/chrome/app/generated_resources.grd
-@@ -7573,10 +7573,8 @@ Keep your key file in a safe place. You will need it to create new versions of y
+@@ -7661,10 +7661,8 @@ Keep your key file in a safe place. You will need it to create new versions of y
  
        <!-- NTP -->
        <message name="IDS_GOOGLE_SEARCH_BOX_EMPTY_HINT_MD" desc="The text displayed in the fakebox (on the New Tab page) when it is empty, Google is the default search engine, and the Material Design UI is enabled.">
@@ -132,10 +132,10 @@ index 9d3902f1fb9f5..484373bd1c713 100644
        <message name="IDS_GOOGLE_SEARCH_BOX_EMPTY_HINT_MULTIMODAL" desc="The text displayed in the multimodal searchbox when it is empty. It is meant to invite the user to add a text query to the existing image query in order to issue a 'multimodal' (image + text) query.">
          Add to your search
 diff --git a/chrome/app/resources/generated_resources_ru.xtb b/chrome/app/resources/generated_resources_ru.xtb
-index 3c7da44296f94..bcc07fbe5db7e 100644
+index 8b4c4ced8b4c1..93d76e3ac8bab 100644
 --- a/chrome/app/resources/generated_resources_ru.xtb
 +++ b/chrome/app/resources/generated_resources_ru.xtb
-@@ -6038,7 +6038,7 @@
+@@ -6088,7 +6088,7 @@
  <translation id="5153234146675181447">Удаление телефона</translation>
  <translation id="5153907427821264830"><ph name="STATUS" /> • <ph name="MESSAGE" /></translation>
  <translation id="5154108062446123722"><ph name="PRINTING_DESTINATION" /> – дополнительные настройки</translation>
@@ -226,10 +226,10 @@ index 436bc47cadcb1..3c922aaefade9 100644
  void ReportIsSupportedOutcome(KeyCredentialManagerAvailability availability) {
    base::UmaHistogramEnumeration(
 diff --git a/chrome/browser/resources/new_tab_page/app.ts b/chrome/browser/resources/new_tab_page/app.ts
-index 58fc676cff93c..bdcb1add89d7a 100644
+index 2235dc59ed8e3..a79e930483b0f 100644
 --- a/chrome/browser/resources/new_tab_page/app.ts
 +++ b/chrome/browser/resources/new_tab_page/app.ts
-@@ -339,15 +339,15 @@ export class AppElement extends AppElementBase {
+@@ -352,15 +352,15 @@ export class AppElement extends AppElementBase {
    protected accessor logoEnabled_: boolean =
        loadTimeData.getBoolean('logoEnabled');
    protected accessor oneGoogleBarEnabled_: boolean =
@@ -249,15 +249,15 @@ index 58fc676cff93c..bdcb1add89d7a 100644
    protected accessor browserPromoLimit_: number =
        loadTimeData.getInteger('browserPromoLimit');
    protected accessor browserPromoCompletedLimit_: number =
-@@ -358,7 +358,7 @@ export class AppElement extends AppElementBase {
+@@ -371,7 +371,7 @@ export class AppElement extends AppElementBase {
        ModuleLoadStatus.MODULE_LOAD_IN_PROGRESS;
    protected accessor modulesShownToUser: boolean = false;
    protected accessor microsoftModuleEnabled_: boolean =
 -      loadTimeData.getBoolean('microsoftModuleEnabled');
 +      false; // loadTimeData.getBoolean('microsoftModuleEnabled');
    protected accessor microsoftAuthIframePath_: string = MSAL_IFRAME_ORIGIN;
-   protected accessor promoAndModulesLoaded_: boolean = false;
-   protected accessor lazyRender_: boolean = false;
+   protected accessor multiLineEnabled_: boolean =
+       loadTimeData.getBoolean('multiLineEnabled');
 diff --git a/chrome/browser/resources/new_tab_page/logo.css b/chrome/browser/resources/new_tab_page/logo.css
 index e744ffca3bf37..47dff94a6367c 100644
 --- a/chrome/browser/resources/new_tab_page/logo.css
@@ -308,10 +308,10 @@ index dfd9b793632be..a40898b8a4170 100644
      const bool default_is_google = DefaultSearchProviderIsGoogle(profile);
      const GURL local_url(default_is_google
 diff --git a/chrome/browser/shell_integration_linux.cc b/chrome/browser/shell_integration_linux.cc
-index 60f11020c9c5e..095233374e738 100644
+index 8cb4529d2548f..8cbba8512f725 100644
 --- a/chrome/browser/shell_integration_linux.cc
 +++ b/chrome/browser/shell_integration_linux.cc
-@@ -503,7 +503,7 @@ std::string GetIconName() {
+@@ -516,7 +516,7 @@ std::string GetIconName() {
  #if BUILDFLAG(GOOGLE_CHROME_BRANDING)
    return "google-chrome";
  #else  // BUILDFLAG(CHROMIUM_BRANDING)
@@ -321,10 +321,10 @@ index 60f11020c9c5e..095233374e738 100644
  }
  
 diff --git a/chrome/browser/ui/startup/startup_browser_creator.cc b/chrome/browser/ui/startup/startup_browser_creator.cc
-index 6d9a9c09ff966..214b1dd6f7078 100644
+index 8c99b3663e79f..d469b40881bf9 100644
 --- a/chrome/browser/ui/startup/startup_browser_creator.cc
 +++ b/chrome/browser/ui/startup/startup_browser_creator.cc
-@@ -145,6 +145,17 @@
+@@ -144,6 +144,17 @@
  #include "chrome/browser/web_applications/isolated_web_apps/install/isolated_web_app_installation_manager.h"
  #endif
  
@@ -342,7 +342,7 @@ index 6d9a9c09ff966..214b1dd6f7078 100644
  #if !BUILDFLAG(IS_ANDROID)
  #include "chrome/browser/ui/startup/focus/focus_handler.h"
  #endif
-@@ -725,6 +736,170 @@ void StartupBrowserCreator::LaunchBrowser(
+@@ -837,6 +848,170 @@ void StartupBrowserCreator::LaunchBrowser(
    profile = GetPrivateProfileIfRequested(
        command_line, {profile, StartupProfileMode::kBrowserWindow});
  
@@ -513,7 +513,7 @@ index 6d9a9c09ff966..214b1dd6f7078 100644
    if (!IsSilentLaunchEnabled(command_line, profile)) {
  #if BUILDFLAG(ENABLE_DICE_SUPPORT)
      auto* fre_service = FirstRunServiceFactory::GetForBrowserContext(profile);
-@@ -946,12 +1121,12 @@ void StartupBrowserCreator::ClearLaunchedProfilesForTesting() {
+@@ -1058,12 +1233,12 @@ void StartupBrowserCreator::ClearLaunchedProfilesForTesting() {
  // static
  void StartupBrowserCreator::RegisterLocalStatePrefs(
      PrefRegistrySimple* registry) {
@@ -632,10 +632,10 @@ index 475cf744f04a6..1ab23003aab43 100644
  }
  
 diff --git a/chrome/common/channel_info_posix.cc b/chrome/common/channel_info_posix.cc
-index c1366e177f0ad..c45be65a97c6f 100644
+index f6bcb3cc8e8d6..dc53b2f53f8e8 100644
 --- a/chrome/common/channel_info_posix.cc
 +++ b/chrome/common/channel_info_posix.cc
-@@ -152,7 +152,7 @@ std::string GetDesktopName(base::Environment* env) {
+@@ -148,7 +148,7 @@ std::string GetDesktopName(base::Environment* env) {
    if (name.has_value() && !name.value().empty()) {
      return name.value();
    }
@@ -645,10 +645,10 @@ index c1366e177f0ad..c45be65a97c6f 100644
  }
  #endif  // BUILDFLAG(IS_LINUX)
 diff --git a/chrome/common/net/x509_certificate_model.cc b/chrome/common/net/x509_certificate_model.cc
-index cc975dda45f0a..249ad01ad876a 100644
+index 84d69e692f3ba..7a966124fa848 100644
 --- a/chrome/common/net/x509_certificate_model.cc
 +++ b/chrome/common/net/x509_certificate_model.cc
-@@ -564,7 +564,7 @@ std::string ProcessRDN(const bssl::RelativeDistinguishedName& rdn) {
+@@ -565,7 +565,7 @@ std::string ProcessRDN(const bssl::RelativeDistinguishedName& rdn) {
      std::string value;
      if (!name_attribute.ValueAsStringWithUnsafeOptions(kNameStringHandling,
                                                         &value)) {
@@ -693,7 +693,7 @@ index 395c019f7dd5f..91fa16c4ed39c 100644
  # Package maintainer information.
  MAINTNAME="Chromium Linux Team"
 diff --git a/chrome/installer/linux/rpm/chrome.spec.template b/chrome/installer/linux/rpm/chrome.spec.template
-index 658a6edb3924c..88e78ee0d6168 100644
+index 819bca8448842..3f67ed46a05a8 100644
 --- a/chrome/installer/linux/rpm/chrome.spec.template
 +++ b/chrome/installer/linux/rpm/chrome.spec.template
 @@ -125,6 +125,8 @@ add_nss_symlinks
@@ -728,7 +728,7 @@ index 0f331c3e0f2a3..87626fc3e119b 100644
  
  #
 diff --git a/chrome/installer/setup/install_worker.cc b/chrome/installer/setup/install_worker.cc
-index 3393a297bb712..e826a39ff5ec8 100644
+index 317e77e81c040..730d6caa4f1d0 100644
 --- a/chrome/installer/setup/install_worker.cc
 +++ b/chrome/installer/setup/install_worker.cc
 @@ -272,6 +272,7 @@ void AddChromeWorkItems(const InstallParams& install_params,
@@ -739,15 +739,15 @@ index 3393a297bb712..e826a39ff5ec8 100644
  // Adds work items to register the Elevation Service with Windows. Only for
  // system level installs.
  void AddElevationServiceWorkItems(const base::FilePath& elevation_service_path,
-@@ -295,6 +296,7 @@ void AddElevationServiceWorkItems(const base::FilePath& elevation_service_path,
-   install_service_work_item->set_best_effort(true);
+@@ -294,6 +295,7 @@ void AddElevationServiceWorkItems(const base::FilePath& elevation_service_path,
+       {install_static::GetElevatorClsid()}, {install_static::GetElevatorIid()});
    list->AddWorkItem(install_service_work_item);
  }
 +#endif  // BUILDFLAG(GOOGLE_CHROME_BRANDING)
  
  // Adds work items to register or unregister the elevated tracing service.
  void AddTracingServiceWorkItems(const InstallationState& original_state,
-@@ -991,10 +993,12 @@ void AddInstallWorkItems(const InstallParams& install_params,
+@@ -990,10 +992,12 @@ void AddInstallWorkItems(const InstallParams& install_params,
        installer_state.root_key(),
        GetNotificationHelperPath(target_path, new_version), install_list);
  
@@ -761,10 +761,10 @@ index 3393a297bb712..e826a39ff5ec8 100644
    AddUpdateDowngradeVersionItem(installer_state.root_key(), current_version,
                                  new_version, install_list);
 diff --git a/components/embedder_support/user_agent_utils.cc b/components/embedder_support/user_agent_utils.cc
-index eb4a065f0a695..9b556dbe9ccaa 100644
+index 857d780653754..a9ffc0dbab3c2 100644
 --- a/components/embedder_support/user_agent_utils.cc
 +++ b/components/embedder_support/user_agent_utils.cc
-@@ -971,7 +971,7 @@ std::string BuildUserAgentFromOSAndProduct(const std::string& os_info,
+@@ -973,7 +973,7 @@ std::string BuildUserAgentFromOSAndProduct(const std::string& os_info,
    // compatible with Safari, we hope!!
    std::string user_agent;
    base::StringAppendF(&user_agent,
@@ -880,7 +880,7 @@ index 025c0c4c5e414..93c94c765627f 100644
  }
  
 diff --git a/content/browser/service_host/utility_process_host.cc b/content/browser/service_host/utility_process_host.cc
-index ad963436db4e8..d2fff18f24482 100644
+index c798b3394db76..879954ee3e372 100644
 --- a/content/browser/service_host/utility_process_host.cc
 +++ b/content/browser/service_host/utility_process_host.cc
 @@ -382,6 +382,12 @@ bool UtilityProcessHost::StartProcess() {
@@ -897,10 +897,10 @@ index ad963436db4e8..d2fff18f24482 100644
        network::switches::kForceEffectiveConnectionType,
        network::switches::kHostResolverRules,
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
-index 2a1bb85e534b0..d1b8575238661 100644
+index 6538653b55c1c..f0c9fa5cbbe62 100644
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
-@@ -175,6 +175,10 @@
+@@ -174,6 +174,10 @@
  #include "services/service_manager/public/cpp/interface_provider.h"
  #endif  // BUILDFLAG(IS_ANDROID)
  
@@ -911,7 +911,7 @@ index 2a1bb85e534b0..d1b8575238661 100644
  #if BUILDFLAG(ENABLE_LIBRARY_CDMS)
  #include "content/browser/media/cdm_storage_common.h"
  #include "content/browser/media/cdm_storage_manager.h"
-@@ -607,6 +611,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
+@@ -606,6 +610,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
        scoped_refptr<net::X509Certificate> cert,
        scoped_refptr<net::SSLPrivateKey> private_key) override {
      DCHECK_CURRENTLY_ON(BrowserThread::UI);
@@ -924,7 +924,7 @@ index 2a1bb85e534b0..d1b8575238661 100644
      if (cert && private_key) {
        mojo::PendingRemote<network::mojom::SSLPrivateKey> ssl_private_key;
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
-index 6213af342da97..1fc802f4e3b0d 100644
+index 1a3e871240bbc..5e2eec1d2bd01 100644
 --- a/net/base/net_error_list.h
 +++ b/net/base/net_error_list.h
 @@ -23,6 +23,11 @@
@@ -1040,10 +1040,10 @@ index c6c544bec555a..11c9d941f217e 100644
    std::string state_or_province_name;
    std::string country_name;
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index f77f41538fd47..a9bbc73d5bb1e 100644
+index 9b8eddfd7c25c..608b368ebf2e2 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
-@@ -2070,6 +2070,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
+@@ -2056,6 +2056,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
        return OK;
      }
    }
@@ -1806,10 +1806,10 @@ index c97eaf3c238ca..b909eb7d5e8e2 100644
  
    obsolete_ssl |= ObsoleteSSLStatusForSignature(signature_algorithm);
 diff --git a/net/ssl/ssl_config_service.cc b/net/ssl/ssl_config_service.cc
-index 5ea21db9dac36..a656f91922202 100644
+index 9ed9659467ba7..bf32e6cb2aea1 100644
 --- a/net/ssl/ssl_config_service.cc
 +++ b/net/ssl/ssl_config_service.cc
-@@ -21,7 +21,7 @@ namespace {
+@@ -22,7 +22,7 @@ namespace {
  // group (X25519MLKEM768) to BoringSSL's kDefaultSupportedGroupIds and
  // evaluating BoringSSL's default logic for selecting key shares.
  const SSLNamedGroupInfo kDefaultSSLSupportedGroups[] = {
@@ -1906,7 +1906,7 @@ index 93b814e8e44f2..ff7540a2b4bda 100644
  // Enables Renderer AppContainer
  BASE_FEATURE(kRendererAppContainer, base::FEATURE_DISABLED_BY_DEFAULT);
 diff --git a/sandbox/policy/mac/common.sb b/sandbox/policy/mac/common.sb
-index 9726d7a49ac59..25ebb6e6e2a63 100644
+index fa8eb9934c270..0a54a960bb62a 100644
 --- a/sandbox/policy/mac/common.sb
 +++ b/sandbox/policy/mac/common.sb
 @@ -195,6 +195,23 @@
@@ -1970,7 +1970,7 @@ index 39282ab6be12d..524a4a3e9b12e 100644
  
    // Enable image load policies.
 diff --git a/services/network/public/mojom/ssl_config.mojom b/services/network/public/mojom/ssl_config.mojom
-index 781f80ede2e0a..8dc48b8c43709 100644
+index e3fc70697afab..09afabe427e22 100644
 --- a/services/network/public/mojom/ssl_config.mojom
 +++ b/services/network/public/mojom/ssl_config.mojom
 @@ -78,7 +78,7 @@ struct SSLConfig {
@@ -1983,20 +1983,20 @@ index 781f80ede2e0a..8dc48b8c43709 100644
    // If false, disables TLS Encrypted ClientHello (ECH). If true, the feature
    // may be enabled or disabled, depending on feature flags.
 diff --git a/third_party/blink/renderer/core/frame/reporting_context.cc b/third_party/blink/renderer/core/frame/reporting_context.cc
-index 1ef0689855ffb..3b099ceb7ac3f 100644
+index 7207e3174babb..cc3cb3e6d4961 100644
 --- a/third_party/blink/renderer/core/frame/reporting_context.cc
 +++ b/third_party/blink/renderer/core/frame/reporting_context.cc
-@@ -59,7 +59,9 @@ const char ReportingContext::kSupplementName[] = "ReportingContext";
+@@ -55,7 +55,9 @@ bool ShouldReportBeVisibleToObservers(Report* report) {
+ 
  ReportingContext::ReportingContext(ExecutionContext& context)
-     : Supplement<ExecutionContext>(context),
-       execution_context_(context),
+     : execution_context_(context),
 +#if BUILDFLAG(ENABLE_REPORTING)
        reporting_service_(&context),
 +#endif
        receivers_(this, &context) {}
  
  // static
-@@ -126,7 +128,9 @@ void ReportingContext::Trace(Visitor* visitor) const {
+@@ -121,7 +123,9 @@ void ReportingContext::Trace(Visitor* visitor) const {
    visitor->Trace(observers_);
    visitor->Trace(report_buffer_);
    visitor->Trace(execution_context_);
@@ -2004,9 +2004,9 @@ index 1ef0689855ffb..3b099ceb7ac3f 100644
    visitor->Trace(reporting_service_);
 +#endif
    visitor->Trace(receivers_);
-   Supplement<ExecutionContext>::Trace(visitor);
  }
-@@ -149,6 +153,7 @@ void ReportingContext::CountReport(Report* report) {
+ 
+@@ -143,6 +147,7 @@ void ReportingContext::CountReport(Report* report) {
    UseCounter::Count(execution_context_, feature);
  }
  
@@ -2014,7 +2014,7 @@ index 1ef0689855ffb..3b099ceb7ac3f 100644
  const HeapMojoRemote<mojom::blink::ReportingServiceProxy>&
  ReportingContext::GetReportingService() const {
    if (!reporting_service_.is_bound()) {
-@@ -158,6 +163,7 @@ ReportingContext::GetReportingService() const {
+@@ -152,6 +157,7 @@ ReportingContext::GetReportingService() const {
    }
    return reporting_service_;
  }
@@ -2022,7 +2022,7 @@ index 1ef0689855ffb..3b099ceb7ac3f 100644
  
  void ReportingContext::NotifyInternal(Report* report) {
    if (!ShouldReportBeVisibleToObservers(report)) {
-@@ -184,6 +190,7 @@ void ReportingContext::NotifyInternal(Report* report) {
+@@ -178,6 +184,7 @@ void ReportingContext::NotifyInternal(Report* report) {
  
  void ReportingContext::SendToReportingAPI(Report* report,
                                            const String& endpoint) const {
@@ -2030,7 +2030,7 @@ index 1ef0689855ffb..3b099ceb7ac3f 100644
    const String& type = report->type();
    if (!(type == ReportType::kCSPViolation || type == ReportType::kCSPHash ||
          type == ReportType::kDeprecation ||
-@@ -268,6 +275,7 @@ void ReportingContext::SendToReportingAPI(Report* report,
+@@ -262,6 +269,7 @@ void ReportingContext::SendToReportingAPI(Report* report,
          url, endpoint, body->featureId(), body->disposition(), body->message(),
          body->sourceFile(), line_number, column_number);
    }
@@ -2039,7 +2039,7 @@ index 1ef0689855ffb..3b099ceb7ac3f 100644
  
  }  // namespace blink
 diff --git a/third_party/blink/renderer/core/frame/reporting_context.h b/third_party/blink/renderer/core/frame/reporting_context.h
-index 48d64ece3def4..1749703e33cd6 100644
+index 12740785f07f7..82bacf840ecda 100644
 --- a/third_party/blink/renderer/core/frame/reporting_context.h
 +++ b/third_party/blink/renderer/core/frame/reporting_context.h
 @@ -5,6 +5,7 @@
@@ -2050,7 +2050,7 @@ index 48d64ece3def4..1749703e33cd6 100644
  #include "third_party/blink/public/mojom/frame/reporting_observer.mojom-blink.h"
  #include "third_party/blink/public/mojom/reporting/reporting.mojom-blink.h"
  #include "third_party/blink/renderer/core/core_export.h"
-@@ -57,8 +58,10 @@ class CORE_EXPORT ReportingContext : public GarbageCollected<ReportingContext>,
+@@ -53,8 +54,10 @@ class CORE_EXPORT ReportingContext : public GarbageCollected<ReportingContext>,
    // Counts the use of a report type via UseCounter.
    void CountReport(Report*);
  
@@ -2061,7 +2061,7 @@ index 48d64ece3def4..1749703e33cd6 100644
  
    void NotifyInternal(Report* report);
    // Send |report| via the Reporting API to |endpoint|.
-@@ -69,10 +72,12 @@ class CORE_EXPORT ReportingContext : public GarbageCollected<ReportingContext>,
+@@ -65,10 +68,12 @@ class CORE_EXPORT ReportingContext : public GarbageCollected<ReportingContext>,
        report_buffer_;
    Member<ExecutionContext> execution_context_;
  
@@ -2109,10 +2109,10 @@ index 61ce5e93c06b8..a48ade169d161 100644
    command_line.AppendSwitchASCII(switches::kOzonePlatform, "x11");
  #endif
 diff --git a/ui/webui/resources/cr_components/searchbox/searchbox.ts b/ui/webui/resources/cr_components/searchbox/searchbox.ts
-index d291b99b6b7a8..f1b408c4bcd29 100644
+index 60f004ace4730..3ba063ed450b0 100644
 --- a/ui/webui/resources/cr_components/searchbox/searchbox.ts
 +++ b/ui/webui/resources/cr_components/searchbox/searchbox.ts
-@@ -440,10 +440,10 @@ export class SearchboxElement extends SearchboxElementBase implements
+@@ -451,10 +451,10 @@ export class SearchboxElement extends SearchboxElementBase implements
    private accessor pastedInInput_: boolean = false;
    protected accessor searchboxIcon_: string =
        loadTimeData.getString('searchboxDefaultIcon');

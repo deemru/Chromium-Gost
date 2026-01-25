@@ -1,4 +1,4 @@
-From 4e61142d562c5c639f9201314adbdd38ec589647 Mon Sep 17 00:00:00 2001
+From c31f4c2ebf207156e6062d1da406b57426e89d60 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Thu, 2 Oct 2025 13:57:57 +0300
 Subject: [PATCH] boringssl GOSTSSL
@@ -15,10 +15,10 @@ Subject: [PATCH] boringssl GOSTSSL
  8 files changed, 526 insertions(+)
 
 diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
-index ff68ba69e..1ff0fcd07 100644
+index a7d5954f7..966d25d98 100644
 --- a/include/openssl/ssl.h
 +++ b/include/openssl/ssl.h
-@@ -6341,6 +6341,11 @@ BSSL_NAMESPACE_END
+@@ -6349,6 +6349,11 @@ BSSL_NAMESPACE_END
  
  #endif
  
@@ -31,10 +31,10 @@ index ff68ba69e..1ff0fcd07 100644
  #define SSL_R_ATTEMPT_TO_REUSE_SESSION_IN_DIFFERENT_CONTEXT 101
  #define SSL_R_BAD_ALERT 102
 diff --git a/ssl/extensions.cc b/ssl/extensions.cc
-index c5f90688c..efd6552bc 100644
+index fcb0bf8f4..fb1230320 100644
 --- a/ssl/extensions.cc
 +++ b/ssl/extensions.cc
-@@ -318,6 +318,34 @@ bool tls12_add_verify_sigalgs(const SSL_HANDSHAKE *hs, CBB *out) {
+@@ -319,6 +319,34 @@ bool tls12_add_verify_sigalgs(const SSL_HANDSHAKE *hs, CBB *out) {
        return false;
      }
    }
@@ -69,7 +69,7 @@ index c5f90688c..efd6552bc 100644
    return true;
  }
  
-@@ -2549,6 +2577,23 @@ static bool ext_supported_groups_add_clienthello(const SSL_HANDSHAKE *hs,
+@@ -2550,6 +2578,23 @@ static bool ext_supported_groups_add_clienthello(const SSL_HANDSHAKE *hs,
      }
    }
  
@@ -113,7 +113,7 @@ index c96dedc4d..6188d14e1 100644
      OPENSSL_PUT_ERROR(SSL, SSL_R_UNSUPPORTED_PROTOCOL);
      ssl_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_PROTOCOL_VERSION);
 diff --git a/ssl/internal.h b/ssl/internal.h
-index a69505b47..4f1ca9389 100644
+index 33a5c0a84..75e6f9edc 100644
 --- a/ssl/internal.h
 +++ b/ssl/internal.h
 @@ -262,6 +262,13 @@ BSSL_NAMESPACE_BEGIN
@@ -167,10 +167,10 @@ index a69505b47..4f1ca9389 100644
  // Opaque C types.
  //
 diff --git a/ssl/s3_both.cc b/ssl/s3_both.cc
-index 898b5490e..bf37e783d 100644
+index fdf794051..d63f70792 100644
 --- a/ssl/s3_both.cc
 +++ b/ssl/s3_both.cc
-@@ -240,6 +240,14 @@ int tls_flush(SSL *ssl) {
+@@ -241,6 +241,14 @@ int tls_flush(SSL *ssl) {
        return ret;
      }
  

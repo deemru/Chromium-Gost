@@ -1,4 +1,4 @@
-From de96bea8f58da46b7a8703b5821ec5403596e4e9 Mon Sep 17 00:00:00 2001
+From 8ca66ac897f97474d19b49d1f48f53cfe6e1fc1b Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Thu, 2 Oct 2025 13:20:20 +0300
 Subject: [PATCH] extensions-manifestv2.patch (ifdef)
@@ -12,7 +12,7 @@ Subject: [PATCH] extensions-manifestv2.patch (ifdef)
  5 files changed, 19 insertions(+), 2 deletions(-)
 
 diff --git a/chrome/browser/extensions/api/developer_private/extension_info_generator.cc b/chrome/browser/extensions/api/developer_private/extension_info_generator.cc
-index 916366c82d0b4..910d80f488776 100644
+index 5d98ef92fea10..6c2201622f206 100644
 --- a/chrome/browser/extensions/api/developer_private/extension_info_generator.cc
 +++ b/chrome/browser/extensions/api/developer_private/extension_info_generator.cc
 @@ -600,6 +600,7 @@ void ExtensionInfoGenerator::FillExtensionInfo(const Extension& extension,
@@ -72,10 +72,10 @@ index e3250a9d8fa8f..fc5f25c2fa62a 100644
  
  bool ExtensionManagement::IsAllowedByUnpublishedAvailabilityPolicy(
 diff --git a/chrome/browser/extensions/manifest_v2_experiment_manager.cc b/chrome/browser/extensions/manifest_v2_experiment_manager.cc
-index ac66c7734f056..7bc6658bcb7ae 100644
+index 571213419eafa..c8971ca95ab6a 100644
 --- a/chrome/browser/extensions/manifest_v2_experiment_manager.cc
 +++ b/chrome/browser/extensions/manifest_v2_experiment_manager.cc
-@@ -148,6 +148,7 @@ bool ManifestV2ExperimentManagerFactory::ServiceIsCreatedWithBrowserContext()
+@@ -147,6 +147,7 @@ bool ManifestV2ExperimentManagerFactory::ServiceIsCreatedWithBrowserContext()
  
  // Determines the current stage of the MV2 deprecation experiments.
  MV2ExperimentStage CalculateCurrentExperimentStage() {
@@ -83,7 +83,7 @@ index ac66c7734f056..7bc6658bcb7ae 100644
    // Return the "highest" stage that is currently active for the user.
    if (base::FeatureList::IsEnabled(
            extensions_features::kExtensionManifestV2Unsupported)) {
-@@ -158,7 +159,7 @@ MV2ExperimentStage CalculateCurrentExperimentStage() {
+@@ -157,7 +158,7 @@ MV2ExperimentStage CalculateCurrentExperimentStage() {
            extensions_features::kExtensionManifestV2Disabled)) {
      return MV2ExperimentStage::kDisableWithReEnable;
    }
@@ -92,7 +92,7 @@ index ac66c7734f056..7bc6658bcb7ae 100644
    return MV2ExperimentStage::kWarning;
  }
  
-@@ -192,6 +193,9 @@ PrefMap GetGlobalNoticeAcknowledgedPrefFor(
+@@ -191,6 +192,9 @@ PrefMap GetGlobalNoticeAcknowledgedPrefFor(
  // Returns true if legacy extensions should be disabled, looking at both
  // experiment stage and global state.
  bool ShouldDisableLegacyExtensions(MV2ExperimentStage stage) {
@@ -102,7 +102,7 @@ index ac66c7734f056..7bc6658bcb7ae 100644
    if (g_allow_mv2_for_testing) {
      // We allow legacy MV2 extensions for testing purposes.
      return false;
-@@ -204,6 +208,7 @@ bool ShouldDisableLegacyExtensions(MV2ExperimentStage stage) {
+@@ -203,6 +207,7 @@ bool ShouldDisableLegacyExtensions(MV2ExperimentStage stage) {
      case MV2ExperimentStage::kUnsupported:
        return true;
    }
@@ -124,18 +124,18 @@ index 641f3b237049a..aeb3c3da04cc7 100644
    // MV2 deprecation.
    auto* mv2_experiment_manager = ManifestV2ExperimentManager::Get(profile);
 diff --git a/extensions/common/extension.cc b/extensions/common/extension.cc
-index c5b49b633a364..6d4c6ddf16e62 100644
+index c15cb579d545d..6a863e13bafbb 100644
 --- a/extensions/common/extension.cc
 +++ b/extensions/common/extension.cc
-@@ -101,6 +101,7 @@ bool IsManifestSupported(int manifest_version,
+@@ -97,6 +97,7 @@ bool IsManifestSupported(int manifest_version,
    // Supported versions are always safe.
    if (manifest_version >= kMinimumSupportedManifestVersion &&
        manifest_version <= kMaximumSupportedManifestVersion) {
 +#if 0
      // Emit a warning for unpacked extensions on Manifest V2 warning that
      // MV2 is deprecated.
-     if (type == Manifest::TYPE_EXTENSION && manifest_version == 2 &&
-@@ -108,6 +109,7 @@ bool IsManifestSupported(int manifest_version,
+     if (type == Manifest::Type::kExtension && manifest_version == 2 &&
+@@ -104,6 +105,7 @@ bool IsManifestSupported(int manifest_version,
          !g_silence_deprecated_manifest_version_warnings) {
        *warning = errors::kManifestV2IsDeprecatedWarning;
      }
