@@ -1,0 +1,33 @@
+From 5a479bd1483f551e9a18f6f9917ed57123660c1c Mon Sep 17 00:00:00 2001
+From: Dmitrii Pichulin <deem@deem.ru>
+Date: Wed, 18 Mar 2026 16:51:43 +0300
+Subject: [PATCH] no glic
+
+---
+ chrome/browser/glic/public/glic_enabling.cc | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/chrome/browser/glic/public/glic_enabling.cc b/chrome/browser/glic/public/glic_enabling.cc
+index 6a76e6ac5b641..653970a5a862d 100644
+--- a/chrome/browser/glic/public/glic_enabling.cc
++++ b/chrome/browser/glic/public/glic_enabling.cc
+@@ -341,6 +341,9 @@ GlicGlobalEnabling::GlicGlobalEnabling(Delegate& delegate) {
+ GlicGlobalEnabling::~GlicGlobalEnabling() = default;
+ 
+ bool GlicGlobalEnabling::IsEnabledByFlags() {
++#ifndef NO_GOSTSSL
++  return false;
++#else
+   // It is important that this value not change at runtime in production. Any
+   // future updates to this function must maintain that property.
+   bool is_enabled = base::FeatureList::IsEnabled(features::kGlic) &&
+@@ -364,6 +367,7 @@ bool GlicGlobalEnabling::IsEnabledByFlags() {
+   is_enabled = is_enabled && supported_system_requirements;
+ #endif  // BUILDFLAG(IS_CHROMEOS)
+   return is_enabled;
++#endif // NO_GOSTSSL
+ }
+ 
+ bool GlicEnabling::IsEnabledByFlags() {
+-- 
+

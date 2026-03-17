@@ -8,8 +8,8 @@ cd %CHROMIUM_PATH%\.git || goto :finish
 cd %BORINGSSL_PATH%\.git || goto :finish
 
 cd %CHROMIUM_PATH%
+cmd /C "git format-patch HEAD~3..HEAD~2 --stdout > %CHROMIUM_GOST_REPO%patch\extra\no-glic.stage.patch"
 cmd /C "git format-patch HEAD~2..HEAD~1 --stdout > %CHROMIUM_GOST_REPO%patch\extra\extensions-manifestv2_ifdef.stage.patch"
-cd %CHROMIUM_PATH%
 cmd /C "git format-patch HEAD~1 --stdout > %CHROMIUM_GOST_REPO%patch\chromium.stage.patch"
 cd %BORINGSSL_PATH%
 cmd /C "git format-patch HEAD~1 --stdout > %CHROMIUM_GOST_REPO%patch\boringssl.stage.patch"
