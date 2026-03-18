@@ -862,7 +862,7 @@ index 3fe751119790b..3228794682ad9 100644
 +  t_urls = base::ToVector(regional_prepopulated_engines,
 +                          &PrepopulatedEngineToTemplateURLData);
 +
-+  if (!base::Contains(t_urls, yandex_ru.id, &TemplateURLData::prepopulate_id)) {
++  if (!std::ranges::any_of(t_urls, [&](const auto& url) { return url->prepopulate_id == yandex_ru.id; })) {
 +    t_urls.push_back(TemplateURLDataFromPrepopulatedEngine(yandex_ru));
 +  }
 +
