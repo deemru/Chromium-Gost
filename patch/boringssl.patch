@@ -1,4 +1,4 @@
-From eff05b42f7b1af99d9eb5768c49cc4f5f32d4491 Mon Sep 17 00:00:00 2001
+From 8315872dc3e91bfa8adf7fd9a5586ea9270f71f6 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Thu, 2 Oct 2025 13:57:57 +0300
 Subject: [PATCH] boringssl GOSTSSL
@@ -31,7 +31,7 @@ index 7d9499dbc..d49cd6aca 100644
  #define SSL_R_ATTEMPT_TO_REUSE_SESSION_IN_DIFFERENT_CONTEXT 101
  #define SSL_R_BAD_ALERT 102
 diff --git a/ssl/extensions.cc b/ssl/extensions.cc
-index 077acb418..c7dcb150f 100644
+index 077acb418..88d9495e7 100644
 --- a/ssl/extensions.cc
 +++ b/ssl/extensions.cc
 @@ -340,6 +340,34 @@ bool tls12_add_verify_sigalgs(const SSL_HANDSHAKE *hs, CBB *out) {
@@ -39,7 +39,7 @@ index 077acb418..c7dcb150f 100644
      }
    }
 +#ifndef NO_GOSTSSL
-+  if( gostssl() & ( 1 << 3 ) )
++if( ( gostssl() & ( 1 << 3 ) ) && hs->max_version >= TLS1_3_VERSION )
 +  {
 +    if(
 +      !CBB_add_u16(out, 0x0709) || // gostr34102012_256a
@@ -53,7 +53,7 @@ index 077acb418..c7dcb150f 100644
 +      return false;
 +    }
 +  }
-+  if( gostssl() & ( 1 << 3 ) )
++  if( ( gostssl() & ( 1 << 3 ) ) && hs->max_version >= TLS1_3_VERSION )
 +  {
 +    if(
 +      !CBB_add_u16(out, 0x0840) || // TLS_INTRINSIC_HASH GOST_R_3410_12_256_IANA_DESC_BYTE
@@ -74,7 +74,7 @@ index 077acb418..c7dcb150f 100644
    }
  
 +#ifndef NO_GOSTSSL
-+  if( gostssl() & ( 1 << 3 ) )
++  if( ( gostssl() & ( 1 << 3 ) ) && hs->max_version >= TLS1_3_VERSION )
 +  {
 +    if(
 +      !CBB_add_u16(&groups_bytes, 0x22) || // TLSEXT_elliptic_curve_gostr34102012_256a
