@@ -1,6 +1,6 @@
-From ee3e636370e8c1293e7e9d05c3bdd39cbb59c0c7 Mon Sep 17 00:00:00 2001
+From 18517cac099a5aa4aac9a9d7eafe52ce2a39fa7f Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
-Date: Tue, 17 Mar 2026 15:36:14 +0300
+Date: Wed, 13 May 2026 13:13:11 +0300
 Subject: [PATCH] chromium GOSTSSL
 
 ---
@@ -59,19 +59,18 @@ Subject: [PATCH] chromium GOSTSSL
  sandbox/policy/features.cc                    |   6 +-
  sandbox/policy/mac/common.sb                  |  17 ++
  sandbox/win/src/process_mitigations.cc        |   4 +
- .../network/public/mojom/ssl_config.mojom     |   2 +-
  .../renderer/core/frame/reporting_context.cc  |   8 +
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.gn                |   1 +
  ui/linux/display_server_utils.cc              |   4 +-
  .../cr_components/searchbox/searchbox.ts      |   8 +-
- 61 files changed, 985 insertions(+), 58 deletions(-)
+ 60 files changed, 984 insertions(+), 57 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
-index d6686618cb86b..135701d7af166 100644
+index cc98a1463c539..8d2479d2dad5b 100644
 --- a/chrome/BUILD.gn
 +++ b/chrome/BUILD.gn
-@@ -1509,7 +1509,7 @@ group("extra_resources") {
+@@ -1520,7 +1520,7 @@ group("extra_resources") {
    ]
  }
  
@@ -80,7 +79,7 @@ index d6686618cb86b..135701d7af166 100644
    if (!is_mac) {
      _preinstalled_apps_target_type = "copy"
    } else {
-@@ -1526,6 +1526,10 @@ if (is_chrome_branded && !is_android) {
+@@ -1537,6 +1537,10 @@ if (is_chrome_branded && !is_android) {
      }
  
      sources = [ "browser/resources/default_apps/external_extensions.json" ]
@@ -91,7 +90,7 @@ index d6686618cb86b..135701d7af166 100644
  
      if (!is_mac) {
        outputs = [ "$root_out_dir/default_apps/{{source_file_part}}" ]
-@@ -1553,7 +1557,7 @@ if (!is_android) {
+@@ -1564,7 +1568,7 @@ if (!is_android) {
        deps = [ ":resource_allowlist" ]
      }
  
@@ -99,7 +98,7 @@ index d6686618cb86b..135701d7af166 100644
 +    if (true) {
        public_deps = [ ":preinstalled_apps" ]
      }
- 
+   }
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
 index 79bf119fba775..2350f4b1d19e9 100644
 --- a/chrome/app/app-entitlements.plist
@@ -119,12 +118,12 @@ index 79bf119fba775..2350f4b1d19e9 100644
  </dict>
  </plist>
 diff --git a/chrome/app/generated_resources.grd b/chrome/app/generated_resources.grd
-index 1ea390b7f1a5b..f2a7155a1d921 100644
+index 33c0b42d826b5..51f2d22fbec37 100644
 --- a/chrome/app/generated_resources.grd
 +++ b/chrome/app/generated_resources.grd
-@@ -7714,10 +7714,8 @@ Keep your key file in a safe place. You will need it to create new versions of y
- 
-       <!-- NTP -->
+@@ -7633,10 +7633,8 @@ Keep your key file in a safe place. You will need it to create new versions of y
+         Connect
+       </message>
        <message name="IDS_GOOGLE_SEARCH_BOX_EMPTY_HINT_MD" desc="The text displayed in the fakebox (on the New Tab page) when it is empty, Google is the default search engine, and the Material Design UI is enabled.">
 -        Search Google or type a URL
        </message>
@@ -134,10 +133,10 @@ index 1ea390b7f1a5b..f2a7155a1d921 100644
        <message name="IDS_GOOGLE_SEARCH_BOX_EMPTY_HINT_MULTIMODAL" desc="The text displayed in the multimodal searchbox when it is empty. It is meant to invite the user to add a text query to the existing image query in order to issue a 'multimodal' (image + text) query.">
          Add to your search
 diff --git a/chrome/app/resources/generated_resources_ru.xtb b/chrome/app/resources/generated_resources_ru.xtb
-index c05a5c8f5ae65..cc0744d2dd3d9 100644
+index 542efe4b89221..ab54b0569e339 100644
 --- a/chrome/app/resources/generated_resources_ru.xtb
 +++ b/chrome/app/resources/generated_resources_ru.xtb
-@@ -6163,7 +6163,7 @@
+@@ -6021,7 +6021,7 @@
  <translation id="5153234146675181447">Удаление телефона</translation>
  <translation id="5153907427821264830"><ph name="STATUS" /> • <ph name="MESSAGE" /></translation>
  <translation id="5154108062446123722"><ph name="PRINTING_DESTINATION" /> – дополнительные настройки</translation>
@@ -193,10 +192,10 @@ index ebc06e12030a1..5fdaa13be3d5a 100644
    if (result.empty()) {
      error_message = "Can't find native messaging host " + host_name;
 diff --git a/chrome/browser/history/top_sites_factory.cc b/chrome/browser/history/top_sites_factory.cc
-index aecedc21ab3bf..2d1b2c00199ee 100644
+index 3398a0e4ccb97..5a198f0d314d1 100644
 --- a/chrome/browser/history/top_sites_factory.cc
 +++ b/chrome/browser/history/top_sites_factory.cc
-@@ -55,7 +55,7 @@ struct RawPrepopulatedPage {
+@@ -54,7 +54,7 @@ struct RawPrepopulatedPage {
                           // roughly match favicon).
  };
  
@@ -205,7 +204,7 @@ index aecedc21ab3bf..2d1b2c00199ee 100644
  // Android does not use prepopulated pages.
  constexpr auto kRawPrepopulatedPages = std::to_array<RawPrepopulatedPage>({
      {
-@@ -70,7 +70,7 @@ constexpr auto kRawPrepopulatedPages = std::to_array<RawPrepopulatedPage>({
+@@ -69,7 +69,7 @@ constexpr auto kRawPrepopulatedPages = std::to_array<RawPrepopulatedPage>({
  void InitializePrepopulatedPageList(
      Profile* profile,
      history::PrepopulatedPageList* prepopulated_pages) {
@@ -228,10 +227,10 @@ index 436bc47cadcb1..3c922aaefade9 100644
  void ReportIsSupportedOutcome(KeyCredentialManagerAvailability availability) {
    base::UmaHistogramEnumeration(
 diff --git a/chrome/browser/resources/new_tab_page/app.ts b/chrome/browser/resources/new_tab_page/app.ts
-index 83ed365ed60f5..5e578cf8af1ba 100644
+index 815e8f42bec8c..e0bce63b55234 100644
 --- a/chrome/browser/resources/new_tab_page/app.ts
 +++ b/chrome/browser/resources/new_tab_page/app.ts
-@@ -367,15 +367,15 @@ export class AppElement extends AppElementBase {
+@@ -380,15 +380,15 @@ export class AppElement extends AppElementBase {
    protected accessor logoEnabled_: boolean =
        loadTimeData.getBoolean('logoEnabled');
    protected accessor oneGoogleBarEnabled_: boolean =
@@ -251,8 +250,8 @@ index 83ed365ed60f5..5e578cf8af1ba 100644
    protected accessor browserPromoLimit_: number =
        loadTimeData.getInteger('browserPromoLimit');
    protected accessor browserPromoCompletedLimit_: number =
-@@ -386,7 +386,7 @@ export class AppElement extends AppElementBase {
-       ModuleLoadStatus.MODULE_LOAD_IN_PROGRESS;
+@@ -396,7 +396,7 @@ export class AppElement extends AppElementBase {
+   protected accessor showBrowserPromo_: boolean = false;
    protected accessor modulesShownToUser: boolean = false;
    protected accessor microsoftModuleEnabled_: boolean =
 -      loadTimeData.getBoolean('microsoftModuleEnabled');
@@ -261,10 +260,10 @@ index 83ed365ed60f5..5e578cf8af1ba 100644
    protected accessor multiLineEnabled_: boolean =
        loadTimeData.getBoolean('multiLineEnabled');
 diff --git a/chrome/browser/resources/new_tab_page/logo.css b/chrome/browser/resources/new_tab_page/logo.css
-index 5b98bf9929251..2d8fb87512926 100644
+index 4aabfc88bd528..c1ddf3320fb5d 100644
 --- a/chrome/browser/resources/new_tab_page/logo.css
 +++ b/chrome/browser/resources/new_tab_page/logo.css
-@@ -29,10 +29,7 @@
+@@ -44,10 +44,7 @@
  }
  
  :host([single-colored]) #logo {
@@ -277,10 +276,10 @@ index 5b98bf9929251..2d8fb87512926 100644
  
  :host(:not([single-colored])) #logo {
 diff --git a/chrome/browser/resources/new_tab_page/logo.ts b/chrome/browser/resources/new_tab_page/logo.ts
-index 2b3b9a41d197b..0ed07858f6b7a 100644
+index d63d0527d5394..00410f405097d 100644
 --- a/chrome/browser/resources/new_tab_page/logo.ts
 +++ b/chrome/browser/resources/new_tab_page/logo.ts
-@@ -106,6 +106,7 @@ export class LogoElement extends CrLitElement {
+@@ -99,10 +99,12 @@ export class LogoElement extends CrLitElement {
      super();
  
      this.pageHandler_ = NewTabPageProxy.getInstance().handler;
@@ -288,19 +287,16 @@ index 2b3b9a41d197b..0ed07858f6b7a 100644
      this.pageHandler_.getDoodle().then(({doodle}) => {
        this.doodle_ = doodle;
        this.loaded_ = true;
-@@ -114,6 +115,7 @@ export class LogoElement extends CrLitElement {
-         this.height_ = `${this.doodle_.interactive.height}px`;
-       }
      });
 +*/
    }
  
    override connectedCallback() {
 diff --git a/chrome/browser/search/search.cc b/chrome/browser/search/search.cc
-index 65863f8a15d44..ba1a08e478422 100644
+index bc22d3f807baf..c27a1583527c5 100644
 --- a/chrome/browser/search/search.cc
 +++ b/chrome/browser/search/search.cc
-@@ -172,6 +172,8 @@ struct NewTabURLDetails {
+@@ -174,6 +174,8 @@ struct NewTabURLDetails {
  
  #if BUILDFLAG(IS_ANDROID)
      const GURL local_url;
@@ -310,10 +306,10 @@ index 65863f8a15d44..ba1a08e478422 100644
      const bool default_is_google = DefaultSearchProviderIsGoogle(profile);
      const GURL local_url(default_is_google
 diff --git a/chrome/browser/shell_integration_linux.cc b/chrome/browser/shell_integration_linux.cc
-index da32d124606ca..1fa3a51cac916 100644
+index 94c5e9be9e9a4..47f835195281f 100644
 --- a/chrome/browser/shell_integration_linux.cc
 +++ b/chrome/browser/shell_integration_linux.cc
-@@ -516,7 +516,7 @@ std::string GetIconName() {
+@@ -461,7 +461,7 @@ std::string GetIconName() {
  #if BUILDFLAG(GOOGLE_CHROME_BRANDING)
    return "google-chrome";
  #else  // BUILDFLAG(CHROMIUM_BRANDING)
@@ -323,7 +319,7 @@ index da32d124606ca..1fa3a51cac916 100644
  }
  
 diff --git a/chrome/browser/ui/startup/startup_browser_creator.cc b/chrome/browser/ui/startup/startup_browser_creator.cc
-index 26e845c75d014..9e783b471bad8 100644
+index 597bd5bfdcbbf..aba0a6f8750fe 100644
 --- a/chrome/browser/ui/startup/startup_browser_creator.cc
 +++ b/chrome/browser/ui/startup/startup_browser_creator.cc
 @@ -144,6 +144,17 @@
@@ -344,7 +340,7 @@ index 26e845c75d014..9e783b471bad8 100644
  #if !BUILDFLAG(IS_ANDROID)
  #include "chrome/browser/ui/startup/focus/focus_handler.h"
  #endif
-@@ -712,6 +723,170 @@ void StartupBrowserCreator::LaunchBrowser(
+@@ -711,6 +722,170 @@ void StartupBrowserCreator::LaunchBrowser(
    profile = GetPrivateProfileIfRequested(
        command_line, {profile, StartupProfileMode::kBrowserWindow});
  
@@ -515,7 +511,7 @@ index 26e845c75d014..9e783b471bad8 100644
    if (!IsSilentLaunchEnabled(command_line, profile)) {
  #if BUILDFLAG(ENABLE_DICE_SUPPORT)
      auto* fre_service = FirstRunServiceFactory::GetForBrowserContext(profile);
-@@ -933,12 +1108,12 @@ void StartupBrowserCreator::ClearLaunchedProfilesForTesting() {
+@@ -932,12 +1107,12 @@ void StartupBrowserCreator::ClearLaunchedProfilesForTesting() {
  // static
  void StartupBrowserCreator::RegisterLocalStatePrefs(
      PrefRegistrySimple* registry) {
@@ -531,7 +527,7 @@ index 26e845c75d014..9e783b471bad8 100644
  
  #if BUILDFLAG(IS_WIN)
 diff --git a/chrome/browser/ui/toolbar/chrome_labs/chrome_labs_utils.cc b/chrome/browser/ui/toolbar/chrome_labs/chrome_labs_utils.cc
-index d95754feeaeb4..4ff7eac6e030c 100644
+index 3c310d91b5591..087ef45ec145b 100644
 --- a/chrome/browser/ui/toolbar/chrome_labs/chrome_labs_utils.cc
 +++ b/chrome/browser/ui/toolbar/chrome_labs/chrome_labs_utils.cc
 @@ -139,6 +139,8 @@ bool AreNewChromeLabsExperimentsAvailable(Profile* profile) {
@@ -544,12 +540,12 @@ index d95754feeaeb4..4ff7eac6e030c 100644
    if (chrome::GetChannel() == version_info::Channel::STABLE) {
      return false;
 diff --git a/chrome/browser/ui/views/certificate_selector.cc b/chrome/browser/ui/views/certificate_selector.cc
-index d40d79b895ecc..96b6048cba777 100644
+index f33e742199d99..f5b2ccee00649 100644
 --- a/chrome/browser/ui/views/certificate_selector.cc
 +++ b/chrome/browser/ui/views/certificate_selector.cc
-@@ -77,8 +77,8 @@ bool UseGlicDevFlow(content::WebContents* contents) {
+@@ -71,8 +71,8 @@ bool UseGlicDevFlow(content::WebContents* contents) {
+ 
  }  // namespace
- #endif
  
 -const int CertificateSelector::kTableViewWidth = 500;
 -const int CertificateSelector::kTableViewHeight = 150;
@@ -558,7 +554,7 @@ index d40d79b895ecc..96b6048cba777 100644
  
  class CertificateSelector::CertificateTableModel : public ui::TableModel {
   public:
-@@ -100,6 +100,7 @@ class CertificateSelector::CertificateTableModel : public ui::TableModel {
+@@ -94,6 +94,7 @@ class CertificateSelector::CertificateTableModel : public ui::TableModel {
      std::u16string issuer;
      std::u16string provider;
      std::u16string serial;
@@ -566,7 +562,7 @@ index d40d79b895ecc..96b6048cba777 100644
    };
    std::vector<Row> rows_;
  };
-@@ -117,6 +118,15 @@ CertificateSelector::CertificateTableModel::CertificateTableModel(
+@@ -111,6 +112,15 @@ CertificateSelector::CertificateTableModel::CertificateTableModel(
      if (cert->serial_number().size() < std::numeric_limits<size_t>::max() / 2) {
        row.serial = base::UTF8ToUTF16(base::HexEncode(cert->serial_number()));
      }
@@ -582,7 +578,7 @@ index d40d79b895ecc..96b6048cba777 100644
      rows_.push_back(row);
    }
  }
-@@ -140,6 +150,8 @@ std::u16string CertificateSelector::CertificateTableModel::GetText(
+@@ -134,6 +144,8 @@ std::u16string CertificateSelector::CertificateTableModel::GetText(
        return row.provider;
      case IDS_CERT_SELECTOR_SERIAL_COLUMN:
        return row.serial;
@@ -591,7 +587,7 @@ index d40d79b895ecc..96b6048cba777 100644
      default:
        NOTREACHED();
    }
-@@ -279,14 +291,14 @@ void CertificateSelector::InitWithText(
+@@ -270,14 +282,14 @@ void CertificateSelector::InitWithText(
  
    std::vector<ui::TableColumn> columns;
    columns.emplace_back(IDS_CERT_SELECTOR_SUBJECT_COLUMN, ui::TableColumn::LEFT,
@@ -609,10 +605,10 @@ index d40d79b895ecc..96b6048cba777 100644
    for (auto& column : columns) {
      column.sortable = true;
 diff --git a/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc b/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
-index 77f36a128fec6..9f05901fe9222 100644
+index 3f8871e197aa2..487c0be00917c 100644
 --- a/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
 +++ b/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
-@@ -221,6 +221,7 @@ void BrowserAppMenuButton::UpdateTextAndHighlightColor() {
+@@ -309,6 +309,7 @@ void BrowserAppMenuButton::UpdateTextAndHighlightColor() {
              ? IDS_APP_MENU_BUTTON_ACTION_REQUIRED
              : IDS_APP_MENU_BUTTON_ERROR;
      text = l10n_util::GetStringUTF16(text_id);
@@ -621,10 +617,10 @@ index 77f36a128fec6..9f05901fe9222 100644
  
    SetTooltipText(l10n_util::GetStringUTF16(tooltip_message_id));
 diff --git a/chrome/browser/ui/webui/whats_new/whats_new_util.cc b/chrome/browser/ui/webui/whats_new/whats_new_util.cc
-index 101cb814939ab..c2714422dfcf3 100644
+index 8b12affd2b97b..143b415c52455 100644
 --- a/chrome/browser/ui/webui/whats_new/whats_new_util.cc
 +++ b/chrome/browser/ui/webui/whats_new/whats_new_util.cc
-@@ -99,7 +99,7 @@ bool ShouldShowForState(PrefService* local_state,
+@@ -100,7 +100,7 @@ bool ShouldShowForState(PrefService* local_state,
    // potentially displaying multiple times in a given milestone, e.g. for
    // multiple profile relaunches (see https://crbug.com/1274313).
    local_state->SetInteger(prefs::kLastWhatsNewVersion, CHROME_VERSION_MAJOR);
@@ -730,10 +726,10 @@ index 0f331c3e0f2a3..87626fc3e119b 100644
  
  #
 diff --git a/chrome/installer/setup/install_worker.cc b/chrome/installer/setup/install_worker.cc
-index 4ce4d01554229..2171a88f12ea6 100644
+index feeca02961ebd..ca58dcdbf7c6c 100644
 --- a/chrome/installer/setup/install_worker.cc
 +++ b/chrome/installer/setup/install_worker.cc
-@@ -272,6 +272,7 @@ void AddChromeWorkItems(const InstallParams& install_params,
+@@ -289,6 +289,7 @@ void AddChromeWorkItems(const InstallParams& install_params,
        ->set_best_effort(true);
  }
  
@@ -741,7 +737,7 @@ index 4ce4d01554229..2171a88f12ea6 100644
  // Adds work items to register the Elevation Service with Windows. Only for
  // system level installs.
  void AddElevationServiceWorkItems(const base::FilePath& elevation_service_path,
-@@ -294,6 +295,7 @@ void AddElevationServiceWorkItems(const base::FilePath& elevation_service_path,
+@@ -311,6 +312,7 @@ void AddElevationServiceWorkItems(const base::FilePath& elevation_service_path,
        {install_static::GetElevatorClsid()}, {install_static::GetElevatorIid()});
    list->AddWorkItem(install_service_work_item);
  }
@@ -749,7 +745,7 @@ index 4ce4d01554229..2171a88f12ea6 100644
  
  // Adds work items to register or unregister the elevated tracing service.
  void AddTracingServiceWorkItems(const InstallationState& original_state,
-@@ -991,10 +993,12 @@ void AddInstallWorkItems(const InstallParams& install_params,
+@@ -1011,10 +1013,12 @@ void AddInstallWorkItems(const InstallParams& install_params,
        installer_state.root_key(),
        GetNotificationHelperPath(target_path, new_version), install_list);
  
@@ -776,10 +772,10 @@ index 557eadb18229e..30c506d8b4e50 100644
                        os_info.c_str(), product.c_str());
    return user_agent;
 diff --git a/components/search_engines/keyword_table.cc b/components/search_engines/keyword_table.cc
-index ca620df2cbff6..91d4e1f218f21 100644
+index 47c1b2c577122..812801941291e 100644
 --- a/components/search_engines/keyword_table.cc
 +++ b/components/search_engines/keyword_table.cc
-@@ -568,7 +568,9 @@ std::optional<TemplateURLData> KeywordTable::GetKeywordDataFromStatement(
+@@ -584,7 +584,9 @@ std::optional<TemplateURLData> KeywordTable::GetKeywordDataFromStatement(
    data.SetURL(s.ColumnString(4));
    data.suggestions_url = s.ColumnString(10);
    data.image_url = s.ColumnString(16);
@@ -789,7 +785,7 @@ index ca620df2cbff6..91d4e1f218f21 100644
    data.search_url_post_params = s.ColumnString(17);
    data.suggestions_url_post_params = s.ColumnString(18);
    data.image_url_post_params = s.ColumnString(19);
-@@ -692,7 +694,9 @@ void KeywordTable::BindURLToStatement(const TemplateURLData& data,
+@@ -708,7 +710,9 @@ void KeywordTable::BindURLToStatement(const TemplateURLData& data,
    s->BindString(starting_column + 16, data.search_url_post_params);
    s->BindString(starting_column + 17, data.suggestions_url_post_params);
    s->BindString(starting_column + 18, data.image_url_post_params);
@@ -813,7 +809,7 @@ index edc375b207c0d..0f586fe798687 100644
  
  std::string SearchTermsData::GetMailRUReferralID() const {
 diff --git a/components/search_engines/template_url_data_util.cc b/components/search_engines/template_url_data_util.cc
-index 7f93e5083788c..53b8249120ee4 100644
+index 8c02d0e784b39..0f528a1765b13 100644
 --- a/components/search_engines/template_url_data_util.cc
 +++ b/components/search_engines/template_url_data_util.cc
 @@ -77,10 +77,12 @@ std::unique_ptr<TemplateURLData> TemplateURLDataFromDictionary(
@@ -838,7 +834,7 @@ index 7f93e5083788c..53b8249120ee4 100644
        ToStringView(engine.contextual_search_url), ToStringView(engine.logo_url),
        ToStringView(engine.doodle_url),
        ToStringView(engine.search_url_post_params),
-@@ -430,10 +432,12 @@ std::unique_ptr<TemplateURLData> TemplateURLDataFromOverrideDictionary(
+@@ -432,10 +434,12 @@ std::unique_ptr<TemplateURLData> TemplateURLDataFromOverrideDictionary(
      if (string_value) {
        image_translate_url = *string_value;
      }
@@ -852,10 +848,10 @@ index 7f93e5083788c..53b8249120ee4 100644
      if (string_value) {
        contextual_search_url = *string_value;
 diff --git a/components/search_engines/template_url_prepopulate_data.cc b/components/search_engines/template_url_prepopulate_data.cc
-index 3fe751119790b..65491ba02e266 100644
+index 23c3c13f2f0ec..8c4b1746b4f66 100644
 --- a/components/search_engines/template_url_prepopulate_data.cc
 +++ b/components/search_engines/template_url_prepopulate_data.cc
-@@ -164,8 +164,14 @@ std::vector<std::unique_ptr<TemplateURLData>> GetPrepopulatedEngines(
+@@ -184,8 +184,14 @@ std::vector<std::unique_ptr<TemplateURLData>> GetPrepopulatedEngines(
      return t_urls;
    }
  
@@ -872,7 +868,7 @@ index 3fe751119790b..65491ba02e266 100644
  }
  
  std::unique_ptr<TemplateURLData> GetPrepopulatedEngine(
-@@ -256,7 +262,7 @@ std::unique_ptr<TemplateURLData> GetPrepopulatedFallbackSearch(
+@@ -276,7 +282,7 @@ std::unique_ptr<TemplateURLData> GetPrepopulatedFallbackSearch(
      const std::vector<const PrepopulatedEngine*>&
          regional_prepopulated_engines) {
    return FindPrepopulatedEngineInternal(prefs, regional_prepopulated_engines,
@@ -882,10 +878,10 @@ index 3fe751119790b..65491ba02e266 100644
  }
  
 diff --git a/content/browser/service_host/utility_process_host.cc b/content/browser/service_host/utility_process_host.cc
-index 5101e22a80455..fb745cd556edb 100644
+index 1b6c5d15eaf06..18977cf172e03 100644
 --- a/content/browser/service_host/utility_process_host.cc
 +++ b/content/browser/service_host/utility_process_host.cc
-@@ -382,6 +382,12 @@ bool UtilityProcessHost::StartProcess() {
+@@ -383,6 +383,12 @@ bool UtilityProcessHost::StartProcess() {
  
    // Browser command-line switches to propagate to the utility process.
    static const char* const kSwitchNames[] = {
@@ -899,10 +895,10 @@ index 5101e22a80455..fb745cd556edb 100644
        network::switches::kForceEffectiveConnectionType,
        network::switches::kHostResolverRules,
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
-index c3e9ef303ee96..3ce3b43168789 100644
+index ab16e6b15905b..5a589cf4ab9e0 100644
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
-@@ -174,6 +174,10 @@
+@@ -175,6 +175,10 @@
  #include "services/service_manager/public/cpp/interface_provider.h"
  #endif  // BUILDFLAG(IS_ANDROID)
  
@@ -913,7 +909,7 @@ index c3e9ef303ee96..3ce3b43168789 100644
  #if BUILDFLAG(ENABLE_LIBRARY_CDMS)
  #include "content/browser/media/cdm_storage_common.h"
  #include "content/browser/media/cdm_storage_manager.h"
-@@ -606,6 +610,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
+@@ -645,6 +649,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
        scoped_refptr<net::X509Certificate> cert,
        scoped_refptr<net::SSLPrivateKey> private_key) override {
      DCHECK_CURRENTLY_ON(BrowserThread::UI);
@@ -926,7 +922,7 @@ index c3e9ef303ee96..3ce3b43168789 100644
      if (cert && private_key) {
        mojo::PendingRemote<network::mojom::SSLPrivateKey> ssl_private_key;
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
-index e631ed5cf4a8f..954bce651f9f6 100644
+index 52f3b5b7db346..890c9250e1d45 100644
 --- a/net/base/net_error_list.h
 +++ b/net/base/net_error_list.h
 @@ -23,6 +23,11 @@
@@ -942,10 +938,10 @@ index e631ed5cf4a8f..954bce651f9f6 100644
  
  // An asynchronous IO operation is not yet complete.  This usually does not
 diff --git a/net/cert/cert_verify_proc.cc b/net/cert/cert_verify_proc.cc
-index 9a5506f7d926f..cacc542fd4f9f 100644
+index d12efbc9a3705..408824039b667 100644
 --- a/net/cert/cert_verify_proc.cc
 +++ b/net/cert/cert_verify_proc.cc
-@@ -425,6 +425,12 @@ CertVerifyProc::CertVerifyProc(scoped_refptr<CRLSet> crl_set)
+@@ -427,6 +427,12 @@ CertVerifyProc::CertVerifyProc(scoped_refptr<CRLSet> crl_set)
    CHECK(crl_set_);
  }
  
@@ -958,7 +954,7 @@ index 9a5506f7d926f..cacc542fd4f9f 100644
  CertVerifyProc::~CertVerifyProc() = default;
  
  int CertVerifyProc::Verify(X509Certificate* cert,
-@@ -462,6 +468,23 @@ int CertVerifyProc::Verify(X509Certificate* cert,
+@@ -464,6 +470,23 @@ int CertVerifyProc::Verify(X509Certificate* cert,
               verify_result->public_key_hashes.size());
    }
  
@@ -1042,10 +1038,10 @@ index c6c544bec555a..11c9d941f217e 100644
    std::string state_or_province_name;
    std::string country_name;
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index 717962d0d76db..11a042910c57a 100644
+index 9a8e75c7a4622..462f2f569582c 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
-@@ -2006,6 +2006,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
+@@ -2018,6 +2018,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
        return OK;
      }
    }
@@ -1402,11 +1398,11 @@ index ef87745a097fe..b624eb33434e2 100644
    // The given hostname will be compared with the name(s) in the server's
    // certificate during the SSL handshake.  |ssl_config| specifies the SSL
 diff --git a/net/socket/ssl_connect_job.cc b/net/socket/ssl_connect_job.cc
-index bc395bf4e2f63..2b4791c578d3e 100644
+index 67757935f8270..f82e8e3f9cca7 100644
 --- a/net/socket/ssl_connect_job.cc
 +++ b/net/socket/ssl_connect_job.cc
-@@ -358,6 +358,11 @@ int SSLConnectJob::DoSSLConnect() {
-   endpoint_result_ = nested_connect_job_->GetHostResolverEndpointResult();
+@@ -396,6 +396,11 @@ int SSLConnectJob::DoSSLConnect() {
+   }
  
    SSLConfig ssl_config = params_->ssl_config();
 +#ifndef NO_GOSTSSL
@@ -1417,7 +1413,7 @@ index bc395bf4e2f63..2b4791c578d3e 100644
    ssl_config.ignore_certificate_errors =
        *common_connect_job_params()->ignore_certificate_errors;
    ssl_config.network_anonymization_key = params_->network_anonymization_key();
-@@ -430,6 +435,24 @@ int SSLConnectJob::DoSSLConnectComplete(int result) {
+@@ -482,6 +487,24 @@ int SSLConnectJob::DoSSLConnectComplete(int result) {
      server_address_ = IPEndPoint();
    }
  
@@ -1443,10 +1439,10 @@ index bc395bf4e2f63..2b4791c578d3e 100644
    // TLS 1.2 actually support SHA-2 but preferentially sign SHA-1 if available.
    // In order to get accurate metrics while deprecating SHA-1, we initially
 diff --git a/net/socket/ssl_connect_job.h b/net/socket/ssl_connect_job.h
-index 0cf1573c215b5..1b9efd2455ae0 100644
+index 9127f2710120d..6f87e0064b67e 100644
 --- a/net/socket/ssl_connect_job.h
 +++ b/net/socket/ssl_connect_job.h
-@@ -194,6 +194,10 @@ class NET_EXPORT_PRIVATE SSLConnectJob : public ConnectJob,
+@@ -202,6 +202,10 @@ class NET_EXPORT_PRIVATE SSLConnectJob : public ConnectJob,
    // enabled.
    bool disable_legacy_crypto_with_fallback_ = true;
  
@@ -1458,10 +1454,10 @@ index 0cf1573c215b5..1b9efd2455ae0 100644
  
    ConnectionAttempts connection_attempts_;
 diff --git a/net/spdy/spdy_session.cc b/net/spdy/spdy_session.cc
-index 7465a28030a65..12e885f26f564 100644
+index b81a1c76b0760..6008744568918 100644
 --- a/net/spdy/spdy_session.cc
 +++ b/net/spdy/spdy_session.cc
-@@ -1514,6 +1514,11 @@ void SpdySession::RemovePooledAlias(const SpdySessionKey& alias_key) {
+@@ -1557,6 +1557,11 @@ void SpdySession::RemovePooledAlias(const SpdySessionKey& alias_key) {
  }
  
  bool SpdySession::HasAcceptableTransportSecurity() const {
@@ -1666,12 +1662,12 @@ index 049a61fefb810..efdf469ede35f 100644
  }
  
 diff --git a/net/ssl/client_cert_store_win.cc b/net/ssl/client_cert_store_win.cc
-index 139388f0c2c15..9053624f74bc4 100644
+index 29f6b979931fd..617bba1a30dc9 100644
 --- a/net/ssl/client_cert_store_win.cc
 +++ b/net/ssl/client_cert_store_win.cc
-@@ -14,6 +14,7 @@
- #define SECURITY_WIN32
+@@ -15,6 +15,7 @@
  #include <security.h>
+ #include <wincrypt.h>
  
 +#include "base/command_line.h"
  #include "base/compiler_specific.h"
@@ -1864,10 +1860,10 @@ index c97eaf3c238ca..b909eb7d5e8e2 100644
  
    obsolete_ssl |= ObsoleteSSLStatusForSignature(signature_algorithm);
 diff --git a/net/ssl/ssl_config_service.cc b/net/ssl/ssl_config_service.cc
-index a274b7a0e177b..8b884879d4f5c 100644
+index 156eff3ef3e5f..1de7770f21bb4 100644
 --- a/net/ssl/ssl_config_service.cc
 +++ b/net/ssl/ssl_config_service.cc
-@@ -24,7 +24,7 @@ namespace {
+@@ -27,7 +27,7 @@ namespace {
  // group (X25519MLKEM768) to BoringSSL's kDefaultSupportedGroupIds and
  // evaluating BoringSSL's default logic for selecting key shares.
  const SSLNamedGroupInfo kDefaultSSLSupportedGroups[] = {
@@ -1992,10 +1988,10 @@ index 955c7aa9bf85d..d5785cce57c42 100644
  ; This is read by CFPrefs calling getpwuid in a loop. libinfo then fails to
  ; contact any of the opendirectoryd mach services, and falls back to
 diff --git a/sandbox/win/src/process_mitigations.cc b/sandbox/win/src/process_mitigations.cc
-index b60d86d0975d7..8033df99e28eb 100644
+index abc9837b2b044..d5ee53233cbd4 100644
 --- a/sandbox/win/src/process_mitigations.cc
 +++ b/sandbox/win/src/process_mitigations.cc
-@@ -231,6 +231,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags starting_flags,
+@@ -227,6 +227,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags starting_flags,
      // Verify caller is not accidentally setting both mutually exclusive
      // policies.
      DCHECK(!(flags & MITIGATION_DYNAMIC_CODE_DISABLE_WITH_OPT_OUT));
@@ -2003,7 +1999,7 @@ index b60d86d0975d7..8033df99e28eb 100644
      PROCESS_MITIGATION_DYNAMIC_CODE_POLICY policy = {};
      policy.ProhibitDynamicCode = true;
  
-@@ -239,6 +240,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags starting_flags,
+@@ -235,6 +236,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags starting_flags,
        return false;
      }
      applied_flags |= MITIGATION_DYNAMIC_CODE_DISABLE;
@@ -2011,7 +2007,7 @@ index b60d86d0975d7..8033df99e28eb 100644
    }
  
    // Enable font policies.
-@@ -258,6 +260,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags starting_flags,
+@@ -254,6 +256,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags starting_flags,
  
    // Enable binary signing policies.
    if (flags & MITIGATION_FORCE_MS_SIGNED_BINS) {
@@ -2019,7 +2015,7 @@ index b60d86d0975d7..8033df99e28eb 100644
      PROCESS_MITIGATION_BINARY_SIGNATURE_POLICY policy = {};
      // Allow only MS signed binaries.
      policy.MicrosoftSignedOnly = true;
-@@ -270,6 +273,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags starting_flags,
+@@ -266,6 +269,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags starting_flags,
        return false;
      }
      applied_flags |= MITIGATION_FORCE_MS_SIGNED_BINS;
@@ -2027,21 +2023,8 @@ index b60d86d0975d7..8033df99e28eb 100644
    }
  
    // Enable image load policies.
-diff --git a/services/network/public/mojom/ssl_config.mojom b/services/network/public/mojom/ssl_config.mojom
-index f411e22066c95..76af98c38f654 100644
---- a/services/network/public/mojom/ssl_config.mojom
-+++ b/services/network/public/mojom/ssl_config.mojom
-@@ -78,7 +78,7 @@ struct SSLConfig {
-   SSLNamedGroupsPreset named_groups_preset = kDefault;
- 
-   // Controls whether post-quantum key agreement in TLS connections is allowed.
--  bool post_quantum_key_agreement_enabled = true;
-+  bool post_quantum_key_agreement_enabled = false;
- 
-   // If false, disables TLS Encrypted ClientHello (ECH). If true, the feature
-   // may be enabled or disabled, depending on feature flags.
 diff --git a/third_party/blink/renderer/core/frame/reporting_context.cc b/third_party/blink/renderer/core/frame/reporting_context.cc
-index 1ef0689855ffb..3b099ceb7ac3f 100644
+index 9b146e778a8e4..fbd6fe8e34140 100644
 --- a/third_party/blink/renderer/core/frame/reporting_context.cc
 +++ b/third_party/blink/renderer/core/frame/reporting_context.cc
 @@ -59,7 +59,9 @@ const char ReportingContext::kSupplementName[] = "ReportingContext";
@@ -2088,7 +2071,7 @@ index 1ef0689855ffb..3b099ceb7ac3f 100644
    const String& type = report->type();
    if (!(type == ReportType::kCSPViolation || type == ReportType::kCSPHash ||
          type == ReportType::kDeprecation ||
-@@ -268,6 +275,7 @@ void ReportingContext::SendToReportingAPI(Report* report,
+@@ -269,6 +276,7 @@ void ReportingContext::SendToReportingAPI(Report* report,
          url, endpoint, body->featureId(), body->disposition(), body->message(),
          body->sourceFile(), line_number, column_number);
    }
@@ -2133,10 +2116,10 @@ index 48d64ece3def4..1749703e33cd6 100644
    // There might be up to two ReportingObservers stored here: one that is called
    // from the CrossOriginEmbedderPolicyReporter and one that is called from the
 diff --git a/third_party/boringssl/BUILD.gn b/third_party/boringssl/BUILD.gn
-index 31174ca1c7525..bccea49cc9e55 100644
+index 708bb2066269b..883414554c832 100644
 --- a/third_party/boringssl/BUILD.gn
 +++ b/third_party/boringssl/BUILD.gn
-@@ -140,6 +140,7 @@ if (is_msan) {
+@@ -153,6 +153,7 @@ if (is_msan) {
  
  component("boringssl") {
    sources = rebase_path(all_sources, ".", "src")
@@ -2167,11 +2150,11 @@ index 5d8ad66686e65..a3090f5e2e74e 100644
    command_line.AppendSwitchASCII(switches::kOzonePlatform, "x11");
  #endif
 diff --git a/ui/webui/resources/cr_components/searchbox/searchbox.ts b/ui/webui/resources/cr_components/searchbox/searchbox.ts
-index 2e3f63d5535f1..93d465cb9b0a7 100644
+index efe475a4a5e7c..e39f084cc65be 100644
 --- a/ui/webui/resources/cr_components/searchbox/searchbox.ts
 +++ b/ui/webui/resources/cr_components/searchbox/searchbox.ts
-@@ -349,10 +349,10 @@ export class SearchboxElement extends SearchboxElementBase implements
-   private accessor pastedInInput_: boolean = false;
+@@ -151,10 +151,10 @@ export class SearchboxElement extends SearchboxElementBase implements
+       loadTimeData.getBoolean('enableThumbnailSizingTweaks');
    protected accessor searchboxIcon_: string =
        loadTimeData.getString('searchboxDefaultIcon');
 -  protected accessor searchboxVoiceSearchEnabled_: boolean =
@@ -2182,8 +2165,8 @@ index 2e3f63d5535f1..93d465cb9b0a7 100644
 +      //loadTimeData.getBoolean('searchboxVoiceSearch');
 +  protected accessor searchboxLensSearchEnabled_: boolean = false
 +      //loadTimeData.getBoolean('searchboxLensSearch');
-   protected accessor showModelPicker_: boolean =
-       loadTimeData.valueExists('contextualMenuUsePecApi') ?
-       loadTimeData.getBoolean('contextualMenuUsePecApi') :
+   protected accessor useWebkitSearchIcons_: boolean = false;
+ 
+   protected callbackRouter_: PageCallbackRouter;
 -- 
 
