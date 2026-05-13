@@ -1,27 +1,93 @@
-From 5a479bd1483f551e9a18f6f9917ed57123660c1c Mon Sep 17 00:00:00 2001
+From f60324ee16e4ea61950e5536904b42102cf753b3 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
-Date: Wed, 18 Mar 2026 16:51:43 +0300
-Subject: [PATCH] no glic
+Date: Wed, 13 May 2026 12:28:19 +0300
+Subject: [PATCH] no glic and ai
 
 ---
- chrome/browser/glic/public/glic_enabling.cc | 4 ++++
- 1 file changed, 4 insertions(+)
+ chrome/browser/ai/ai_manager.cc               |  4 ++++
+ ...ization_guide_on_device_model_installer.cc | 11 +++++++++++
+ chrome/browser/glic/public/glic_enabling.cc   |  4 ++++
+ .../optimization_guide_keyed_service.cc       | 19 +++++++++++++++++++
+ ...device_head_suggest_component_installer.cc |  6 ++++++
+ .../core/optimization_guide_features.cc       |  8 ++++++++
+ 6 files changed, 52 insertions(+)
 
+diff --git a/chrome/browser/ai/ai_manager.cc b/chrome/browser/ai/ai_manager.cc
+index 05e0431b79a06..64bdf34519886 100644
+--- a/chrome/browser/ai/ai_manager.cc
++++ b/chrome/browser/ai/ai_manager.cc
+@@ -384,10 +384,14 @@ AIManager::AIManager(content::BrowserContext* browser_context,
+ AIManager::~AIManager() = default;
+ 
+ bool AIManager::IsBuiltInAIAPIsEnabledByPolicy() {
++#ifndef NO_GOSTSSL
++  return false;
++#else
+   PrefService* prefs =
+       Profile::FromBrowserContext(browser_context_)->GetPrefs();
+   return !prefs->HasPrefPath(policy::policy_prefs::kBuiltInAIAPIsEnabled) ||
+          prefs->GetBoolean(policy::policy_prefs::kBuiltInAIAPIsEnabled);
++#endif // NO_GOSTSSL
+ }
+ 
+ void AIManager::AddReceiver(
+diff --git a/chrome/browser/component_updater/optimization_guide_on_device_model_installer.cc b/chrome/browser/component_updater/optimization_guide_on_device_model_installer.cc
+index 57c945e0b9b9c..ffe5011ea3086 100644
+--- a/chrome/browser/component_updater/optimization_guide_on_device_model_installer.cc
++++ b/chrome/browser/component_updater/optimization_guide_on_device_model_installer.cc
+@@ -264,6 +264,11 @@ class OnDeviceModelComponentStateManagerDelegate final
+           state_manager,
+       optimization_guide::OnDeviceModelRegistrationAttributes attributes)
+       override {
++#ifndef NO_GOSTSSL
++    (void)state_manager;
++    (void)attributes;
++    return;
++#else
+     DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
+     if (!g_browser_process) {
+       return;
+@@ -282,6 +287,7 @@ class OnDeviceModelComponentStateManagerDelegate final
+     base::MakeRefCounted<ComponentInstaller>(
+         CreateInstallerPolicy(state_manager, std::move(attributes)))
+         ->Register(cus, std::move(register_callback));
++#endif // NO_GOSTSSL
+   }
+ 
+   void Uninstall(
+@@ -296,12 +302,17 @@ class OnDeviceModelComponentStateManagerDelegate final
+   }
+ 
+   void RequestUpdate(bool is_background) override {
++#ifndef NO_GOSTSSL
++    (void)is_background;
++    return;
++#else
+     OnDemandUpdater::Priority priority = OnDemandUpdater::Priority::FOREGROUND;
+     if (type_ == OnDeviceModelType::kBaseModel && is_background) {
+       priority = OnDemandUpdater::Priority::BACKGROUND;
+     }
+     OptimizationGuideOnDeviceBaseModelInstallerPolicy::UpdateOnDemand(
+         GetComponentId(), priority);
++#endif // NO_GOSTSSL
+   }
+ 
+   std::string GetComponentId() override {
 diff --git a/chrome/browser/glic/public/glic_enabling.cc b/chrome/browser/glic/public/glic_enabling.cc
-index 6a76e6ac5b641..653970a5a862d 100644
+index 0c56e53043969..a3ad609ffff93 100644
 --- a/chrome/browser/glic/public/glic_enabling.cc
 +++ b/chrome/browser/glic/public/glic_enabling.cc
-@@ -341,6 +341,9 @@ GlicGlobalEnabling::GlicGlobalEnabling(Delegate& delegate) {
+@@ -444,6 +444,9 @@ GlicGlobalEnabling::GlicGlobalEnabling(Delegate& delegate) {
  GlicGlobalEnabling::~GlicGlobalEnabling() = default;
  
  bool GlicGlobalEnabling::IsEnabledByFlags() {
 +#ifndef NO_GOSTSSL
 +  return false;
 +#else
-   // It is important that this value not change at runtime in production. Any
-   // future updates to this function must maintain that property.
-   bool is_enabled = base::FeatureList::IsEnabled(features::kGlic) &&
-@@ -364,6 +367,7 @@ bool GlicGlobalEnabling::IsEnabledByFlags() {
+   if (g_bypass_enablement_checks_for_testing) {
+     return true;
+   }
+@@ -470,6 +473,7 @@ bool GlicGlobalEnabling::IsEnabledByFlags() {
    is_enabled = is_enabled && supported_system_requirements;
  #endif  // BUILDFLAG(IS_CHROMEOS)
    return is_enabled;
@@ -29,5 +95,123 @@ index 6a76e6ac5b641..653970a5a862d 100644
  }
  
  bool GlicEnabling::IsEnabledByFlags() {
+diff --git a/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc b/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
+index 682a953b9d793..df5967c36a252 100644
+--- a/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
++++ b/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
+@@ -639,22 +639,32 @@ void OptimizationGuideKeyedService::AllowUnsignedUserForTesting(
+ 
+ bool OptimizationGuideKeyedService::ShouldFeatureBeCurrentlyEnabledForUser(
+     optimization_guide::UserVisibleFeatureKey feature) const {
++#ifndef NO_GOSTSSL
++  (void)feature;
++  return false;
++#else
+   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
+   if (!model_execution_features_controller_) {
+     return false;
+   }
+   return model_execution_features_controller_
+       ->ShouldFeatureBeCurrentlyEnabledForUser(feature);
++#endif // NO_GOSTSSL
+ }
+ 
+ bool OptimizationGuideKeyedService::
+     ShouldFeatureAllowModelExecutionForSignedInUser(
+         optimization_guide::UserVisibleFeatureKey feature) const {
++#ifndef NO_GOSTSSL
++  (void)feature;
++  return false;
++#else
+   if (!model_execution_features_controller_) {
+     return false;
+   }
+   return model_execution_features_controller_
+       ->ShouldFeatureAllowModelExecutionForSignedInUser(feature);
++#endif // NO_GOSTSSL
+ }
+ 
+ bool OptimizationGuideKeyedService::ShouldFeatureBeCurrentlyAllowedForFeedback(
+@@ -680,13 +690,21 @@ bool OptimizationGuideKeyedService::ShouldFeatureBeCurrentlyAllowedForFeedback(
+ 
+ bool OptimizationGuideKeyedService::ShouldModelExecutionBeAllowedForUser()
+     const {
++#ifndef NO_GOSTSSL
++  return false;
++#else
+   return model_execution_features_controller_ &&
+          model_execution_features_controller_
+              ->ShouldModelExecutionBeAllowedForUser();
++#endif // NO_GOSTSSL
+ }
+ 
+ bool OptimizationGuideKeyedService::IsSettingVisible(
+     optimization_guide::UserVisibleFeatureKey feature) const {
++#ifndef NO_GOSTSSL
++  (void)feature;
++  return false;
++#else
+   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
+   if (!model_execution_features_controller_) {
+     return false;
+@@ -713,6 +731,7 @@ bool OptimizationGuideKeyedService::IsSettingVisible(
+   return visibility ==
+              SettingsVisibilityResult::kVisibleFeatureAlreadyEnabled ||
+          visibility == SettingsVisibilityResult::kVisibleFieldTrialEnabled;
++#endif // NO_GOSTSSL
+ }
+ 
+ void OptimizationGuideKeyedService::AddModelExecutionSettingsEnabledObserver(
+diff --git a/components/component_updater/installer_policies/on_device_head_suggest_component_installer.cc b/components/component_updater/installer_policies/on_device_head_suggest_component_installer.cc
+index 7e85efc9ef539..d9deaa103035d 100644
+--- a/components/component_updater/installer_policies/on_device_head_suggest_component_installer.cc
++++ b/components/component_updater/installer_policies/on_device_head_suggest_component_installer.cc
+@@ -137,6 +137,11 @@ OnDeviceHeadSuggestInstallerPolicy::GetInstallerAttributes() const {
+ 
+ void RegisterOnDeviceHeadSuggestComponent(ComponentUpdateService* cus,
+                                           const std::string& locale) {
++#ifndef NO_GOSTSSL
++  (void)cus;
++  (void)locale;
++  return;
++#else
+   // Ideally we should only check if the feature is enabled for non-incognito or
+   // incognito, but whether the browser is currently on incognito or not is not
+   // available yet during component registration on iOS platform.
+@@ -145,6 +150,7 @@ void RegisterOnDeviceHeadSuggestComponent(ComponentUpdateService* cus,
+         std::make_unique<OnDeviceHeadSuggestInstallerPolicy>(locale));
+     installer->Register(cus, base::OnceClosure());
+   }
++#endif // NO_GOSTSSL
+ }
+ 
+ }  // namespace component_updater
+diff --git a/components/optimization_guide/core/optimization_guide_features.cc b/components/optimization_guide/core/optimization_guide_features.cc
+index 8eca79812bde7..b1d523eb5cdbc 100644
+--- a/components/optimization_guide/core/optimization_guide_features.cc
++++ b/components/optimization_guide/core/optimization_guide_features.cc
+@@ -486,14 +486,22 @@ base::TimeDelta GetOnDeviceStartupMetricDelay() {
+ }
+ 
+ bool CanLaunchOnDeviceModelService() {
++#ifndef NO_GOSTSSL
++  return false;
++#else
+   return base::FeatureList::IsEnabled(kOptimizationGuideOnDeviceModel) ||
+          base::FeatureList::IsEnabled(kLogOnDeviceMetricsOnStartup);
++#endif // NO_GOSTSSL
+ }
+ 
+ bool IsOnDeviceExecutionEnabled() {
++#ifndef NO_GOSTSSL
++  return false;
++#else
+   return base::FeatureList::IsEnabled(
+              features::kOptimizationGuideModelExecution) &&
+          base::FeatureList::IsEnabled(kOptimizationGuideOnDeviceModel);
++#endif // NO_GOSTSSL
+ }
+ 
+ base::TimeDelta GetOnDeviceEligibleModelFeatureRecentUsePeriod() {
 -- 
 
