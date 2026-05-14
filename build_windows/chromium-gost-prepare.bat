@@ -14,7 +14,7 @@ call git reset HEAD --hard && call git clean -fd
 
 cd %CHROMIUM_PATH%
 call git reset HEAD --hard && call git clean -fd
-call git fetch origin tag %CHROMIUM_TAG% --no-tags
+call git fetch --depth=1 origin tag %CHROMIUM_TAG% --no-tags
 call git checkout -f -b temp tags/%CHROMIUM_TAG%
 call git show-ref --quiet refs/heads/%GOST_BRANCH% && call git branch -D %GOST_BRANCH%
 call git checkout -f -b %GOST_BRANCH% tags/%CHROMIUM_TAG%
