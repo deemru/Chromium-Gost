@@ -1,4 +1,4 @@
-From 18517cac099a5aa4aac9a9d7eafe52ce2a39fa7f Mon Sep 17 00:00:00 2001
+From de17321602a014e3037debfc111aae430120f25a Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 13 May 2026 13:13:11 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -67,7 +67,7 @@ Subject: [PATCH] chromium GOSTSSL
  60 files changed, 984 insertions(+), 57 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
-index cc98a1463c539..8d2479d2dad5b 100644
+index cc98a1463c..8d2479d2da 100644
 --- a/chrome/BUILD.gn
 +++ b/chrome/BUILD.gn
 @@ -1520,7 +1520,7 @@ group("extra_resources") {
@@ -100,7 +100,7 @@ index cc98a1463c539..8d2479d2dad5b 100644
      }
    }
 diff --git a/chrome/app/app-entitlements.plist b/chrome/app/app-entitlements.plist
-index 79bf119fba775..2350f4b1d19e9 100644
+index 79bf119fba..2350f4b1d1 100644
 --- a/chrome/app/app-entitlements.plist
 +++ b/chrome/app/app-entitlements.plist
 @@ -16,5 +16,13 @@
@@ -118,7 +118,7 @@ index 79bf119fba775..2350f4b1d19e9 100644
  </dict>
  </plist>
 diff --git a/chrome/app/generated_resources.grd b/chrome/app/generated_resources.grd
-index 33c0b42d826b5..51f2d22fbec37 100644
+index 33c0b42d82..51f2d22fbe 100644
 --- a/chrome/app/generated_resources.grd
 +++ b/chrome/app/generated_resources.grd
 @@ -7633,10 +7633,8 @@ Keep your key file in a safe place. You will need it to create new versions of y
@@ -133,7 +133,7 @@ index 33c0b42d826b5..51f2d22fbec37 100644
        <message name="IDS_GOOGLE_SEARCH_BOX_EMPTY_HINT_MULTIMODAL" desc="The text displayed in the multimodal searchbox when it is empty. It is meant to invite the user to add a text query to the existing image query in order to issue a 'multimodal' (image + text) query.">
          Add to your search
 diff --git a/chrome/app/resources/generated_resources_ru.xtb b/chrome/app/resources/generated_resources_ru.xtb
-index 542efe4b89221..ab54b0569e339 100644
+index 542efe4b89..ab54b0569e 100644
 --- a/chrome/app/resources/generated_resources_ru.xtb
 +++ b/chrome/app/resources/generated_resources_ru.xtb
 @@ -6021,7 +6021,7 @@
@@ -146,7 +146,7 @@ index 542efe4b89221..ab54b0569e339 100644
  <translation id="5155299520372681119">Время загрузки истекло. Файл удален.</translation>
  <translation id="5155327081870541046">В адресной строке введите быструю команду для сайта, на котором нужно выполнить поиск, например @bookmarks. Затем нажмите нужное сочетание клавиш и добавьте поисковый запрос.</translation>
 diff --git a/chrome/app/theme/chromium/BRANDING b/chrome/app/theme/chromium/BRANDING
-index f8363d5b294fe..2f8021eabe810 100644
+index f8363d5b29..2f8021eabe 100644
 --- a/chrome/app/theme/chromium/BRANDING
 +++ b/chrome/app/theme/chromium/BRANDING
 @@ -1,10 +1,10 @@
@@ -169,7 +169,7 @@ index f8363d5b294fe..2f8021eabe810 100644
  MAC_CREATOR_CODE=Cr24
  MAC_TEAM_ID=
 diff --git a/chrome/browser/extensions/api/messaging/launch_context_posix.cc b/chrome/browser/extensions/api/messaging/launch_context_posix.cc
-index ebc06e12030a1..5fdaa13be3d5a 100644
+index ebc06e1203..5fdaa13be3 100644
 --- a/chrome/browser/extensions/api/messaging/launch_context_posix.cc
 +++ b/chrome/browser/extensions/api/messaging/launch_context_posix.cc
 @@ -47,6 +47,18 @@ base::FilePath LaunchContext::FindManifest(const std::string& host_name,
@@ -192,7 +192,7 @@ index ebc06e12030a1..5fdaa13be3d5a 100644
    if (result.empty()) {
      error_message = "Can't find native messaging host " + host_name;
 diff --git a/chrome/browser/history/top_sites_factory.cc b/chrome/browser/history/top_sites_factory.cc
-index 3398a0e4ccb97..5a198f0d314d1 100644
+index 3398a0e4cc..5a198f0d31 100644
 --- a/chrome/browser/history/top_sites_factory.cc
 +++ b/chrome/browser/history/top_sites_factory.cc
 @@ -54,7 +54,7 @@ struct RawPrepopulatedPage {
@@ -214,7 +214,7 @@ index 3398a0e4ccb97..5a198f0d314d1 100644
    PrefService* pref_service = profile->GetPrefs();
    bool hide_web_store_icon =
 diff --git a/chrome/browser/metrics/key_credential_manager_support_reporter_win.cc b/chrome/browser/metrics/key_credential_manager_support_reporter_win.cc
-index 436bc47cadcb1..3c922aaefade9 100644
+index 436bc47cad..3c922aaefa 100644
 --- a/chrome/browser/metrics/key_credential_manager_support_reporter_win.cc
 +++ b/chrome/browser/metrics/key_credential_manager_support_reporter_win.cc
 @@ -43,7 +43,7 @@ enum KeyCredentialManagerAvailability {
@@ -227,7 +227,7 @@ index 436bc47cadcb1..3c922aaefade9 100644
  void ReportIsSupportedOutcome(KeyCredentialManagerAvailability availability) {
    base::UmaHistogramEnumeration(
 diff --git a/chrome/browser/resources/new_tab_page/app.ts b/chrome/browser/resources/new_tab_page/app.ts
-index 815e8f42bec8c..e0bce63b55234 100644
+index 815e8f42be..e0bce63b55 100644
 --- a/chrome/browser/resources/new_tab_page/app.ts
 +++ b/chrome/browser/resources/new_tab_page/app.ts
 @@ -380,15 +380,15 @@ export class AppElement extends AppElementBase {
@@ -260,7 +260,7 @@ index 815e8f42bec8c..e0bce63b55234 100644
    protected accessor multiLineEnabled_: boolean =
        loadTimeData.getBoolean('multiLineEnabled');
 diff --git a/chrome/browser/resources/new_tab_page/logo.css b/chrome/browser/resources/new_tab_page/logo.css
-index 4aabfc88bd528..c1ddf3320fb5d 100644
+index 4aabfc88bd..c1ddf3320f 100644
 --- a/chrome/browser/resources/new_tab_page/logo.css
 +++ b/chrome/browser/resources/new_tab_page/logo.css
 @@ -44,10 +44,7 @@
@@ -276,7 +276,7 @@ index 4aabfc88bd528..c1ddf3320fb5d 100644
  
  :host(:not([single-colored])) #logo {
 diff --git a/chrome/browser/resources/new_tab_page/logo.ts b/chrome/browser/resources/new_tab_page/logo.ts
-index d63d0527d5394..00410f405097d 100644
+index d63d0527d5..00410f4050 100644
 --- a/chrome/browser/resources/new_tab_page/logo.ts
 +++ b/chrome/browser/resources/new_tab_page/logo.ts
 @@ -99,10 +99,12 @@ export class LogoElement extends CrLitElement {
@@ -293,7 +293,7 @@ index d63d0527d5394..00410f405097d 100644
  
    override connectedCallback() {
 diff --git a/chrome/browser/search/search.cc b/chrome/browser/search/search.cc
-index bc22d3f807baf..c27a1583527c5 100644
+index bc22d3f807..c27a158352 100644
 --- a/chrome/browser/search/search.cc
 +++ b/chrome/browser/search/search.cc
 @@ -174,6 +174,8 @@ struct NewTabURLDetails {
@@ -306,7 +306,7 @@ index bc22d3f807baf..c27a1583527c5 100644
      const bool default_is_google = DefaultSearchProviderIsGoogle(profile);
      const GURL local_url(default_is_google
 diff --git a/chrome/browser/shell_integration_linux.cc b/chrome/browser/shell_integration_linux.cc
-index 94c5e9be9e9a4..47f835195281f 100644
+index 94c5e9be9e..47f8351952 100644
 --- a/chrome/browser/shell_integration_linux.cc
 +++ b/chrome/browser/shell_integration_linux.cc
 @@ -461,7 +461,7 @@ std::string GetIconName() {
@@ -319,7 +319,7 @@ index 94c5e9be9e9a4..47f835195281f 100644
  }
  
 diff --git a/chrome/browser/ui/startup/startup_browser_creator.cc b/chrome/browser/ui/startup/startup_browser_creator.cc
-index 597bd5bfdcbbf..aba0a6f8750fe 100644
+index 597bd5bfdc..cc7a67583b 100644
 --- a/chrome/browser/ui/startup/startup_browser_creator.cc
 +++ b/chrome/browser/ui/startup/startup_browser_creator.cc
 @@ -144,6 +144,17 @@
@@ -330,7 +330,7 @@ index 597bd5bfdcbbf..aba0a6f8750fe 100644
 +#include "base/path_service.h"
 +#include "chrome/common/chrome_paths.h"
 +#include "chrome/browser/extensions/extension_install_prompt.h"
-+#include "chrome/browser/extensions/crx_installer.h"
++#include "extensions/browser/crx_installer.h"
 +#include "components/crx_file/crx_verifier.h"
 +#include "ui/message_center/public/cpp/notifier_id.h"
 +#include "chrome/browser/notifications/notifier_state_tracker.h"
@@ -527,7 +527,7 @@ index 597bd5bfdcbbf..aba0a6f8750fe 100644
  
  #if BUILDFLAG(IS_WIN)
 diff --git a/chrome/browser/ui/toolbar/chrome_labs/chrome_labs_utils.cc b/chrome/browser/ui/toolbar/chrome_labs/chrome_labs_utils.cc
-index 3c310d91b5591..087ef45ec145b 100644
+index 3c310d91b5..087ef45ec1 100644
 --- a/chrome/browser/ui/toolbar/chrome_labs/chrome_labs_utils.cc
 +++ b/chrome/browser/ui/toolbar/chrome_labs/chrome_labs_utils.cc
 @@ -139,6 +139,8 @@ bool AreNewChromeLabsExperimentsAvailable(Profile* profile) {
@@ -540,7 +540,7 @@ index 3c310d91b5591..087ef45ec145b 100644
    if (chrome::GetChannel() == version_info::Channel::STABLE) {
      return false;
 diff --git a/chrome/browser/ui/views/certificate_selector.cc b/chrome/browser/ui/views/certificate_selector.cc
-index f33e742199d99..f5b2ccee00649 100644
+index f33e742199..f5b2ccee00 100644
 --- a/chrome/browser/ui/views/certificate_selector.cc
 +++ b/chrome/browser/ui/views/certificate_selector.cc
 @@ -71,8 +71,8 @@ bool UseGlicDevFlow(content::WebContents* contents) {
@@ -605,7 +605,7 @@ index f33e742199d99..f5b2ccee00649 100644
    for (auto& column : columns) {
      column.sortable = true;
 diff --git a/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc b/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
-index 3f8871e197aa2..487c0be00917c 100644
+index 3f8871e197..487c0be009 100644
 --- a/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
 +++ b/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
 @@ -309,6 +309,7 @@ void BrowserAppMenuButton::UpdateTextAndHighlightColor() {
@@ -617,7 +617,7 @@ index 3f8871e197aa2..487c0be00917c 100644
  
    SetTooltipText(l10n_util::GetStringUTF16(tooltip_message_id));
 diff --git a/chrome/browser/ui/webui/whats_new/whats_new_util.cc b/chrome/browser/ui/webui/whats_new/whats_new_util.cc
-index 8b12affd2b97b..143b415c52455 100644
+index 8b12affd2b..143b415c52 100644
 --- a/chrome/browser/ui/webui/whats_new/whats_new_util.cc
 +++ b/chrome/browser/ui/webui/whats_new/whats_new_util.cc
 @@ -100,7 +100,7 @@ bool ShouldShowForState(PrefService* local_state,
@@ -630,7 +630,7 @@ index 8b12affd2b97b..143b415c52455 100644
  }
  
 diff --git a/chrome/common/channel_info_posix.cc b/chrome/common/channel_info_posix.cc
-index f6bcb3cc8e8d6..dc53b2f53f8e8 100644
+index f6bcb3cc8e..dc53b2f53f 100644
 --- a/chrome/common/channel_info_posix.cc
 +++ b/chrome/common/channel_info_posix.cc
 @@ -148,7 +148,7 @@ std::string GetDesktopName(base::Environment* env) {
@@ -643,7 +643,7 @@ index f6bcb3cc8e8d6..dc53b2f53f8e8 100644
  }
  #endif  // BUILDFLAG(IS_LINUX)
 diff --git a/chrome/common/net/x509_certificate_model.cc b/chrome/common/net/x509_certificate_model.cc
-index 4b76cfb0640f5..23892e17f5a2f 100644
+index 4b76cfb064..23892e17f5 100644
 --- a/chrome/common/net/x509_certificate_model.cc
 +++ b/chrome/common/net/x509_certificate_model.cc
 @@ -565,7 +565,7 @@ std::string ProcessRDN(const bssl::RelativeDistinguishedName& rdn) {
@@ -656,7 +656,7 @@ index 4b76cfb0640f5..23892e17f5a2f 100644
      rv += " = ";
      if (name_attribute.type == bssl::der::Input(bssl::kTypeCommonNameOid)) {
 diff --git a/chrome/installer/linux/common/chromium-browser.info b/chrome/installer/linux/common/chromium-browser.info
-index 395c019f7dd5f..91fa16c4ed39c 100644
+index 395c019f7d..91fa16c4ed 100644
 --- a/chrome/installer/linux/common/chromium-browser.info
 +++ b/chrome/installer/linux/common/chromium-browser.info
 @@ -6,25 +6,25 @@
@@ -691,7 +691,7 @@ index 395c019f7dd5f..91fa16c4ed39c 100644
  # Package maintainer information.
  MAINTNAME="Chromium Linux Team"
 diff --git a/chrome/installer/linux/rpm/chrome.spec.template b/chrome/installer/linux/rpm/chrome.spec.template
-index 50edd6732593d..357acb0095479 100644
+index 50edd67325..357acb0095 100644
 --- a/chrome/installer/linux/rpm/chrome.spec.template
 +++ b/chrome/installer/linux/rpm/chrome.spec.template
 @@ -125,6 +125,8 @@ add_nss_symlinks
@@ -713,7 +713,7 @@ index 50edd6732593d..357acb0095479 100644
  case $CHANNEL in
    stable )
 diff --git a/chrome/installer/mini_installer/chrome.release b/chrome/installer/mini_installer/chrome.release
-index 0f331c3e0f2a3..87626fc3e119b 100644
+index 0f331c3e0f..87626fc3e1 100644
 --- a/chrome/installer/mini_installer/chrome.release
 +++ b/chrome/installer/mini_installer/chrome.release
 @@ -39,7 +39,7 @@ v8_context_snapshot.bin: %(VersionDir)s\
@@ -726,7 +726,7 @@ index 0f331c3e0f2a3..87626fc3e119b 100644
  
  #
 diff --git a/chrome/installer/setup/install_worker.cc b/chrome/installer/setup/install_worker.cc
-index feeca02961ebd..ca58dcdbf7c6c 100644
+index feeca02961..ca58dcdbf7 100644
 --- a/chrome/installer/setup/install_worker.cc
 +++ b/chrome/installer/setup/install_worker.cc
 @@ -289,6 +289,7 @@ void AddChromeWorkItems(const InstallParams& install_params,
@@ -759,7 +759,7 @@ index feeca02961ebd..ca58dcdbf7c6c 100644
    AddUpdateDowngradeVersionItem(installer_state.root_key(), current_version,
                                  new_version, install_list);
 diff --git a/components/embedder_support/user_agent_utils.cc b/components/embedder_support/user_agent_utils.cc
-index 557eadb18229e..30c506d8b4e50 100644
+index 557eadb182..30c506d8b4 100644
 --- a/components/embedder_support/user_agent_utils.cc
 +++ b/components/embedder_support/user_agent_utils.cc
 @@ -915,7 +915,7 @@ std::string BuildUserAgentFromOSAndProduct(const std::string& os_info,
@@ -772,7 +772,7 @@ index 557eadb18229e..30c506d8b4e50 100644
                        os_info.c_str(), product.c_str());
    return user_agent;
 diff --git a/components/search_engines/keyword_table.cc b/components/search_engines/keyword_table.cc
-index 47c1b2c577122..812801941291e 100644
+index 47c1b2c577..8128019412 100644
 --- a/components/search_engines/keyword_table.cc
 +++ b/components/search_engines/keyword_table.cc
 @@ -584,7 +584,9 @@ std::optional<TemplateURLData> KeywordTable::GetKeywordDataFromStatement(
@@ -796,7 +796,7 @@ index 47c1b2c577122..812801941291e 100644
    // TODO(b:322513019): support other regulatory programs.
    s->BindBool(starting_column + 21,
 diff --git a/components/search_engines/search_terms_data.cc b/components/search_engines/search_terms_data.cc
-index edc375b207c0d..0f586fe798687 100644
+index edc375b207..0f586fe798 100644
 --- a/components/search_engines/search_terms_data.cc
 +++ b/components/search_engines/search_terms_data.cc
 @@ -155,7 +155,7 @@ std::string SearchTermsData::GoogleImageSearchSource() const {
@@ -809,7 +809,7 @@ index edc375b207c0d..0f586fe798687 100644
  
  std::string SearchTermsData::GetMailRUReferralID() const {
 diff --git a/components/search_engines/template_url_data_util.cc b/components/search_engines/template_url_data_util.cc
-index 8c02d0e784b39..0f528a1765b13 100644
+index 8c02d0e784..0f528a1765 100644
 --- a/components/search_engines/template_url_data_util.cc
 +++ b/components/search_engines/template_url_data_util.cc
 @@ -77,10 +77,12 @@ std::unique_ptr<TemplateURLData> TemplateURLDataFromDictionary(
@@ -848,7 +848,7 @@ index 8c02d0e784b39..0f528a1765b13 100644
      if (string_value) {
        contextual_search_url = *string_value;
 diff --git a/components/search_engines/template_url_prepopulate_data.cc b/components/search_engines/template_url_prepopulate_data.cc
-index 23c3c13f2f0ec..8c4b1746b4f66 100644
+index 23c3c13f2f..8c4b1746b4 100644
 --- a/components/search_engines/template_url_prepopulate_data.cc
 +++ b/components/search_engines/template_url_prepopulate_data.cc
 @@ -184,8 +184,14 @@ std::vector<std::unique_ptr<TemplateURLData>> GetPrepopulatedEngines(
@@ -878,7 +878,7 @@ index 23c3c13f2f0ec..8c4b1746b4f66 100644
  }
  
 diff --git a/content/browser/service_host/utility_process_host.cc b/content/browser/service_host/utility_process_host.cc
-index 1b6c5d15eaf06..18977cf172e03 100644
+index 1b6c5d15ea..18977cf172 100644
 --- a/content/browser/service_host/utility_process_host.cc
 +++ b/content/browser/service_host/utility_process_host.cc
 @@ -383,6 +383,12 @@ bool UtilityProcessHost::StartProcess() {
@@ -895,7 +895,7 @@ index 1b6c5d15eaf06..18977cf172e03 100644
        network::switches::kForceEffectiveConnectionType,
        network::switches::kHostResolverRules,
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
-index ab16e6b15905b..5a589cf4ab9e0 100644
+index ab16e6b159..5a589cf4ab 100644
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
 @@ -175,6 +175,10 @@
@@ -922,7 +922,7 @@ index ab16e6b15905b..5a589cf4ab9e0 100644
      if (cert && private_key) {
        mojo::PendingRemote<network::mojom::SSLPrivateKey> ssl_private_key;
 diff --git a/net/base/net_error_list.h b/net/base/net_error_list.h
-index 52f3b5b7db346..890c9250e1d45 100644
+index 52f3b5b7db..890c9250e1 100644
 --- a/net/base/net_error_list.h
 +++ b/net/base/net_error_list.h
 @@ -23,6 +23,11 @@
@@ -938,7 +938,7 @@ index 52f3b5b7db346..890c9250e1d45 100644
  
  // An asynchronous IO operation is not yet complete.  This usually does not
 diff --git a/net/cert/cert_verify_proc.cc b/net/cert/cert_verify_proc.cc
-index d12efbc9a3705..408824039b667 100644
+index d12efbc9a3..408824039b 100644
 --- a/net/cert/cert_verify_proc.cc
 +++ b/net/cert/cert_verify_proc.cc
 @@ -427,6 +427,12 @@ CertVerifyProc::CertVerifyProc(scoped_refptr<CRLSet> crl_set)
@@ -979,7 +979,7 @@ index d12efbc9a3705..408824039b667 100644
    // in the chain. Also fills in the has_* booleans for the digest algorithms
    // present in the chain.
 diff --git a/net/cert/x509_cert_types.cc b/net/cert/x509_cert_types.cc
-index 3481e5b3eb079..1368d63c23ad0 100644
+index 3481e5b3eb..1368d63c23 100644
 --- a/net/cert/x509_cert_types.cc
 +++ b/net/cert/x509_cert_types.cc
 @@ -43,6 +43,20 @@ bool CertPrincipal::ParseDistinguishedName(
@@ -1025,7 +1025,7 @@ index 3481e5b3eb079..1368d63c23ad0 100644
      return organization_names[0];
    if (!organization_unit_names.empty())
 diff --git a/net/cert/x509_cert_types.h b/net/cert/x509_cert_types.h
-index c6c544bec555a..11c9d941f217e 100644
+index c6c544bec5..11c9d941f2 100644
 --- a/net/cert/x509_cert_types.h
 +++ b/net/cert/x509_cert_types.h
 @@ -44,6 +44,8 @@ struct NET_EXPORT CertPrincipal {
@@ -1038,7 +1038,7 @@ index c6c544bec555a..11c9d941f217e 100644
    std::string state_or_province_name;
    std::string country_name;
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index 9a8e75c7a4622..462f2f569582c 100644
+index 9a8e75c7a4..462f2f5695 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
 @@ -2018,6 +2018,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
@@ -1058,7 +1058,7 @@ index 9a8e75c7a4622..462f2f569582c 100644
  }
  
 diff --git a/net/socket/socket.h b/net/socket/socket.h
-index 64e08182d6647..c52bc4bfb349e 100644
+index 64e08182d6..c52bc4bfb3 100644
 --- a/net/socket/socket.h
 +++ b/net/socket/socket.h
 @@ -21,6 +21,10 @@ class IOBuffer;
@@ -1073,7 +1073,7 @@ index 64e08182d6647..c52bc4bfb349e 100644
    virtual ~Socket();
  
 diff --git a/net/socket/ssl_client_socket.cc b/net/socket/ssl_client_socket.cc
-index 886bfe6e05595..d3bd488b63bfd 100644
+index 886bfe6e05..d3bd488b63 100644
 --- a/net/socket/ssl_client_socket.cc
 +++ b/net/socket/ssl_client_socket.cc
 @@ -23,6 +23,10 @@
@@ -1100,7 +1100,7 @@ index 886bfe6e05595..d3bd488b63bfd 100644
  
  SSLClientContext::~SSLClientContext() {
 diff --git a/net/socket/ssl_client_socket.h b/net/socket/ssl_client_socket.h
-index cb52207b20deb..25530af3ebe4c 100644
+index cb52207b20..25530af3eb 100644
 --- a/net/socket/ssl_client_socket.h
 +++ b/net/socket/ssl_client_socket.h
 @@ -257,6 +257,10 @@ class NET_EXPORT SSLClientContext : public SSLConfigService::Observer,
@@ -1115,7 +1115,7 @@ index cb52207b20deb..25530af3ebe4c 100644
    void NotifySSLConfigChanged(SSLConfigChangeType change_type);
    void NotifySSLConfigForServersChanged(
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 8ac44772109a8..8ae2054db556e 100644
+index 8ac4477210..8ae2054db5 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
 @@ -14,6 +14,7 @@
@@ -1379,7 +1379,7 @@ index 8ac44772109a8..8ae2054db556e 100644
    if (client_cert_.get()) {
      if (!client_private_key_) {
 diff --git a/net/socket/ssl_client_socket_impl.h b/net/socket/ssl_client_socket_impl.h
-index ef87745a097fe..b624eb33434e2 100644
+index ef87745a09..b624eb3343 100644
 --- a/net/socket/ssl_client_socket_impl.h
 +++ b/net/socket/ssl_client_socket_impl.h
 @@ -54,6 +54,14 @@ class NET_EXPORT_PRIVATE SSLClientSocketImpl
@@ -1398,7 +1398,7 @@ index ef87745a097fe..b624eb33434e2 100644
    // The given hostname will be compared with the name(s) in the server's
    // certificate during the SSL handshake.  |ssl_config| specifies the SSL
 diff --git a/net/socket/ssl_connect_job.cc b/net/socket/ssl_connect_job.cc
-index 67757935f8270..f82e8e3f9cca7 100644
+index 67757935f8..f82e8e3f9c 100644
 --- a/net/socket/ssl_connect_job.cc
 +++ b/net/socket/ssl_connect_job.cc
 @@ -396,6 +396,11 @@ int SSLConnectJob::DoSSLConnect() {
@@ -1439,7 +1439,7 @@ index 67757935f8270..f82e8e3f9cca7 100644
    // TLS 1.2 actually support SHA-2 but preferentially sign SHA-1 if available.
    // In order to get accurate metrics while deprecating SHA-1, we initially
 diff --git a/net/socket/ssl_connect_job.h b/net/socket/ssl_connect_job.h
-index 9127f2710120d..6f87e0064b67e 100644
+index 9127f27101..6f87e0064b 100644
 --- a/net/socket/ssl_connect_job.h
 +++ b/net/socket/ssl_connect_job.h
 @@ -202,6 +202,10 @@ class NET_EXPORT_PRIVATE SSLConnectJob : public ConnectJob,
@@ -1454,7 +1454,7 @@ index 9127f2710120d..6f87e0064b67e 100644
  
    ConnectionAttempts connection_attempts_;
 diff --git a/net/spdy/spdy_session.cc b/net/spdy/spdy_session.cc
-index b81a1c76b0760..6008744568918 100644
+index b81a1c76b0..6008744568 100644
 --- a/net/spdy/spdy_session.cc
 +++ b/net/spdy/spdy_session.cc
 @@ -1557,6 +1557,11 @@ void SpdySession::RemovePooledAlias(const SpdySessionKey& alias_key) {
@@ -1470,7 +1470,7 @@ index b81a1c76b0760..6008744568918 100644
    CHECK(GetSSLInfo(&ssl_info));
  
 diff --git a/net/ssl/client_cert_store_mac.cc b/net/ssl/client_cert_store_mac.cc
-index c92d91d72dd8f..140c90fe037cf 100644
+index c92d91d72d..140c90fe03 100644
 --- a/net/ssl/client_cert_store_mac.cc
 +++ b/net/ssl/client_cert_store_mac.cc
 @@ -19,6 +19,7 @@
@@ -1565,7 +1565,7 @@ index c92d91d72dd8f..140c90fe037cf 100644
  }
  
 diff --git a/net/ssl/client_cert_store_nss.cc b/net/ssl/client_cert_store_nss.cc
-index 049a61fefb810..efdf469ede35f 100644
+index 049a61fefb..efdf469ede 100644
 --- a/net/ssl/client_cert_store_nss.cc
 +++ b/net/ssl/client_cert_store_nss.cc
 @@ -13,6 +13,7 @@
@@ -1662,7 +1662,7 @@ index 049a61fefb810..efdf469ede35f 100644
  }
  
 diff --git a/net/ssl/client_cert_store_win.cc b/net/ssl/client_cert_store_win.cc
-index 29f6b979931fd..617bba1a30dc9 100644
+index 29f6b97993..617bba1a30 100644
 --- a/net/ssl/client_cert_store_win.cc
 +++ b/net/ssl/client_cert_store_win.cc
 @@ -15,6 +15,7 @@
@@ -1758,7 +1758,7 @@ index 29f6b979931fd..617bba1a30dc9 100644
              ClientCertIdentitySorter());
    return selected_identities;
 diff --git a/net/ssl/openssl_ssl_util.cc b/net/ssl/openssl_ssl_util.cc
-index 09b38ddb17496..d2b58f6d25300 100644
+index 09b38ddb17..d2b58f6d25 100644
 --- a/net/ssl/openssl_ssl_util.cc
 +++ b/net/ssl/openssl_ssl_util.cc
 @@ -72,6 +72,10 @@ int MapOpenSSLErrorSSL(uint32_t error_code) {
@@ -1773,7 +1773,7 @@ index 09b38ddb17496..d2b58f6d25300 100644
      case SSL_R_SSLV3_ALERT_UNSUPPORTED_CERTIFICATE:
      case SSL_R_SSLV3_ALERT_CERTIFICATE_REVOKED:
 diff --git a/net/ssl/ssl_cipher_suite_names.cc b/net/ssl/ssl_cipher_suite_names.cc
-index c97eaf3c238ca..b909eb7d5e8e2 100644
+index c97eaf3c23..b909eb7d5e 100644
 --- a/net/ssl/ssl_cipher_suite_names.cc
 +++ b/net/ssl/ssl_cipher_suite_names.cc
 @@ -68,6 +68,63 @@ void SSLCipherSuiteToStrings(const char** key_exchange_str,
@@ -1860,7 +1860,7 @@ index c97eaf3c238ca..b909eb7d5e8e2 100644
  
    obsolete_ssl |= ObsoleteSSLStatusForSignature(signature_algorithm);
 diff --git a/net/ssl/ssl_config_service.cc b/net/ssl/ssl_config_service.cc
-index 156eff3ef3e5f..1de7770f21bb4 100644
+index 156eff3ef3..1de7770f21 100644
 --- a/net/ssl/ssl_config_service.cc
 +++ b/net/ssl/ssl_config_service.cc
 @@ -27,7 +27,7 @@ namespace {
@@ -1873,7 +1873,7 @@ index 156eff3ef3e5f..1de7770f21bb4 100644
      {.group_id = SSL_GROUP_SECP256R1, .send_key_share = false},
      {.group_id = SSL_GROUP_SECP384R1, .send_key_share = false},
 diff --git a/net/ssl/ssl_platform_key_util.cc b/net/ssl/ssl_platform_key_util.cc
-index 987a2254cf618..04da6ab681c95 100644
+index 987a2254cf..04da6ab681 100644
 --- a/net/ssl/ssl_platform_key_util.cc
 +++ b/net/ssl/ssl_platform_key_util.cc
 @@ -51,6 +51,28 @@ scoped_refptr<base::SingleThreadTaskRunner> GetSSLPlatformKeyTaskRunner() {
@@ -1906,7 +1906,7 @@ index 987a2254cf618..04da6ab681c95 100644
      const X509Certificate* certificate) {
    crypto::OpenSSLErrStackTracer tracker(FROM_HERE);
 diff --git a/net/ssl/ssl_platform_key_util.h b/net/ssl/ssl_platform_key_util.h
-index 2b2634c68884a..3884282913fb2 100644
+index 2b2634c688..3884282913 100644
 --- a/net/ssl/ssl_platform_key_util.h
 +++ b/net/ssl/ssl_platform_key_util.h
 @@ -15,6 +15,9 @@
@@ -1931,7 +1931,7 @@ index 2b2634c68884a..3884282913fb2 100644
  NET_EXPORT_PRIVATE bssl::UniquePtr<EVP_PKEY> GetClientCertPublicKey(
      const X509Certificate* certificate);
 diff --git a/sandbox/policy/features.cc b/sandbox/policy/features.cc
-index 897abc35a68e4..5589d6a6d1119 100644
+index 897abc35a6..5589d6a6d1 100644
 --- a/sandbox/policy/features.cc
 +++ b/sandbox/policy/features.cc
 @@ -25,13 +25,13 @@ BASE_FEATURE(kNetworkServiceSandbox, base::FEATURE_DISABLED_BY_DEFAULT);
@@ -1960,7 +1960,7 @@ index 897abc35a68e4..5589d6a6d1119 100644
  // Enables Renderer AppContainer
  BASE_FEATURE(kRendererAppContainer, base::FEATURE_DISABLED_BY_DEFAULT);
 diff --git a/sandbox/policy/mac/common.sb b/sandbox/policy/mac/common.sb
-index 955c7aa9bf85d..d5785cce57c42 100644
+index 955c7aa9bf..d5785cce57 100644
 --- a/sandbox/policy/mac/common.sb
 +++ b/sandbox/policy/mac/common.sb
 @@ -195,6 +195,23 @@
@@ -1988,7 +1988,7 @@ index 955c7aa9bf85d..d5785cce57c42 100644
  ; This is read by CFPrefs calling getpwuid in a loop. libinfo then fails to
  ; contact any of the opendirectoryd mach services, and falls back to
 diff --git a/sandbox/win/src/process_mitigations.cc b/sandbox/win/src/process_mitigations.cc
-index abc9837b2b044..d5ee53233cbd4 100644
+index abc9837b2b..d5ee53233c 100644
 --- a/sandbox/win/src/process_mitigations.cc
 +++ b/sandbox/win/src/process_mitigations.cc
 @@ -227,6 +227,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags starting_flags,
@@ -2024,7 +2024,7 @@ index abc9837b2b044..d5ee53233cbd4 100644
  
    // Enable image load policies.
 diff --git a/third_party/blink/renderer/core/frame/reporting_context.cc b/third_party/blink/renderer/core/frame/reporting_context.cc
-index 9b146e778a8e4..fbd6fe8e34140 100644
+index 9b146e778a..fbd6fe8e34 100644
 --- a/third_party/blink/renderer/core/frame/reporting_context.cc
 +++ b/third_party/blink/renderer/core/frame/reporting_context.cc
 @@ -59,7 +59,9 @@ const char ReportingContext::kSupplementName[] = "ReportingContext";
@@ -2080,7 +2080,7 @@ index 9b146e778a8e4..fbd6fe8e34140 100644
  
  }  // namespace blink
 diff --git a/third_party/blink/renderer/core/frame/reporting_context.h b/third_party/blink/renderer/core/frame/reporting_context.h
-index 48d64ece3def4..1749703e33cd6 100644
+index 48d64ece3d..1749703e33 100644
 --- a/third_party/blink/renderer/core/frame/reporting_context.h
 +++ b/third_party/blink/renderer/core/frame/reporting_context.h
 @@ -5,6 +5,7 @@
@@ -2116,7 +2116,7 @@ index 48d64ece3def4..1749703e33cd6 100644
    // There might be up to two ReportingObservers stored here: one that is called
    // from the CrossOriginEmbedderPolicyReporter and one that is called from the
 diff --git a/third_party/boringssl/BUILD.gn b/third_party/boringssl/BUILD.gn
-index 708bb2066269b..883414554c832 100644
+index 708bb20662..883414554c 100644
 --- a/third_party/boringssl/BUILD.gn
 +++ b/third_party/boringssl/BUILD.gn
 @@ -153,6 +153,7 @@ if (is_msan) {
@@ -2128,7 +2128,7 @@ index 708bb2066269b..883414554c832 100644
    friend = [ ":*" ]
    deps = [ "//third_party/boringssl/src/third_party/fiat:fiat_license" ]
 diff --git a/ui/linux/display_server_utils.cc b/ui/linux/display_server_utils.cc
-index 5d8ad66686e65..a3090f5e2e74e 100644
+index 5d8ad66686..a3090f5e2e 100644
 --- a/ui/linux/display_server_utils.cc
 +++ b/ui/linux/display_server_utils.cc
 @@ -53,7 +53,7 @@ void SetOzonePlatformForLinuxIfNeeded(base::CommandLine& command_line) {
@@ -2150,7 +2150,7 @@ index 5d8ad66686e65..a3090f5e2e74e 100644
    command_line.AppendSwitchASCII(switches::kOzonePlatform, "x11");
  #endif
 diff --git a/ui/webui/resources/cr_components/searchbox/searchbox.ts b/ui/webui/resources/cr_components/searchbox/searchbox.ts
-index efe475a4a5e7c..e39f084cc65be 100644
+index efe475a4a5..e39f084cc6 100644
 --- a/ui/webui/resources/cr_components/searchbox/searchbox.ts
 +++ b/ui/webui/resources/cr_components/searchbox/searchbox.ts
 @@ -151,10 +151,10 @@ export class SearchboxElement extends SearchboxElementBase implements
