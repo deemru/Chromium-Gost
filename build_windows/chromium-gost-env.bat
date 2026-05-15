@@ -1,8 +1,8 @@
 set /p CHROMIUM_TAG=<..\VERSION
 set /p CHROMIUM_FLAGS=<..\FLAGS
-set CHROMIUM_PATH=u:\chromium\src
+set CHROMIUM_PATH=U:\chromium\src
 set BORINGSSL_PATH=%CHROMIUM_PATH%\third_party\boringssl\src
-set DEPOT_TOOLS_PATH=u:\depot_tools
+set DEPOT_TOOLS_PATH=U:\depot_tools
 set CHROMIUM_GOST_REPO=%~dp0..\
 set SEVENZIP_PATH="C:\Program Files\7-Zip\"
 set CHROMIUM_PRIVATE_ARGS= 
