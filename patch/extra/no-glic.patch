@@ -1,4 +1,4 @@
-From f60324ee16e4ea61950e5536904b42102cf753b3 Mon Sep 17 00:00:00 2001
+From 83ae59af4db3abcf3c4bee088e5ae3b56a982a94 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 13 May 2026 12:28:19 +0300
 Subject: [PATCH] no glic and ai
@@ -13,7 +13,7 @@ Subject: [PATCH] no glic and ai
  6 files changed, 52 insertions(+)
 
 diff --git a/chrome/browser/ai/ai_manager.cc b/chrome/browser/ai/ai_manager.cc
-index 05e0431b79a06..64bdf34519886 100644
+index 05e0431b79..64bdf34519 100644
 --- a/chrome/browser/ai/ai_manager.cc
 +++ b/chrome/browser/ai/ai_manager.cc
 @@ -384,10 +384,14 @@ AIManager::AIManager(content::BrowserContext* browser_context,
@@ -32,7 +32,7 @@ index 05e0431b79a06..64bdf34519886 100644
  
  void AIManager::AddReceiver(
 diff --git a/chrome/browser/component_updater/optimization_guide_on_device_model_installer.cc b/chrome/browser/component_updater/optimization_guide_on_device_model_installer.cc
-index 57c945e0b9b9c..ffe5011ea3086 100644
+index 57c945e0b9..ffe5011ea3 100644
 --- a/chrome/browser/component_updater/optimization_guide_on_device_model_installer.cc
 +++ b/chrome/browser/component_updater/optimization_guide_on_device_model_installer.cc
 @@ -264,6 +264,11 @@ class OnDeviceModelComponentStateManagerDelegate final
@@ -74,11 +74,11 @@ index 57c945e0b9b9c..ffe5011ea3086 100644
  
    std::string GetComponentId() override {
 diff --git a/chrome/browser/glic/public/glic_enabling.cc b/chrome/browser/glic/public/glic_enabling.cc
-index 0c56e53043969..a3ad609ffff93 100644
+index fdd2b0d1ab..417f026074 100644
 --- a/chrome/browser/glic/public/glic_enabling.cc
 +++ b/chrome/browser/glic/public/glic_enabling.cc
-@@ -444,6 +444,9 @@ GlicGlobalEnabling::GlicGlobalEnabling(Delegate& delegate) {
- GlicGlobalEnabling::~GlicGlobalEnabling() = default;
+@@ -494,6 +494,9 @@ bool GlicGlobalEnabling::IsSystemRequirementMet() const {
+ }
  
  bool GlicGlobalEnabling::IsEnabledByFlags() {
 +#ifndef NO_GOSTSSL
@@ -87,16 +87,16 @@ index 0c56e53043969..a3ad609ffff93 100644
    if (g_bypass_enablement_checks_for_testing) {
      return true;
    }
-@@ -470,6 +473,7 @@ bool GlicGlobalEnabling::IsEnabledByFlags() {
-   is_enabled = is_enabled && supported_system_requirements;
- #endif  // BUILDFLAG(IS_CHROMEOS)
-   return is_enabled;
-+#endif // NO_GOSTSSL
+@@ -504,6 +507,7 @@ bool GlicGlobalEnabling::IsEnabledByFlags() {
+                     country_enablement_.value_or(true);
+ 
+   return is_enabled && IsSystemRequirementMet();
++#endif  // NO_GOSTSSL
  }
  
  bool GlicEnabling::IsEnabledByFlags() {
 diff --git a/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc b/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
-index 682a953b9d793..df5967c36a252 100644
+index 682a953b9d..df5967c36a 100644
 --- a/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
 +++ b/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
 @@ -639,22 +639,32 @@ void OptimizationGuideKeyedService::AllowUnsignedUserForTesting(
@@ -163,7 +163,7 @@ index 682a953b9d793..df5967c36a252 100644
  
  void OptimizationGuideKeyedService::AddModelExecutionSettingsEnabledObserver(
 diff --git a/components/component_updater/installer_policies/on_device_head_suggest_component_installer.cc b/components/component_updater/installer_policies/on_device_head_suggest_component_installer.cc
-index 7e85efc9ef539..d9deaa103035d 100644
+index 7e85efc9ef..d9deaa1030 100644
 --- a/components/component_updater/installer_policies/on_device_head_suggest_component_installer.cc
 +++ b/components/component_updater/installer_policies/on_device_head_suggest_component_installer.cc
 @@ -137,6 +137,11 @@ OnDeviceHeadSuggestInstallerPolicy::GetInstallerAttributes() const {
@@ -187,7 +187,7 @@ index 7e85efc9ef539..d9deaa103035d 100644
  
  }  // namespace component_updater
 diff --git a/components/optimization_guide/core/optimization_guide_features.cc b/components/optimization_guide/core/optimization_guide_features.cc
-index 8eca79812bde7..b1d523eb5cdbc 100644
+index 8eca79812b..b1d523eb5c 100644
 --- a/components/optimization_guide/core/optimization_guide_features.cc
 +++ b/components/optimization_guide/core/optimization_guide_features.cc
 @@ -486,14 +486,22 @@ base::TimeDelta GetOnDeviceStartupMetricDelay() {
