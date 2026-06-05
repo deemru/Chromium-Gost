@@ -1,4 +1,4 @@
-From 92a89ec4d23acc4e80fa93ef30a8cf90dee4d254 Mon Sep 17 00:00:00 2001
+From 9eb4e84f0094ca14be3dd5201564f5606b06173d Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 13 May 2026 13:13:11 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -64,8 +64,9 @@ Subject: [PATCH] chromium GOSTSSL
  .../renderer/core/frame/reporting_context.h   |   5 +
  third_party/boringssl/BUILD.gn                |   1 +
  ui/linux/display_server_utils.cc              |   4 +-
+ ui/qt/qt_ui.cc                                |  11 +
  .../cr_components/searchbox/searchbox.ts      |   8 +-
- 61 files changed, 994 insertions(+), 57 deletions(-)
+ 62 files changed, 1005 insertions(+), 57 deletions(-)
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
 index cc98a1463c5..8d2479d2dad 100644
@@ -1547,10 +1548,10 @@ index 9127f271012..6f87e0064b6 100644
  
    ConnectionAttempts connection_attempts_;
 diff --git a/net/spdy/spdy_session.cc b/net/spdy/spdy_session.cc
-index b81a1c76b07..60087445689 100644
+index 01c092ea928..b765a1e735b 100644
 --- a/net/spdy/spdy_session.cc
 +++ b/net/spdy/spdy_session.cc
-@@ -1557,6 +1557,11 @@ void SpdySession::RemovePooledAlias(const SpdySessionKey& alias_key) {
+@@ -1556,6 +1556,11 @@ void SpdySession::RemovePooledAlias(const SpdySessionKey& alias_key) {
  }
  
  bool SpdySession::HasAcceptableTransportSecurity() const {
@@ -2242,6 +2243,28 @@ index 5d8ad66686e..a3090f5e2e7 100644
  #if BUILDFLAG(SUPPORTS_OZONE_X11)
    command_line.AppendSwitchASCII(switches::kOzonePlatform, "x11");
  #endif
+diff --git a/ui/qt/qt_ui.cc b/ui/qt/qt_ui.cc
+index 25eb5aeadb1..d8dc0287b89 100644
+--- a/ui/qt/qt_ui.cc
++++ b/ui/qt/qt_ui.cc
+@@ -215,6 +215,17 @@ bool QtUi::Initialize() {
+   if (!libqt_shim) {
+     return false;
+   }
++
++#ifndef NO_GOSTSSL
++  if (qt_version_ == 6) {
++    auto env = base::Environment::Create();
++    if (!env->HasVar("QT_QPA_PLATFORMTHEME")) {
++      // Avoid KDEPlasmaPlatformTheme6.so in the browser process.
++      env->SetVar("QT_QPA_PLATFORMTHEME", "generic");
++    }
++  }
++#endif // GOSTSSL
++
+   void* create_qt_interface = dlsym(libqt_shim, "CreateQtInterface");
+   DCHECK(create_qt_interface);
+   shim_.reset((reinterpret_cast<decltype(&CreateQtInterface)>(
 diff --git a/ui/webui/resources/cr_components/searchbox/searchbox.ts b/ui/webui/resources/cr_components/searchbox/searchbox.ts
 index efe475a4a5e..e39f084cc65 100644
 --- a/ui/webui/resources/cr_components/searchbox/searchbox.ts
