@@ -285,8 +285,9 @@ WORKER_DB_ACTION;
 
 static int gostssl_cert_cb( GostSSL_Worker * w );
 
-static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, const char * cachestring = NULL, const char * cert = NULL, int size = 0 )
+static GostSSL_Worker * workers_api( const SSL * s_opaque, WORKER_DB_ACTION action, const char * cachestring = NULL, const char * cert = NULL, int size = 0 )
 {
+    const auto * s = bssl::FromOpaque( s_opaque );
     GostSSL_Worker * w = NULL;
 
     if( action == WDB_NEW )
@@ -324,11 +325,11 @@ static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, con
             else if( tls_flags & TLS_FLAG_V1_1 )
                 max = TLS1_1_VERSION;
 
-            int ssl_min = SSL_get_min_proto_version( s );
+            int ssl_min = SSL_get_min_proto_version( s_opaque );
             if( ssl_min >= TLS1_VERSION && ssl_min > min && ssl_min <= max )
                 min = ssl_min;
 
-            int ssl_max = SSL_get_max_proto_version( s );
+            int ssl_max = SSL_get_max_proto_version( s_opaque );
             if( ssl_max >= TLS1_VERSION && ssl_max < max && ssl_max >= min )
                 max = ssl_max;
 
@@ -343,7 +344,7 @@ static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, con
         else
         if( w->tlsmode == -1 )
             w->host_status = GOSTSSL_HOST_NO;
-        w->s = (SSL *)s;
+        w->s = (SSL *)s_opaque;
 
         if( s->hostname.get() )
             msspi_set_hostname( w->h, (const uint8_t *)s->hostname.get(), strlen( s->hostname.get() ) );
@@ -357,9 +358,9 @@ static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, con
 
     std::unique_lock<std::recursive_mutex> lck( gmutex );
 
-    WORKERS_DB::iterator lb = workers_db.lower_bound( (void *)s );
+    WORKERS_DB::iterator lb = workers_db.lower_bound( (void *)s_opaque );
 
-    if( lb != workers_db.end() && !( workers_db.key_comp()( (void *)s, lb->first ) ) )
+    if( lb != workers_db.end() && !( workers_db.key_comp()( (void *)s_opaque, lb->first ) ) )
     {
         GostSSL_Worker * w_found = lb->second;
 
@@ -393,7 +394,7 @@ static GostSSL_Worker * workers_api( const SSL * s, WORKER_DB_ACTION action, con
     }
 
     if( action == WDB_NEW )
-        workers_db.insert( lb, WORKERS_DB::value_type( (void *)s, w ) );
+        workers_db.insert( lb, WORKERS_DB::value_type( (void *)s_opaque, w ) );
 
     return w;
 }
@@ -550,6 +551,7 @@ static int gostssl_finalized( GostSSL_Worker * w )
 
 static int gostssl_cert_cb( GostSSL_Worker * w )
 {
+    auto * s = bssl::FromOpaque( w->s );
     {
       int ret = gostssl_set_certs( w );
       if( ret != 1 )
@@ -566,7 +568,7 @@ static int gostssl_cert_cb( GostSSL_Worker * w )
         msspi_set_mycert( w->h, (const uint8_t *)w->client_cert.data(), w->client_cert.size() );
     }
     else
-    if( w->s->config->cert && w->s->config->cert->cert_cb )
+    if( s->config->cert && s->config->cert->cert_cb )
     {
         if( gcert )
         {
@@ -575,7 +577,7 @@ static int gostssl_cert_cb( GostSSL_Worker * w )
         }
 
         // mimic ssl3_get_certificate_request
-        if( !w->s->s3->hs->ca_names )
+        if( !s->s3->hs->ca_names )
         {
             std::vector<const uint8_t *> bufs;
             std::vector<size_t> lens;
@@ -591,7 +593,8 @@ static int gostssl_cert_cb( GostSSL_Worker * w )
             }
         }
 
-        int ret = w->s->config->cert->cert_cb( w->s, w->s->config->cert->cert_cb_arg );
+        int ret = s->config->cert->cert_cb(
+            w->s, s->config->cert->cert_cb_arg );
 
         if( !gcert )
         {
@@ -706,8 +709,9 @@ void gostssl_server_proxy( SSL * s, const char * data, size_t len )
         w->server_proxy.insert( w->server_proxy.end(), data, data + len );
 }
 
-static int msspi_to_ssl_state_ret( GostSSL_Worker * w, int state, SSL * s, int ret )
+static int msspi_to_ssl_state_ret( GostSSL_Worker * w, int state, SSL * s_opaque, int ret )
 {
+    auto * s = bssl::FromOpaque( s_opaque );
     if( state & MSSPI_ERROR )
         s->s3->rwstate = SSL_NOTHING;
     else if( state & MSSPI_SENT_SHUTDOWN && state & MSSPI_RECEIVED_SHUTDOWN )

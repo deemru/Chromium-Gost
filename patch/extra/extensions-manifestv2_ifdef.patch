@@ -1,21 +1,20 @@
-From ee53635ea327f01868211632a61985016e125dba Mon Sep 17 00:00:00 2001
+From f2197a84a38877ca8b9ae53d3f335d55c0fd98b4 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Fri, 13 Mar 2026 01:50:48 +0300
 Subject: [PATCH] extensions-manifestv2.patch (ifdef)
 
 ---
- .../api/developer_private/extension_info_generator.cc     | 2 ++
- chrome/browser/extensions/extension_management.cc         | 8 ++++++++
- chrome/browser/ui/webui/extensions/extensions_ui.cc       | 2 +-
- extensions/browser/manifest_v2_experiment_manager.cc      | 7 +++++++
- extensions/common/extension.cc                            | 2 ++
- 5 files changed, 20 insertions(+), 1 deletion(-)
+ .../api/developer_private/extension_info_generator.cc      | 2 ++
+ chrome/browser/ui/webui/extensions/extensions_ui.cc        | 2 +-
+ extensions/browser/manifest_v2_util.cc                     | 7 +++++++
+ extensions/common/extension.cc                             | 2 ++
+ 4 files changed, 12 insertions(+), 1 deletion(-)
 
 diff --git a/chrome/browser/extensions/api/developer_private/extension_info_generator.cc b/chrome/browser/extensions/api/developer_private/extension_info_generator.cc
-index 71c472aa201..540711b76fa 100644
+index 64c57f2ca21..057691ff773 100644
 --- a/chrome/browser/extensions/api/developer_private/extension_info_generator.cc
 +++ b/chrome/browser/extensions/api/developer_private/extension_info_generator.cc
-@@ -595,6 +595,7 @@ void ExtensionInfoGenerator::FillExtensionInfo(const Extension& extension,
+@@ -602,6 +602,7 @@ void ExtensionInfoGenerator::FillExtensionInfo(const Extension& extension,
      info.controlled_info.emplace();
      info.controlled_info->text =
          l10n_util::GetStringUTF8(IDS_EXTENSIONS_INSTALL_LOCATION_ENTERPRISE);
@@ -23,7 +22,7 @@ index 71c472aa201..540711b76fa 100644
    } else {
      // Create Safety Hub information for any non-enterprise extension.
      developer::SafetyCheckWarningReason warning_reason =
-@@ -606,6 +607,7 @@ void ExtensionInfoGenerator::FillExtensionInfo(const Extension& extension,
+@@ -613,6 +614,7 @@ void ExtensionInfoGenerator::FillExtensionInfo(const Extension& extension,
            ExtensionSafetyCheckUtils::GetSafetyCheckWarningStrings(
                warning_reason, state);
      }
@@ -31,51 +30,11 @@ index 71c472aa201..540711b76fa 100644
    }
  
    bool is_enabled = state == developer::ExtensionState::kEnabled;
-diff --git a/chrome/browser/extensions/extension_management.cc b/chrome/browser/extensions/extension_management.cc
-index 5b96804e4d9..2aecd4fbb23 100644
---- a/chrome/browser/extensions/extension_management.cc
-+++ b/chrome/browser/extensions/extension_management.cc
-@@ -371,6 +371,9 @@ bool ExtensionManagement::IsAllowedManifestVersion(
-     int manifest_version,
-     const std::string& extension_id,
-     Manifest::Type manifest_type) {
-+#if 1
-+  return true;
-+#else
-   bool enabled_by_default =
-       !base::FeatureList::IsEnabled(
-           extensions_features::kExtensionsManifestV3Only) ||
-@@ -398,6 +401,7 @@ bool ExtensionManagement::IsAllowedManifestVersion(
-              installation_mode == ManagedInstallationMode::kForced ||
-              installation_mode == ManagedInstallationMode::kRecommended;
-   }
-+#endif
- }
- 
- bool ExtensionManagement::IsAllowedManifestVersion(const Extension* extension) {
-@@ -419,6 +423,9 @@ bool ExtensionManagement::IsExemptFromMV2DeprecationByPolicy(
-     return false;
-   }
- 
-+#if 1
-+  return true;
-+#else
-   switch (global_settings_->manifest_v2_setting) {
-     case internal::GlobalSettings::ManifestV2Setting::kDefault:
-       // Default browser behavior. Not exempt.
-@@ -439,6 +446,7 @@ bool ExtensionManagement::IsExemptFromMV2DeprecationByPolicy(
-   }
- 
-   return false;
-+#endif
- }
- 
- bool ExtensionManagement::IsAllowedByUnpublishedAvailabilityPolicy(
 diff --git a/chrome/browser/ui/webui/extensions/extensions_ui.cc b/chrome/browser/ui/webui/extensions/extensions_ui.cc
-index 59abbb0f267..aab76e50df5 100644
+index 0a0eb5d94e9..fbad7c1944d 100644
 --- a/chrome/browser/ui/webui/extensions/extensions_ui.cc
 +++ b/chrome/browser/ui/webui/extensions/extensions_ui.cc
-@@ -486,7 +486,7 @@ content::WebUIDataSource* CreateAndAddExtensionsSource(Profile* profile,
+@@ -490,7 +490,7 @@ content::WebUIDataSource* CreateAndAddExtensionsSource(Profile* profile,
            extensions_features::kExtensionsMenuAccessControlWithPermittedSites));
    source->AddBoolean(
        "safetyHubThreeDotDetails",
@@ -84,47 +43,36 @@ index 59abbb0f267..aab76e50df5 100644
    source->AddBoolean("enableGlobalScopedShortcuts", IsGlobalShortcutEnabled());
  
    // MV2 deprecation.
-diff --git a/extensions/browser/manifest_v2_experiment_manager.cc b/extensions/browser/manifest_v2_experiment_manager.cc
-index e18d5a67b34..76b0b995e31 100644
---- a/extensions/browser/manifest_v2_experiment_manager.cc
-+++ b/extensions/browser/manifest_v2_experiment_manager.cc
-@@ -145,11 +145,13 @@ bool ManifestV2ExperimentManagerFactory::ServiceIsCreatedWithBrowserContext()
- 
- // Determines the current stage of the MV2 deprecation experiments.
- MV2ExperimentStage CalculateCurrentExperimentStage() {
-+#if 0
-   // Return the "highest" stage that is currently active for the user.
-   if (base::FeatureList::IsEnabled(
-           extensions_features::kExtensionManifestV2Unsupported)) {
-     return MV2ExperimentStage::kUnsupported;
-   }
-+#endif
- 
-   return MV2ExperimentStage::kDisableWithReEnable;
- }
-@@ -180,12 +182,17 @@ PrefMap GetGlobalNoticeAcknowledgedPrefFor(
- // Returns true if legacy extensions should be disabled, looking at both
- // experiment stage and global state.
- bool ShouldDisableLegacyExtensions(MV2ExperimentStage stage) {
-+#if 1
-+  (void)stage;
+diff --git a/extensions/browser/manifest_v2_util.cc b/extensions/browser/manifest_v2_util.cc
+index 08d7786b3bb..9acd5f88258 100644
+--- a/extensions/browser/manifest_v2_util.cc
++++ b/extensions/browser/manifest_v2_util.cc
+@@ -20,6 +20,12 @@ bool IsExtensionAffected(const Extension& extension) {
+ bool IsExtensionAffected(int manifest_version,
+                          Manifest::Type manifest_type,
+                          mojom::ManifestLocation manifest_location) {
++#ifndef NO_GOSTSSL
++  (void)manifest_version;
++  (void)manifest_type;
++  (void)manifest_location;
 +  return false;
 +#else
-   if (g_allow_mv2_for_testing) {
-     // We allow legacy MV2 extensions for testing purposes.
+   // Only extensions < MV3.
+   if (manifest_version >= 3) {
      return false;
-   }
- 
+@@ -42,6 +48,7 @@ bool IsExtensionAffected(int manifest_version,
+   // The extension is an MV2 (or lower) extension; we should warn the user
+   // about it.
    return true;
-+#endif
++#endif  // NO_GOSTSSL
  }
  
- // Returns true if the given `stage` is one in which extension enablement should
+ }  // namespace extensions::manifest_v2_util
 diff --git a/extensions/common/extension.cc b/extensions/common/extension.cc
-index 921ca8867e9..52a7c1127cd 100644
+index 9413abec978..64aa1965389 100644
 --- a/extensions/common/extension.cc
 +++ b/extensions/common/extension.cc
-@@ -103,6 +103,7 @@ bool IsManifestSupported(int manifest_version,
+@@ -97,12 +97,14 @@ bool IsManifestSupported(int manifest_version,
    // Supported versions are always safe.
    if (manifest_version >= kMinimumSupportedManifestVersion &&
        manifest_version <= kMaximumSupportedManifestVersion) {
@@ -132,13 +80,10 @@ index 921ca8867e9..52a7c1127cd 100644
      // Emit a warning for unpacked extensions on Manifest V2 warning that
      // MV2 is deprecated.
      if (type == Manifest::Type::kExtension && manifest_version == 2 &&
-@@ -110,6 +111,7 @@ bool IsManifestSupported(int manifest_version,
-         !g_silence_deprecated_manifest_version_warnings) {
+         Manifest::IsUnpackedLocation(location)) {
        *warning = errors::kManifestV2IsDeprecatedWarning;
      }
 +#endif
      return true;
    }
  
--- 
-

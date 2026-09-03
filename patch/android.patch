@@ -124,6 +124,3 @@ index 1278f9e64ed1f..caf77c47e85b9 100644
  }
  
  std::string UIThreadSearchTermsData::GetMailRUReferralID() const {
--- 
-2.34.1
-

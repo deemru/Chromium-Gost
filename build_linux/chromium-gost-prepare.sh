@@ -44,8 +44,7 @@ cp -f $CHROMIUM_GOST_REPO/extra/favicon_ntp_32.png chrome/app/theme/default_200_
 cp -f $CHROMIUM_GOST_REPO/extra/colored_header.svg chrome/browser/resources/new_tab_page/icons/colored_header.svg
 cp -f $CHROMIUM_GOST_REPO/extra/chromium-gost.svg chrome/browser/resources/new_tab_page/icons/google_logo.svg
 
-cp -f $CHROMIUM_GOST_REPO/extra/external_extensions.json chrome/browser/resources/default_apps/external_extensions.json
-cp -f $CHROMIUM_GOST_REPO/extra/extensions/*.crx chrome/browser/resources/default_apps/
+cp -Rf $CHROMIUM_GOST_REPO/extra/extensions chrome/browser/resources/bundled_extensions
 cp -Rf $CHROMIUM_GOST_REPO/extra/bundled_ca chrome/browser/resources/bundled_ca
 
 cp -f $CHROMIUM_GOST_REPO/src/gostssl.cpp third_party/boringssl/gostssl.cpp

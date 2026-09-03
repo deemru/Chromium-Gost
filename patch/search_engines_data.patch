@@ -1,4 +1,4 @@
-From 1316ada98c8a2bdce3f97d783cc5c2fe3b5e839e Mon Sep 17 00:00:00 2001
+From 3ea2c2f4ae1d4d02851e292a704a56dee99814ae Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Thu, 14 May 2026 12:09:52 +0300
 Subject: [PATCH] search_engines_data.patch (yandex)
@@ -8,7 +8,7 @@ Subject: [PATCH] search_engines_data.patch (yandex)
  1 file changed, 5 insertions(+), 5 deletions(-)
 
 diff --git a/definitions/prepopulated_engines.json b/definitions/prepopulated_engines.json
-index 0865e26..5c5a89f 100644
+index d6de467..47ff983 100644
 --- a/definitions/prepopulated_engines.json
 +++ b/definitions/prepopulated_engines.json
 @@ -961,7 +961,7 @@
@@ -56,5 +56,3 @@ index 0865e26..5c5a89f 100644
        "suggest_url": "https://suggest.yandex.com.tr/suggest-ff.cgi?part={searchTerms}&{google:cursorPosition}",
        "image_url": "https://yandex.com.tr/gorsel/search?rpt=imageview",
        "image_url_post_params": "upfile={google:imageThumbnail},original_width={google:imageOriginalWidth},original_height={google:imageOriginalHeight},prg=1",
--- 
-

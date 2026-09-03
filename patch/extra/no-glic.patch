@@ -1,4 +1,4 @@
-From 593b2bbd493e157eda330ff3b830164761a02ec7 Mon Sep 17 00:00:00 2001
+From edebf752dc593147a6163d08a433821cf3df271d Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Thu, 9 Jul 2026 02:13:41 +0300
 Subject: [PATCH] no glic and ai
@@ -13,10 +13,10 @@ Subject: [PATCH] no glic and ai
  6 files changed, 53 insertions(+)
 
 diff --git a/chrome/browser/ai/ai_manager.cc b/chrome/browser/ai/ai_manager.cc
-index fc639e5ab89..5bf0a9a4e2a 100644
+index 58b69925571..eece9f9cd11 100644
 --- a/chrome/browser/ai/ai_manager.cc
 +++ b/chrome/browser/ai/ai_manager.cc
-@@ -1711,6 +1711,10 @@ bool AIManager::CheckAndFixLanguages(
+@@ -1726,6 +1726,10 @@ bool AIManager::CheckAndFixLanguages(
  
  std::optional<blink::mojom::ModelAvailabilityCheckResult>
  AIManager::GetPrefBlockedResult() {
@@ -27,7 +27,7 @@ index fc639e5ab89..5bf0a9a4e2a 100644
    PrefService* local_state = g_browser_process->local_state();
    // chromeenterprise.google/policies/#GenAILocalFoundationalModelSettings
    if (optimization_guide::
-@@ -1738,6 +1742,7 @@ AIManager::GetPrefBlockedResult() {
+@@ -1753,6 +1757,7 @@ AIManager::GetPrefBlockedResult() {
    }
  
    return std::nullopt;
@@ -36,10 +36,10 @@ index fc639e5ab89..5bf0a9a4e2a 100644
  
  bool AIManager::IsPermissionsPolicyBlocked(
 diff --git a/chrome/browser/component_updater/optimization_guide_on_device_model_installer.cc b/chrome/browser/component_updater/optimization_guide_on_device_model_installer.cc
-index abf684b7ef0..f8fd3543cce 100644
+index 569dca2bc93..4188d815ea0 100644
 --- a/chrome/browser/component_updater/optimization_guide_on_device_model_installer.cc
 +++ b/chrome/browser/component_updater/optimization_guide_on_device_model_installer.cc
-@@ -275,6 +275,11 @@ class OnDeviceModelComponentStateManagerDelegate final
+@@ -239,6 +239,11 @@ class OnDeviceModelComponentStateManagerDelegate final
            state_manager,
        optimization_guide::OnDeviceModelRegistrationAttributes attributes)
        override {
@@ -51,7 +51,7 @@ index abf684b7ef0..f8fd3543cce 100644
      DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
      if (!g_browser_process) {
        return;
-@@ -293,6 +298,7 @@ class OnDeviceModelComponentStateManagerDelegate final
+@@ -257,6 +262,7 @@ class OnDeviceModelComponentStateManagerDelegate final
      base::MakeRefCounted<ComponentInstaller>(
          CreateInstallerPolicy(state_manager, std::move(attributes)))
          ->Register(cus, std::move(register_callback));
@@ -59,7 +59,7 @@ index abf684b7ef0..f8fd3543cce 100644
    }
  
    void Uninstall(
-@@ -307,12 +313,17 @@ class OnDeviceModelComponentStateManagerDelegate final
+@@ -271,12 +277,17 @@ class OnDeviceModelComponentStateManagerDelegate final
    }
  
    void RequestUpdate(bool is_background) override {
@@ -68,7 +68,7 @@ index abf684b7ef0..f8fd3543cce 100644
 +    return;
 +#else
      OnDemandUpdater::Priority priority = OnDemandUpdater::Priority::FOREGROUND;
-     if (type_ == OnDeviceModelType::kBaseModel && is_background) {
+     if (is_background) {
        priority = OnDemandUpdater::Priority::BACKGROUND;
      }
      OptimizationGuideOnDeviceBaseModelInstallerPolicy::UpdateOnDemand(
@@ -78,32 +78,32 @@ index abf684b7ef0..f8fd3543cce 100644
  
    std::string GetComponentId() override {
 diff --git a/chrome/browser/glic/public/glic_enabling.cc b/chrome/browser/glic/public/glic_enabling.cc
-index 5adb0a6b773..01ad0a3434e 100644
+index b28936b4aad..5ff0bd8fdd4 100644
 --- a/chrome/browser/glic/public/glic_enabling.cc
 +++ b/chrome/browser/glic/public/glic_enabling.cc
-@@ -587,6 +587,9 @@ bool GlicGlobalEnabling::IsOsVersionSupported() const {
+@@ -763,6 +763,9 @@ bool GlicGlobalEnabling::IsOsVersionSupported() {
  }
  
- bool GlicGlobalEnabling::IsEnabledByGlobalCriteria() {
+ bool GlicGlobalEnabling::IsEnabledByGlobalCriteria() const {
 +#ifndef NO_GOSTSSL
 +  return false;
 +#else
    if (g_bypass_enablement_checks_for_testing) {
      return true;
    }
-@@ -597,6 +600,7 @@ bool GlicGlobalEnabling::IsEnabledByGlobalCriteria() {
-                     country_enablement_.value_or(true);
+@@ -772,6 +775,7 @@ bool GlicGlobalEnabling::IsEnabledByGlobalCriteria() const {
+                     locale_enablement_.value_or(true);
  
    return is_enabled && IsOsVersionSupported() && IsSystemRequirementMet();
 +#endif  // NO_GOSTSSL
  }
  
- // static
+ bool GlicEnabling::IsOsVersionSupported() {
 diff --git a/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc b/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
-index f073a2f6b30..56cbc5bd515 100644
+index 677b1b0b14e..9573ba97998 100644
 --- a/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
 +++ b/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
-@@ -639,22 +639,32 @@ void OptimizationGuideKeyedService::AllowUnsignedUserForTesting(
+@@ -645,22 +645,32 @@ void OptimizationGuideKeyedService::AllowUnsignedUserForTesting(
  
  bool OptimizationGuideKeyedService::ShouldFeatureBeCurrentlyEnabledForUser(
      optimization_guide::UserVisibleFeatureKey feature) const {
@@ -136,7 +136,7 @@ index f073a2f6b30..56cbc5bd515 100644
  }
  
  bool OptimizationGuideKeyedService::ShouldFeatureBeCurrentlyAllowedForFeedback(
-@@ -680,13 +690,21 @@ bool OptimizationGuideKeyedService::ShouldFeatureBeCurrentlyAllowedForFeedback(
+@@ -686,13 +696,21 @@ bool OptimizationGuideKeyedService::ShouldFeatureBeCurrentlyAllowedForFeedback(
  
  bool OptimizationGuideKeyedService::ShouldModelExecutionBeAllowedForUser()
      const {
@@ -158,7 +158,7 @@ index f073a2f6b30..56cbc5bd515 100644
    DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
    if (!model_execution_features_controller_) {
      return false;
-@@ -713,6 +731,7 @@ bool OptimizationGuideKeyedService::IsSettingVisible(
+@@ -719,6 +737,7 @@ bool OptimizationGuideKeyedService::IsSettingVisible(
    return visibility ==
               SettingsVisibilityResult::kVisibleFeatureAlreadyEnabled ||
           visibility == SettingsVisibilityResult::kVisibleFieldTrialEnabled;
@@ -191,10 +191,10 @@ index 7e85efc9ef5..d9deaa10303 100644
  
  }  // namespace component_updater
 diff --git a/components/optimization_guide/core/optimization_guide_features.cc b/components/optimization_guide/core/optimization_guide_features.cc
-index 81733e862a6..c12ecd591dd 100644
+index 86f9b2221f7..9301fc391dd 100644
 --- a/components/optimization_guide/core/optimization_guide_features.cc
 +++ b/components/optimization_guide/core/optimization_guide_features.cc
-@@ -486,14 +486,22 @@ base::TimeDelta GetOnDeviceStartupMetricDelay() {
+@@ -496,14 +496,22 @@ base::TimeDelta GetOnDeviceStartupMetricDelay() {
  }
  
  bool CanLaunchOnDeviceModelService() {
@@ -217,5 +217,3 @@ index 81733e862a6..c12ecd591dd 100644
  }
  
  base::TimeDelta GetOnDeviceEligibleModelFeatureRecentUsePeriod() {
--- 
-
