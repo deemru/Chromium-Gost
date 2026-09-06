@@ -2,6 +2,7 @@ export CHROMIUM_TAG=$(cat ../VERSION)
 export CHROMIUM_FLAGS="$(cat ../FLAGS)"
 export CHROMIUM_PATH=/build/chromium/src
 export BORINGSSL_PATH=$CHROMIUM_PATH/third_party/boringssl/src
+export SEARCH_ENGINES_PATH=$CHROMIUM_PATH/third_party/search_engines_data/resources
 export DEPOT_TOOLS_PATH=/build/depot_tools/
 export CHROMIUM_GOST_REPO=$(pwd)/..
 export CHROMIUM_PRIVATE_ARGS= 
