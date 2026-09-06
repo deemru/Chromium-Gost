@@ -10,12 +10,12 @@ cd %BORINGSSL_PATH%\.git || goto :finish
 cd %SEARCH_ENGINES_PATH%\.git || goto :finish
 
 cd %BORINGSSL_PATH%
-call git rebase --abort 2>/dev/null
+call git rebase --abort 2>nul 
 call git checkout --detach HEAD
 call git reset HEAD --hard && call git clean -fd
 
 cd %SEARCH_ENGINES_PATH%
-call git rebase --abort 2>/dev/null
+call git rebase --abort 2>nul
 call git checkout --detach HEAD
 call git reset HEAD --hard && call git clean -fd
 
