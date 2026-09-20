@@ -7,9 +7,16 @@ set GOST_BRANCH=GOSTSSL-%CHROMIUM_TAG%
 
 cd %CHROMIUM_PATH%\.git || goto :finish
 cd %BORINGSSL_PATH%\.git || goto :finish
-cd %CHROMIUM_PATH%\third_party\search_engines_data\resources && call git reset HEAD --hard && call git clean -fd
+cd %SEARCH_ENGINES_PATH%\.git || goto :finish
 
 cd %BORINGSSL_PATH%
+call git rebase --abort 2>nul 
+call git checkout --detach HEAD
+call git reset HEAD --hard && call git clean -fd
+
+cd %SEARCH_ENGINES_PATH%
+call git rebase --abort 2>nul
+call git checkout --detach HEAD
 call git reset HEAD --hard && call git clean -fd
 
 cd %CHROMIUM_PATH%
@@ -61,7 +68,7 @@ call git checkout -f -b %GOST_BRANCH%
 call git branch -D temp
 call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\boringssl.patch || goto :finish
 
-cd %CHROMIUM_PATH%\third_party\search_engines_data\resources
+cd %SEARCH_ENGINES_PATH%
 call git checkout -f -b temp
 call git show-ref --quiet refs/heads/%GOST_BRANCH% && call git branch -D %GOST_BRANCH%
 call git checkout -f -b %GOST_BRANCH%

@@ -8,9 +8,16 @@ export GOST_BRANCH=GOSTSSL-$CHROMIUM_TAG
 
 cd $CHROMIUM_PATH/.git || exit
 cd $BORINGSSL_PATH/.git || exit
-cd $CHROMIUM_PATH/third_party/search_engines_data/resources && git reset HEAD --hard && git clean -fd
+cd $SEARCH_ENGINES_PATH/.git || exit
 
 cd $BORINGSSL_PATH
+git rebase --abort 2>/dev/null
+git checkout --detach HEAD
+git reset HEAD --hard && git clean -fd
+
+cd $SEARCH_ENGINES_PATH
+git rebase --abort 2>/dev/null
+git checkout --detach HEAD
 git reset HEAD --hard && git clean -fd
 
 cd $CHROMIUM_PATH
@@ -69,7 +76,7 @@ git checkout -f -b $GOST_BRANCH
 git branch -D temp
 git am --3way --ignore-space-change < $CHROMIUM_GOST_REPO/patch/boringssl.patch || exit
 
-cd $CHROMIUM_PATH/third_party/search_engines_data/resources
+cd $SEARCH_ENGINES_PATH
 git checkout -f -b temp
 git show-ref --quiet refs/heads/$GOST_BRANCH && git branch -D $GOST_BRANCH
 git checkout -f -b $GOST_BRANCH
