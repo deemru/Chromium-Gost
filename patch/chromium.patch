@@ -1,4 +1,4 @@
-From 9e9b111ece4a17ffeed3d0ccdf755fff3088eee2 Mon Sep 17 00:00:00 2001
+From ee99557fe9a005dc2eb5bce03ee54c71e3f94605 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 13 May 2026 13:13:11 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -35,6 +35,7 @@ Subject: [PATCH] chromium GOSTSSL
  .../linux/common/chromium-browser.info        |  10 +-
  chrome/installer/linux/common/rpm.include     |   8 +
  .../linux/debian/build_repo_package.py        |   4 +-
+ chrome/installer/linux/rpm/additional_deps    |   5 +-
  chrome/installer/setup/install_worker.cc      |   4 +
  .../embedder_support/user_agent_utils.cc      |   2 +-
  components/search_engines/keyword_table.cc    |   4 +
@@ -74,7 +75,7 @@ Subject: [PATCH] chromium GOSTSSL
  third_party/boringssl/BUILD.gn                |   1 +
  ui/linux/display_server_utils.cc              |   4 +-
  ui/qt/qt_ui.cc                                |  11 +
- 70 files changed, 985 insertions(+), 66 deletions(-)
+ 71 files changed, 987 insertions(+), 69 deletions(-)
  create mode 100644 net/ssl/gostssl_util.cc
  create mode 100644 net/ssl/gostssl_util.h
 
@@ -125,7 +126,7 @@ index 7e4c3abea6c..b7298173320 100644
        <message name="IDS_GOOGLE_SEARCH_BOX_EMPTY_HINT_MULTIMODAL" desc="The text displayed in the multimodal searchbox when it is empty. It is meant to invite the user to add a text query to the existing image query in order to issue a 'multimodal' (image + text) query.">
          Add to your search
 diff --git a/chrome/app/resources/generated_resources_ru.xtb b/chrome/app/resources/generated_resources_ru.xtb
-index bf832ea253c..a891177a35b 100644
+index 81e7f45885c..f11fd63c4e7 100644
 --- a/chrome/app/resources/generated_resources_ru.xtb
 +++ b/chrome/app/resources/generated_resources_ru.xtb
 @@ -5427,7 +5427,7 @@
@@ -965,8 +966,37 @@ index 2e1a450fe7d..a704e36d061 100755
  
      config.channel = "repo"
  
+diff --git a/chrome/installer/linux/rpm/additional_deps b/chrome/installer/linux/rpm/additional_deps
+index d6080c3a460..47e74211680 100644
+--- a/chrome/installer/linux/rpm/additional_deps
++++ b/chrome/installer/linux/rpm/additional_deps
+@@ -11,7 +11,7 @@ ca-certificates
+ liberation-fonts
+ 
+ # GTK is dlopen()'ed.  Versions 3 or 4 are supported.
+-(libgtk-3.so.0()(64bit) or libgtk-4.so.1()(64bit))
++libgtk-3.so.0()(64bit)
+ 
+ # Specify a more recent version for security and stability updates.
+ libnss3.so(NSS_3.39)(64bit)
+@@ -20,14 +20,13 @@ libnss3.so(NSS_3.39)(64bit)
+ # of expected dependencies when Chrome is built with the older versions, add it
+ # as a manual dependency.
+ rpmlib(FileDigests) <= 4.6.0-1
+-rpmlib(RichDependencies) <= 4.12.0-1
+ 
+ # libvulkan is dlopen()'ed, so must be added as a manual dependency.
+ libvulkan.so.1()(64bit)
+ 
+ # For uploading crash reports with Breakpad.
+ wget
+-(libcurl.so()(64bit) or libcurl-gnutls.so.4()(64bit) or libcurl-nss.so.4()(64bit) or libcurl.so.4()(64bit))
++libcurl.so.4()(64bit)
+ 
+ # For OS integration.
+ xdg-utils
 diff --git a/chrome/installer/setup/install_worker.cc b/chrome/installer/setup/install_worker.cc
-index 59679ed4c8b..abac917cef0 100644
+index dd67b7827ab..55889b7b9d9 100644
 --- a/chrome/installer/setup/install_worker.cc
 +++ b/chrome/installer/setup/install_worker.cc
 @@ -109,6 +109,7 @@ void AddInstallerCopyTasks(const InstallParams& install_params,
@@ -977,15 +1007,15 @@ index 59679ed4c8b..abac917cef0 100644
  // Adds work items to register the Elevation Service with Windows. Only for
  // system level installs.
  void AddElevationServiceWorkItems(const base::FilePath& elevation_service_path,
-@@ -131,6 +132,7 @@ void AddElevationServiceWorkItems(const base::FilePath& elevation_service_path,
-       {install_static::GetElevatorClsid()}, {install_static::GetElevatorIid()});
+@@ -132,6 +133,7 @@ void AddElevationServiceWorkItems(const base::FilePath& elevation_service_path,
+       install_static::GetOldElevatorIids());
    list->AddWorkItem(install_service_work_item);
  }
 +#endif  // BUILDFLAG(GOOGLE_CHROME_BRANDING)
  
  // Create Version key for a product (if not already present) and sets the new
  // product version as the last step.
-@@ -308,12 +310,14 @@ void AddChromeWorkItems(const InstallParams& install_params,
+@@ -309,12 +311,14 @@ void AddChromeWorkItems(const InstallParams& install_params,
    // Copy installer in install directory.
    AddInstallerCopyTasks(install_params, install_list);
  
