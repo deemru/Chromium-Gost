@@ -285,6 +285,66 @@ WORKER_DB_ACTION;
 
 static int gostssl_cert_cb( GostSSL_Worker * w );
 
+static bool is_gost_cipher( const SSL_CIPHER * cipher )
+{
+    return cipher &&
+        ( cipher == tls_0081 ||
+          cipher == tls_C100 ||
+          cipher == tls_C101 ||
+          cipher == tls_C102 ||
+          cipher == tls_C103 ||
+          cipher == tls_C104 ||
+          cipher == tls_C105 ||
+          cipher == tls_C106 ||
+          cipher == tls_FF85 );
+}
+
+static bool is_gost_key( const char * cert, int size )
+{
+    PCCERT_CONTEXT certctx = CertCreateCertificateContext( X509_ASN_ENCODING, (const BYTE *)cert, (DWORD)size );
+    if( !certctx )
+        return false;
+
+    LPCSTR pszObjId = certctx->pCertInfo->SubjectPublicKeyInfo.Algorithm.pszObjId;
+    // GOST R 34.10 signature and DH keys share the national algorithm arc
+    bool is_gost = pszObjId && 0 == strncmp( pszObjId, "1.2.643.", 8 );
+
+    CertFreeCertificateContext( certctx );
+    return is_gost;
+}
+
+// A known client certificate limits g_ciphers to the suites its key can authenticate.
+// g_ciphers is parsed as msspi_set_cipherlist does: hex suites separated by whitespace or ':', stopping at any other character.
+static std::string cert_ciphers( const char * cert, int size )
+{
+    if( !cert || !size )
+        return g_ciphers;
+
+    bool gost = is_gost_key( cert, size );
+    std::string ciphers;
+
+    for( const char * p = g_ciphers.c_str(); ; p++ )
+    {
+        size_t len = strspn( p, "0123456789ABCDEFabcdef" );
+        if( len )
+        {
+            uint16_t value = (uint16_t)strtoul( std::string( p, len ).c_str(), NULL, 16 );
+            if( is_gost_cipher( boring_SSL_get_cipher_by_value( value ) ) == gost )
+            {
+                if( ciphers.size() )
+                    ciphers += ":";
+                ciphers.append( p, len );
+            }
+            p += len;
+        }
+
+        if( !*p || !strchr( " \t\n\f\r:", *p ) )
+            break;
+    }
+
+    return ciphers.size() ? ciphers : g_ciphers;
+}
+
 static GostSSL_Worker * workers_api( const SSL * s_opaque, WORKER_DB_ACTION action, const char * cachestring = NULL, const char * cert = NULL, int size = 0 )
 {
     const auto * s = bssl::FromOpaque( s_opaque );
@@ -337,7 +397,8 @@ static GostSSL_Worker * workers_api( const SSL * s_opaque, WORKER_DB_ACTION acti
         }
 
         msspi_set_cert_cb( w->h, (msspi_cert_cb)gostssl_cert_cb );
-        msspi_set_cipherlist( w->h, (const uint8_t *)g_ciphers.c_str(), g_ciphers.size() );
+        std::string ciphers = cert_ciphers( cert, size );
+        msspi_set_cipherlist( w->h, (const uint8_t *)ciphers.c_str(), ciphers.size() );
         w->tlsmode = g_tlsmode;
         if( w->tlsmode == 1 )
             w->host_status = GOSTSSL_HOST_YES;
@@ -659,16 +720,7 @@ int gostssl_tls_gost_required( SSL * s, const SSL_CIPHER * cipher )
 {
     GostSSL_Worker * w = workers_api( s, WDB_SEARCH );
 
-    if( w &&
-        ( cipher == tls_0081 ||
-          cipher == tls_C100 ||
-          cipher == tls_C101 ||
-          cipher == tls_C102 ||
-          cipher == tls_C103 ||
-          cipher == tls_C104 ||
-          cipher == tls_C105 ||
-          cipher == tls_C106 ||
-          cipher == tls_FF85 ) )
+    if( w && is_gost_cipher( cipher ) )
     {
         if( w->tlsmode != 2 && w->tlsmode != 0 )
            return 0;
