@@ -1,4 +1,4 @@
-From ee99557fe9a005dc2eb5bce03ee54c71e3f94605 Mon Sep 17 00:00:00 2001
+From 91a136ef1136a149af65a9acc8a678a30014273e Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 13 May 2026 13:13:11 +0300
 Subject: [PATCH] chromium GOSTSSL
@@ -46,23 +46,23 @@ Subject: [PATCH] chromium GOSTSSL
  content/browser/storage_partition_impl.cc     |   9 +
  net/BUILD.gn                                  |   2 +
  net/base/net_error_list.h                     |   5 +
- net/cert/cert_verify_proc.cc                  |  23 +++
+ net/cert/cert_verify_proc.cc                  |  23 ++
  net/cert/x509_cert_types.cc                   |  27 +++
  net/cert/x509_cert_types.h                    |   2 +
  net/http/http_network_transaction.cc          |   9 +
  net/socket/socket.h                           |   4 +
  net/socket/ssl_client_socket.cc               |   9 +
  net/socket/ssl_client_socket.h                |   4 +
- net/socket/ssl_client_socket_impl.cc          | 192 ++++++++++++++++++
- net/socket/ssl_client_socket_impl.h           |   8 +
+ net/socket/ssl_client_socket_impl.cc          | 200 ++++++++++++++++++
+ net/socket/ssl_client_socket_impl.h           |  13 ++
  net/spdy/spdy_session.cc                      |   5 +
  net/ssl/client_cert_store_mac.cc              |  51 +++++
  net/ssl/client_cert_store_nss.cc              |  53 +++++
  net/ssl/client_cert_store_win.cc              |  52 +++++
- net/ssl/gostssl_util.cc                       |  46 +++++
+ net/ssl/gostssl_util.cc                       |  46 ++++
  net/ssl/gostssl_util.h                        |  18 ++
  net/ssl/openssl_ssl_util.cc                   |   4 +
- net/ssl/ssl_cipher_suite_names.cc             |  69 +++++++
+ net/ssl/ssl_cipher_suite_names.cc             |  69 ++++++
  net/ssl/ssl_config_service.cc                 |   2 +-
  net/ssl/ssl_platform_key_util.cc              |  22 ++
  net/ssl/ssl_platform_key_util.h               |   7 +
@@ -75,7 +75,7 @@ Subject: [PATCH] chromium GOSTSSL
  third_party/boringssl/BUILD.gn                |   1 +
  ui/linux/display_server_utils.cc              |   4 +-
  ui/qt/qt_ui.cc                                |  11 +
- 71 files changed, 987 insertions(+), 69 deletions(-)
+ 71 files changed, 1000 insertions(+), 69 deletions(-)
  create mode 100644 net/ssl/gostssl_util.cc
  create mode 100644 net/ssl/gostssl_util.h
 
@@ -1400,7 +1400,7 @@ index cb52207b20d..25530af3ebe 100644
    void NotifySSLConfigChanged(SSLConfigChangeType change_type);
    void NotifySSLConfigForServersChanged(
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 2d1d88a5db7..496c5063d38 100644
+index 2d1d88a5db7..ce4b2f0b5ba 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
 @@ -14,6 +14,7 @@
@@ -1438,7 +1438,7 @@ index 2d1d88a5db7..496c5063d38 100644
      ssl_socket_data_index_ =
          SSL_get_ex_new_index(0, nullptr, nullptr, nullptr, nullptr);
      DCHECK_NE(ssl_socket_data_index_, -1);
-@@ -365,6 +372,101 @@ int SSLClientSocketImpl::ExportKeyingMaterial(
+@@ -365,6 +372,119 @@ int SSLClientSocketImpl::ExportKeyingMaterial(
    return OK;
  }
  
@@ -1447,6 +1447,9 @@ index 2d1d88a5db7..496c5063d38 100644
 +void gostssl_newsession( SSL * s, const uint8_t * cachestring, size_t len, const uint8_t * cert, size_t size );
 +void gostssl_certhook( const uint8_t * cert, size_t size );
 +void gostssl_verifyhook( void * s, const char * host, int * is_gost, uint32_t * verify_result, char offline );
++void * gostssl_verify_acquire( void * s, const char * host );
++void gostssl_verify_online( void * worker, uint32_t * verify_result );
++void gostssl_verify_release( void * worker );
 +int gostssl_is_msspi( SSL * s );
 +}
 +int SSLClientSocketImpl::IsMSSPI() {
@@ -1527,20 +1530,35 @@ index 2d1d88a5db7..496c5063d38 100644
 +{
 +  OnVerifyComplete(VerifyGOSTResult(verify_result));
 +}
-+void SSLClientSocketImpl::VerifyGOSTTask(const scoped_refptr<base::SequencedTaskRunner>& task_runner)
++// The pooled task touches only the gostssl worker it holds; the socket may be destroyed meanwhile
++bool SSLClientSocketImpl::VerifyGOSTAsync()
 +{
-+  auto weakPtr = weak_factory_.GetWeakPtr();
-+  int is_gost;
++  void* worker = gostssl_verify_acquire((void*)ssl_.get(), host_and_port_.host().c_str());
++  if (!worker)
++    return false;
++  base::ThreadPool::PostTask(FROM_HERE, { base::TaskPriority::USER_VISIBLE, base::MayBlock() },
++    base::BindOnce(&SSLClientSocketImpl::VerifyGOSTTask, weak_factory_.GetWeakPtr(), worker,
++                   base::ScopedClosureRunner(base::BindOnce(&gostssl_verify_release, worker)),
++                   base::SequencedTaskRunner::GetCurrentDefault()));
++  cert_verification_result_ = ERR_IO_PENDING;
++  return true;
++}
++void SSLClientSocketImpl::VerifyGOSTTask(base::WeakPtr<SSLClientSocketImpl> socket,
++                                         void* worker,
++                                         base::ScopedClosureRunner release,
++                                         scoped_refptr<base::SequencedTaskRunner> task_runner)
++{
 +  uint32_t verify_result;
-+  gostssl_verifyhook((void*)ssl_.get(), host_and_port_.host().c_str(), &is_gost, &verify_result, 0);
-+  task_runner->PostTask(FROM_HERE, base::BindOnce(&SSLClientSocketImpl::VerifyGOSTTaskComplete, weakPtr, verify_result));
++  gostssl_verify_online(worker, &verify_result);
++  release.RunAndReset();
++  task_runner->PostTask(FROM_HERE, base::BindOnce(&SSLClientSocketImpl::VerifyGOSTTaskComplete, socket, verify_result));
 +}
 +#endif // GOSTSSL
 +
  int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
    // Although StreamSocket does allow calling Connect() after Disconnect(),
    // this has never worked for layered sockets. CHECK to detect any consumers
-@@ -383,6 +485,20 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
+@@ -383,6 +503,20 @@ int SSLClientSocketImpl::Connect(CompletionOnceCallback callback) {
      return rv;
    }
  
@@ -1561,7 +1579,7 @@ index 2d1d88a5db7..496c5063d38 100644
    // Set SSL to client mode. Handshake happens in the loop below.
    SSL_set_connect_state(ssl_.get());
  
-@@ -529,6 +645,10 @@ bool SSLClientSocketImpl::GetSSLInfo(SSLInfo* ssl_info) {
+@@ -529,6 +663,10 @@ bool SSLClientSocketImpl::GetSSLInfo(SSLInfo* ssl_info) {
  #endif
  
    const SSL_CIPHER* cipher = SSL_get_current_cipher(ssl_.get());
@@ -1572,7 +1590,7 @@ index 2d1d88a5db7..496c5063d38 100644
    CHECK(cipher);
    // Historically, the "group" was known as "curve".
    ssl_info->key_exchange_group = SSL_get_curve_id(ssl_.get());
-@@ -945,6 +1065,9 @@ int SSLClientSocketImpl::DoHandshake() {
+@@ -945,6 +1083,9 @@ int SSLClientSocketImpl::DoHandshake() {
        return ERR_IO_PENDING;
      }
      if (ssl_error == SSL_ERROR_WANT_CERTIFICATE_VERIFY) {
@@ -1582,7 +1600,7 @@ index 2d1d88a5db7..496c5063d38 100644
        DCHECK(cert_verifier_request_);
        next_handshake_state_ = STATE_HANDSHAKE;
        return ERR_IO_PENDING;
-@@ -1129,6 +1252,63 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
+@@ -1129,6 +1270,53 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
      return HandleVerifyResult();
    }
  
@@ -1616,26 +1634,16 @@ index 2d1d88a5db7..496c5063d38 100644
 +    }
 +    else if (verifymode == "2")
 +    {
-+      if (IsMSSPI())
-+      {
-+        base::ThreadPool::PostTask(FROM_HERE, { base::TaskPriority::USER_VISIBLE, base::MayBlock() },
-+          base::BindOnce(&SSLClientSocketImpl::VerifyGOSTTask, base::Unretained(this), base::SequencedTaskRunner::GetCurrentDefault()));
-+        cert_verification_result_ = ERR_IO_PENDING;
++      if (IsMSSPI() && VerifyGOSTAsync())
 +        return ssl_verify_retry;
-+      }
 +    }
 +    else // if (verifymode == "3") // (default)
 +    {
 +      gostssl_verifyhook((void*)ssl_.get(), host_and_port_.host().c_str(), &is_gost, &verify_result, 1);
 +      if (is_gost)
 +      {
-+        if (verify_result)
-+        {
-+          base::ThreadPool::PostTask(FROM_HERE, { base::TaskPriority::USER_VISIBLE, base::MayBlock() },
-+            base::BindOnce(&SSLClientSocketImpl::VerifyGOSTTask, base::Unretained(this), base::SequencedTaskRunner::GetCurrentDefault()));
-+          cert_verification_result_ = ERR_IO_PENDING;
++        if (verify_result && VerifyGOSTAsync())
 +          return ssl_verify_retry;
-+        }
 +
 +        return VerifyGOSTResult(verify_result) == OK ? ssl_verify_ok : ssl_verify_invalid;
 +      }
@@ -1646,7 +1654,7 @@ index 2d1d88a5db7..496c5063d38 100644
    std::string_view ech_name_override = GetECHNameOverride();
    if (!ech_name_override.empty()) {
      // If ECH was offered but not negotiated, BoringSSL will ask to verify a
-@@ -1571,6 +1751,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1571,6 +1759,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
@@ -1666,17 +1674,29 @@ index 2d1d88a5db7..496c5063d38 100644
    if (client_cert_.get()) {
      if (!client_private_key_) {
 diff --git a/net/socket/ssl_client_socket_impl.h b/net/socket/ssl_client_socket_impl.h
-index 3b10cead520..dee69b0fc53 100644
+index 3b10cead520..6ecace485a2 100644
 --- a/net/socket/ssl_client_socket_impl.h
 +++ b/net/socket/ssl_client_socket_impl.h
-@@ -54,6 +54,14 @@ class NET_EXPORT_PRIVATE SSLClientSocketImpl
+@@ -17,6 +17,7 @@
+ #include "base/compiler_specific.h"
+ #include "base/containers/lru_cache.h"
+ #include "base/containers/span_reader.h"
++#include "base/functional/callback_helpers.h"
+ #include "base/gtest_prod_util.h"
+ #include "base/memory/raw_ptr.h"
+ #include "base/memory/scoped_refptr.h"
+@@ -54,6 +55,18 @@ class NET_EXPORT_PRIVATE SSLClientSocketImpl
      : public SSLClientSocket,
        public SocketBIOAdapter::Delegate {
   public:
 +#ifndef NO_GOSTSSL
 +  int IsMSSPI() override;
 +private:
-+  void VerifyGOSTTask(const scoped_refptr<base::SequencedTaskRunner>& task_runner);
++  bool VerifyGOSTAsync();
++  static void VerifyGOSTTask(base::WeakPtr<SSLClientSocketImpl> socket,
++                             void* worker,
++                             base::ScopedClosureRunner release,
++                             scoped_refptr<base::SequencedTaskRunner> task_runner);
 +  void VerifyGOSTTaskComplete(uint32_t verify_result);
 +  int VerifyGOSTResult(uint32_t verify_result);
 +public:

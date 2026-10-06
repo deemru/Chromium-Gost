@@ -43,6 +43,9 @@ void gostssl_server_proxy( SSL * s, const char * data, size_t len );
 // Hooks
 DLLEXPORT void gostssl_certhook( const uint8_t * cert, size_t size );
 DLLEXPORT void gostssl_verifyhook( void * s, const char * host, int * is_gost, uint32_t * verify_result, char offline );
+DLLEXPORT void * gostssl_verify_acquire( void * s, const char * host );
+DLLEXPORT void gostssl_verify_online( void * worker, uint32_t * verify_result );
+DLLEXPORT void gostssl_verify_release( void * worker );
 DLLEXPORT void gostssl_clientcertshook( const uint8_t *** certs, size_t ** lens, const wchar_t *** names, size_t * count, int * is_gost, const uint8_t ** issuers, const size_t * issuers_lens, size_t issuers_count );
 DLLEXPORT void gostssl_isgostcerthook( const uint8_t * cert, size_t size, int * is_gost );
 DLLEXPORT void gostssl_newsession( SSL * s, const uint8_t * cachestring, size_t len, const uint8_t * cert, size_t size );
@@ -181,6 +184,7 @@ struct GostSSL_Worker
     {
         h = NULL;
         s = NULL;
+        refs = 1;
         host_status = GOSTSSL_HOST_AUTO;
         tlsmode = 2;
         set_certs = false;
@@ -197,6 +201,7 @@ struct GostSSL_Worker
 
     MSSPI_HANDLE h;
     SSL * s;
+    int refs;
     GOSTSSL_HOST_STATUS host_status;
     std::string host_string;
     std::vector<char> boring_hello;
@@ -236,6 +241,14 @@ typedef std::pair< std::string, GOSTSSL_HOST_STATUS > HOST_STATUSES_DB_PAIR;
 static WORKERS_DB & workers_db = *( new WORKERS_DB() );
 static HOST_STATUSES_DB & host_statuses_db = *( new HOST_STATUSES_DB() );
 static std::recursive_mutex & gmutex = *( new std::recursive_mutex() );
+
+// A worker lives while it is in workers_db or an asynchronous verification holds it
+static void worker_release( GostSSL_Worker * w )
+{
+    std::unique_lock<std::recursive_mutex> lck( gmutex );
+    if( --w->refs == 0 )
+        delete w;
+}
 
 static void host_status_set( std::string & site, GOSTSSL_HOST_STATUS status )
 {
@@ -427,7 +440,7 @@ static GostSSL_Worker * workers_api( const SSL * s_opaque, WORKER_DB_ACTION acti
 
         if( action == WDB_NEW )
         {
-            delete w_found;
+            worker_release( w_found );
             lb->second = w;
             return w;
         }
@@ -446,8 +459,8 @@ static GostSSL_Worker * workers_api( const SSL * s_opaque, WORKER_DB_ACTION acti
                 host_status_set( w_found->host_string, status );
             }
 
-            delete w_found;
             workers_db.erase( lb );
+            worker_release( w_found );
             return NULL;
         }
 
@@ -965,16 +978,15 @@ void gostssl_free( SSL * s )
     workers_api( s, WDB_FREE );
 }
 
-void gostssl_verifyhook( void * s, const char * host, int * is_gost, uint32_t * verify_result, char offline )
+static void verify_setup( GostSSL_Worker * w, const char * host, char offline )
 {
-    *verify_result = (uint32_t)-1;
-
-    GostSSL_Worker * w = get_worker( (const SSL *)s, is_gost );
-    if( !w )
-        return;
-
     msspi_set_hostname( w->h, (const uint8_t *)host, strlen( host ) );
     msspi_set_verify_offline( w->h, offline );
+}
+
+static void verify_status( GostSSL_Worker * w, uint32_t * verify_result )
+{
+    *verify_result = (uint32_t)-1;
 
     if( !msspi_get_verify_status( w->h, verify_result ) )
         return;
@@ -988,6 +1000,42 @@ void gostssl_verifyhook( void * s, const char * host, int * is_gost, uint32_t * 
     // Mask off CERT_STATUS_NO_REVOCATION_MECHANISM
     if( *verify_result == (uint32_t)CRYPT_E_NO_REVOCATION_CHECK )
         *verify_result = 0;
+}
+
+void gostssl_verifyhook( void * s, const char * host, int * is_gost, uint32_t * verify_result, char offline )
+{
+    *verify_result = (uint32_t)-1;
+
+    GostSSL_Worker * w = get_worker( (const SSL *)s, is_gost );
+    if( !w )
+        return;
+
+    verify_setup( w, host, offline );
+    verify_status( w, verify_result );
+}
+
+// Called on the socket thread: only the verification itself runs concurrently with the handshake retry
+void * gostssl_verify_acquire( void * s, const char * host )
+{
+    std::unique_lock<std::recursive_mutex> lck( gmutex );
+    int is_gost;
+    GostSSL_Worker * w = get_worker( (const SSL *)s, &is_gost );
+    if( w )
+    {
+        w->refs++;
+        verify_setup( w, host, 0 );
+    }
+    return w;
+}
+
+void gostssl_verify_online( void * worker, uint32_t * verify_result )
+{
+    verify_status( (GostSSL_Worker *)worker, verify_result );
+}
+
+void gostssl_verify_release( void * worker )
+{
+    worker_release( (GostSSL_Worker *)worker );
 }
 
 static std::vector<const uint8_t *> & g_certs = *( new std::vector<const uint8_t *>() );
