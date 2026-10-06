@@ -79,6 +79,7 @@ candle.exe ^
   -dComponentGuid=%GUID_386% ^
   -dProgramFilesFolder=ProgramFilesFolder ^
   -dMiniInstallerFile=%MINI_INSTALLER_FILE% ^
+  -dIconFile="%~dp0..\extra\chromium-gost.ico" ^
   -out "%BUILD_DIR%\chromium-gost-386.wixobj" ^
   "%WIX_DIR%\chromium-gost.wxs"
 

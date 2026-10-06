@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
   <Product Id="*"
-           Name="Chromium-Gost ($(var.Platform))"
+           Name="Chromium-Gost (MSI) ($(var.Platform))"
            Language="1033"
            Version="$(var.ProductVersion)"
            Manufacturer="The Chromium-Gost Authors"
@@ -12,9 +12,12 @@
              InstallScope="perMachine"
              Platform="$(var.Platform)" />
 
-    <MajorUpgrade DowngradeErrorMessage="A newer version is already installed." />
+    <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="A newer version is already installed." />
 
     <Media Id="1" Cabinet="crgost.cab" EmbedCab="yes" />
+
+    <Icon Id="crgost.ico" SourceFile="$(var.IconFile)" />
+    <Property Id="ARPPRODUCTICON" Value="crgost.ico" />
 
     <?if $(var.Platform) = "x64" ?>
     <Condition Message="This package is for 64-bit Windows only.">VersionNT64</Condition>
@@ -26,7 +29,7 @@
       </Directory>
     </Directory>
 
-    <Feature Id="MainFeature" Title="Chromium-Gost ($(var.Platform))" Level="1">
+    <Feature Id="MainFeature" Title="Chromium-Gost (MSI) ($(var.Platform))" Level="1">
       <ComponentRef Id="cmpMiniInstaller" />
     </Feature>
 
