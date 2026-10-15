@@ -10,7 +10,7 @@ cd %BORINGSSL_PATH%\.git || goto :finish
 cd %SEARCH_ENGINES_PATH%\.git || goto :finish
 
 cd %BORINGSSL_PATH%
-call git rebase --abort 2>nul 
+call git rebase --abort 2>nul
 call git checkout --detach HEAD
 call git reset HEAD --hard && call git clean -fd
 
@@ -27,12 +27,11 @@ call git show-ref --quiet refs/heads/%GOST_BRANCH% && call git branch -D %GOST_B
 call git checkout -f -b %GOST_BRANCH% tags/%CHROMIUM_TAG%
 call git branch -D temp
 call gclient sync --force --reset --upstream -D --with_branch_heads
-call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\extra\no-glic.patch || goto :finish
 call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\extra\extensions-manifestv2_ifdef.patch || goto :finish
 call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\chromium.patch || goto :finish
+call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\extra\services-gate.patch || goto :finish
 
-perl -pi -e "s/Chromium/Chromium-Gost/g" chrome\app\chromium_strings.grd
-for %%f in (chrome\app\resources\chromium_strings*.xtb) do perl -pi -e "s/Chromium/Chromium-Gost/g" %%f
+call python3 %CHROMIUM_GOST_REPO%\extra\rebrand_strings.py || goto :finish
 copy /y %CHROMIUM_GOST_REPO%\extra\chromium-gost.ico chrome\app\theme\chromium\win\chromium.ico
 copy /y %CHROMIUM_GOST_REPO%\extra\chromium-gost.ico chrome\installer\mini_installer\mini_installer.ico
 copy /y %CHROMIUM_GOST_REPO%\extra\win\Logo.png chrome\app\theme\chromium\win\tiles\Logo.png

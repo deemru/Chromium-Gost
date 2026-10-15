@@ -1,4 +1,4 @@
-From 1eb69eb0c85a3aa500996b83a09081e0bcc324c3 Mon Sep 17 00:00:00 2001
+From 17d1c3f68f0a781169751cacfa05ad7a8a1431ce Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Fri, 13 Mar 2026 01:50:48 +0300
 Subject: [PATCH] extensions-manifestv2.patch (ifdef)

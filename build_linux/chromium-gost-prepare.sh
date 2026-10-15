@@ -28,12 +28,11 @@ git show-ref --quiet refs/heads/$GOST_BRANCH && git branch -D $GOST_BRANCH
 git checkout -f -b $GOST_BRANCH tags/$CHROMIUM_TAG
 git branch -D temp
 gclient sync --force --reset --upstream -D --with_branch_heads
-git am --3way --ignore-space-change < $CHROMIUM_GOST_REPO/patch/extra/no-glic.patch || exit
 git am --3way --ignore-space-change < $CHROMIUM_GOST_REPO/patch/extra/extensions-manifestv2_ifdef.patch || exit
 git am --3way --ignore-space-change < $CHROMIUM_GOST_REPO/patch/chromium.patch || exit
+git am --3way --ignore-space-change < $CHROMIUM_GOST_REPO/patch/extra/services-gate.patch || exit
 
-perl -pi -e "s/Chromium/Chromium-Gost/g" chrome/app/chromium_strings.grd
-perl -pi -e "s/Chromium/Chromium-Gost/g" chrome/app/resources/chromium_strings*.xtb
+python3 $CHROMIUM_GOST_REPO/extra/rebrand_strings.py || exit
 cp -f $CHROMIUM_GOST_REPO/extra/exit_0.sh chrome/installer/linux/common/repo.cron
 cp -f $CHROMIUM_GOST_REPO/extra/exit_0.sh chrome/installer/linux/common/rpmrepo.cron
 
@@ -44,6 +43,7 @@ cp -f $CHROMIUM_GOST_REPO/extra/product_logo/product_logo_32.png chrome/app/them
 cp -f $CHROMIUM_GOST_REPO/extra/product_logo/product_logo_32.png chrome/app/theme/default_200_percent/chromium/product_logo_16.png
 cp -f $CHROMIUM_GOST_REPO/extra/product_logo/product_logo_64.png chrome/app/theme/default_200_percent/chromium/product_logo_32.png
 cp -f $CHROMIUM_GOST_REPO/extra/product_logo/product_logo_32.xpm chrome/app/theme/chromium/linux/product_logo_32.xpm
+cp -f $CHROMIUM_GOST_REPO/extra/product_logo/product_logo_symbolic.svg chrome/app/theme/chromium/linux/product_logo_symbolic.svg
 
 cp -f $CHROMIUM_GOST_REPO/extra/favicon_ntp_16.png chrome/app/theme/default_100_percent/common/favicon_ntp.png
 cp -f $CHROMIUM_GOST_REPO/extra/favicon_ntp_32.png chrome/app/theme/default_200_percent/common/favicon_ntp.png

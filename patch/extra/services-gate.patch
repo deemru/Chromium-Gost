@@ -1,0 +1,1894 @@
+From 54a847fbd52b2ddf7664cb5305042c22d3bb51dc Mon Sep 17 00:00:00 2001
+From: Dmitrii Pichulin <deem@deem.ru>
+Date: Wed, 13 May 2026 13:13:11 +0300
+Subject: [PATCH] services gate
+
+---
+ chrome/BUILD.gn                               |  2 +
+ chrome/app/settings_strings.grdp              |  2 +-
+ chrome/browser/ai/ai_manager.cc               | 29 +-----
+ chrome/browser/chrome_browser_main.cc         |  6 +-
+ ...ization_guide_on_device_model_installer.cc | 26 +----
+ .../external_install_error_desktop.cc         | 16 +---
+ .../updater/chrome_update_client_config.cc    |  6 +-
+ .../extensions/updater/extension_updater.cc   | 24 +++++
+ chrome/browser/first_run/first_run.cc         |  4 +-
+ chrome/browser/glic/public/glic_enabling.cc   | 10 +-
+ .../media/router/media_router_feature.cc      | 36 +------
+ .../net/profile_network_context_service.cc    |  2 +-
+ .../optimization_guide_keyed_service.cc       | 44 +--------
+ chrome/browser/preloading/preloading_prefs.cc |  2 +-
+ .../render_view_context_menu.cc               |  7 --
+ .../browser/resources/extensions/toolbar.css  |  3 +
+ .../resources/extensions/toolbar.html.ts      |  8 +-
+ .../password_manager/checkup_section.html     |  2 +-
+ .../resources/password_manager/toolbar.html   |  3 -
+ .../settings/about_page/about_page.html.ts    |  2 -
+ .../languages_page/languages_page_index.html  |  4 -
+ .../languages_page/languages_page_index.ts    |  2 +-
+ .../settings/people_page/people_page.html     |  2 +-
+ .../privacy_page/personalization_options.html |  2 +-
+ .../privacy_guide/privacy_guide_page.ts       |  2 +-
+ .../settings/privacy_page/privacy_page.html   |  1 -
+ .../privacy_page/security/security_page.html  |  7 +-
+ .../settings/safety_hub/safety_hub_page.html  |  2 +-
+ .../settings/safety_hub/safety_hub_page.ts    |  5 -
+ .../settings/search_page/search_page.html     |  6 ++
+ .../settings/search_page/search_page.ts       |  6 +-
+ .../your_saved_info_page.html                 |  2 +-
+ .../spellcheck_dictionaries/BUILD.gn          | 13 +++
+ .../spellcheck_hunspell_dictionary.cc         | 60 +++---------
+ chrome/browser/ui/browser_ui_prefs.cc         |  2 +-
+ .../lens_overlay_entry_point_controller.cc    | 34 +------
+ .../ui/safety_hub/safe_browsing_result.cc     |  2 +-
+ chrome/browser/ui/startup/infobar_utils.cc    |  6 --
+ .../ui/views/profiles/profile_menu_view.cc    | 22 +----
+ .../ui/webui/settings/safety_hub_handler.cc   |  1 +
+ .../browser/ui/webui/settings/settings_ui.cc  |  4 +-
+ .../chrome_authenticator_request_delegate.cc  |  2 -
+ chrome/installer/linux/BUILD.gn               |  3 +
+ chrome/installer/linux/common/installer.py    | 10 ++
+ .../autofill_crowdsourcing_manager.cc         |  4 +-
+ .../component_updater_service.cc              | 47 +--------
+ ...device_head_suggest_component_installer.cc |  9 +-
+ components/gcm_driver/gcm_driver_desktop.cc   | 22 +----
+ components/handoff/handoff_manager.mm         |  2 +-
+ components/live_caption/caption_util.cc       |  4 -
+ .../network_time/network_time_tracker.cc      |  3 +-
+ components/omnibox/browser/search_provider.cc |  2 -
+ .../delivery/prediction_model_fetcher_impl.cc | 87 +----------------
+ .../core/optimization_guide_features.cc       |  7 +-
+ .../core/browser/password_manager.cc          |  2 +-
+ .../core/common/safe_browsing_prefs.cc        |  2 +-
+ .../gaia_cookie_manager_service.cc            |  4 +-
+ .../primary_account_manager.cc                |  2 +-
+ .../core/browser/translate_manager.cc         | 95 +------------------
+ net/BUILD.gn                                  |  2 +
+ net/base/crgost_egress.cc                     | 91 ++++++++++++++++++
+ net/base/crgost_egress.h                      | 28 ++++++
+ net/url_request/url_request.cc                | 10 ++
+ services/network/network_context.cc           |  7 ++
+ services/network/p2p/socket_manager.cc        |  6 ++
+ .../proxy_resolving_socket_factory_mojo.cc    | 10 ++
+ services/network/socket_factory.cc            | 16 ++++
+ services/network/tcp_bound_socket.cc          | 11 +++
+ services/network/udp_socket.cc                |  7 ++
+ 69 files changed, 321 insertions(+), 593 deletions(-)
+ create mode 100644 chrome/browser/resources/spellcheck_dictionaries/BUILD.gn
+ create mode 100644 net/base/crgost_egress.cc
+ create mode 100644 net/base/crgost_egress.h
+
+diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
+index a33fe738ba4..a9e511d6ad3 100644
+--- a/chrome/BUILD.gn
++++ b/chrome/BUILD.gn
+@@ -385,6 +385,8 @@ if (!is_android && !is_mac) {
+     ]
+ 
+     if (is_linux) {
++      data_deps +=
++          [ "//chrome/browser/resources/spellcheck_dictionaries:component" ]
+       sources += [
+         "app/chrome_main_linux.cc",
+         "app/chrome_main_linux.h",
+diff --git a/chrome/app/settings_strings.grdp b/chrome/app/settings_strings.grdp
+index f1e1c55ad17..ae8051a775b 100644
+--- a/chrome/app/settings_strings.grdp
++++ b/chrome/app/settings_strings.grdp
+@@ -3740,7 +3740,7 @@
+ 
+     <!-- Sync / People Page -->
+     <message name="IDS_SETTINGS_PEOPLE" desc="Name of the settings page which manages the user's relationship to Google.">
+-      You and Google
++      Profile
+     </message>
+     <message name="IDS_SETTINGS_CHANGE_PICTURE_PROFILE_PHOTO" desc="The text on the Google profile photo of the user.">
+       Google Profile photo
+diff --git a/chrome/browser/ai/ai_manager.cc b/chrome/browser/ai/ai_manager.cc
+index 58b69925571..2c98b14a867 100644
+--- a/chrome/browser/ai/ai_manager.cc
++++ b/chrome/browser/ai/ai_manager.cc
+@@ -1726,33 +1726,8 @@ bool AIManager::CheckAndFixLanguages(
+ 
+ std::optional<blink::mojom::ModelAvailabilityCheckResult>
+ AIManager::GetPrefBlockedResult() {
+-  PrefService* local_state = g_browser_process->local_state();
+-  // chromeenterprise.google/policies/#GenAILocalFoundationalModelSettings
+-  if (optimization_guide::
+-          GetGenAILocalFoundationalModelEnterprisePolicySettings(local_state) ==
+-      optimization_guide::model_execution::prefs::
+-          GenAILocalFoundationalModelEnterprisePolicySettings::kDisallowed) {
+-    return blink::mojom::ModelAvailabilityCheckResult::
+-        kUnavailableEnterprisePolicyDisabled;
+-  }
+-
+-  PrefService* profile_prefs =
+-      Profile::FromBrowserContext(browser_context_)->GetPrefs();
+-  // chromeenterprise.google/policies/#BuiltInAIAPIsEnabled
+-  if (!profile_prefs->GetBoolean(policy::policy_prefs::kBuiltInAIAPIsEnabled)) {
+-    return blink::mojom::ModelAvailabilityCheckResult::
+-        kUnavailableEnterprisePolicyDisabled;
+-  }
+-
+-  // chrome://settings/system "On-device AI" user toggle.
+-  if (!local_state->GetBoolean(
+-          optimization_guide::model_execution::prefs::localstate::
+-              kOnDeviceAiUserSettingsEnabled)) {
+-    return blink::mojom::ModelAvailabilityCheckResult::
+-        kUnavailableFeatureNotEnabled;
+-  }
+-
+-  return std::nullopt;
++  return blink::mojom::ModelAvailabilityCheckResult::
++      kUnavailableEnterprisePolicyDisabled;
+ }
+ 
+ bool AIManager::IsPermissionsPolicyBlocked(
+diff --git a/chrome/browser/chrome_browser_main.cc b/chrome/browser/chrome_browser_main.cc
+index 21d499a9262..69f2e623194 100644
+--- a/chrome/browser/chrome_browser_main.cc
++++ b/chrome/browser/chrome_browser_main.cc
+@@ -625,7 +625,7 @@ bool ShouldInstallSodaDuringPostProfileInit(
+              ash::features::kOnDeviceSpeechRecognition) &&
+          ash::IsUserBrowserContext(const_cast<Profile*>(profile));
+ #else
+-  return !command_line.HasSwitch(switches::kDisableComponentUpdate);
++  return false;
+ #endif
+ }
+ #endif  // !BUILDFLAG(IS_ANDROID)
+@@ -1932,10 +1932,6 @@ int ChromeBrowserMainParts::PreMainMessageLoopRunImpl() {
+ 
+   // Needs to be done before PostProfileInit, since the SODA Installer setup is
+   // called inside PostProfileInit and depends on it.
+-  if (!base::CommandLine::ForCurrentProcess()->HasSwitch(
+-          switches::kDisableComponentUpdate)) {
+-    component_updater::RegisterComponentsForUpdate();
+-  }
+ 
+   // `profile` may be nullptr if the profile picker is shown.
+   Profile* profile = profile_info.profile;
+diff --git a/chrome/browser/component_updater/optimization_guide_on_device_model_installer.cc b/chrome/browser/component_updater/optimization_guide_on_device_model_installer.cc
+index 569dca2bc93..57d641c8254 100644
+--- a/chrome/browser/component_updater/optimization_guide_on_device_model_installer.cc
++++ b/chrome/browser/component_updater/optimization_guide_on_device_model_installer.cc
+@@ -239,24 +239,7 @@ class OnDeviceModelComponentStateManagerDelegate final
+           state_manager,
+       optimization_guide::OnDeviceModelRegistrationAttributes attributes)
+       override {
+-    DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
+-    if (!g_browser_process) {
+-      return;
+-    }
+-    ComponentUpdateService* cus = g_browser_process->component_updater();
+-    auto register_callback = base::BindOnce(
+-        [](base::WeakPtr<optimization_guide::OnDeviceModelComponentStateManager>
+-               state_manager,
+-           ComponentUpdateService* cus, const std::string& extension_id) {
+-          if (state_manager) {
+-            state_manager->InstallerRegistered(
+-                IsModelAlreadyInstalled(cus, extension_id));
+-          }
+-        },
+-        state_manager, cus, GetComponentId());
+-    base::MakeRefCounted<ComponentInstaller>(
+-        CreateInstallerPolicy(state_manager, std::move(attributes)))
+-        ->Register(cus, std::move(register_callback));
++    return;
+   }
+ 
+   void Uninstall(
+@@ -271,12 +254,7 @@ class OnDeviceModelComponentStateManagerDelegate final
+   }
+ 
+   void RequestUpdate(bool is_background) override {
+-    OnDemandUpdater::Priority priority = OnDemandUpdater::Priority::FOREGROUND;
+-    if (is_background) {
+-      priority = OnDemandUpdater::Priority::BACKGROUND;
+-    }
+-    OptimizationGuideOnDeviceBaseModelInstallerPolicy::UpdateOnDemand(
+-        GetComponentId(), priority);
++    return;
+   }
+ 
+   std::string GetComponentId() override {
+diff --git a/chrome/browser/extensions/external_install_error_desktop.cc b/chrome/browser/extensions/external_install_error_desktop.cc
+index c54800b9ad7..7a1eca635f3 100644
+--- a/chrome/browser/extensions/external_install_error_desktop.cc
++++ b/chrome/browser/extensions/external_install_error_desktop.cc
+@@ -323,20 +323,8 @@ ExternalInstallErrorDesktop::ExternalInstallErrorDesktop(
+     }
+   }
+ 
+-  ExtensionManagement* extension_management =
+-      ExtensionManagementFactory::GetForBrowserContext(browser_context_);
+-
+-  // Only make a call to fetch webstore data if the `extension` updates from the
+-  // webstore. Otherwise, show a prompt without webstore data.
+-  if (extension && extension_management->UpdatesFromWebstore(*extension)) {
+-    webstore_data_fetcher_ =
+-        std::make_unique<WebstoreDataFetcher>(this, GURL(), extension_id_);
+-    webstore_data_fetcher_->Start(browser_context_->GetDefaultStoragePartition()
+-                                      ->GetURLLoaderFactoryForBrowserProcess()
+-                                      .get());
+-  } else {
+-    OnFetchComplete();
+-  }
++  // The prompt is shown without webstore data: nothing is fetched on its own.
++  OnFetchComplete();
+ }
+ 
+ ExternalInstallErrorDesktop::~ExternalInstallErrorDesktop() {
+diff --git a/chrome/browser/extensions/updater/chrome_update_client_config.cc b/chrome/browser/extensions/updater/chrome_update_client_config.cc
+index 97bed73bb72..156a18bae6d 100644
+--- a/chrome/browser/extensions/updater/chrome_update_client_config.cc
++++ b/chrome/browser/extensions/updater/chrome_update_client_config.cc
+@@ -228,11 +228,7 @@ std::vector<GURL> ChromeUpdateClientConfig::UpdateUrl() const {
+ }
+ 
+ std::vector<GURL> ChromeUpdateClientConfig::PingUrl() const {
+-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+-  if (url_override_.has_value()) {
+-    return {*url_override_};
+-  }
+-  return impl_.PingUrl();
++  return {};
+ }
+ 
+ std::string ChromeUpdateClientConfig::GetProdId() const {
+diff --git a/chrome/browser/extensions/updater/extension_updater.cc b/chrome/browser/extensions/updater/extension_updater.cc
+index 2761ff5cf65..49bb4f8f839 100644
+--- a/chrome/browser/extensions/updater/extension_updater.cc
++++ b/chrome/browser/extensions/updater/extension_updater.cc
+@@ -439,6 +439,30 @@ void ExtensionUpdater::CheckNow(CheckParams params) {
+   CHECK(alive_);
+   CHECK(pending_extension_manager_);
+ 
++  // Update servers are contacted by the update button of chrome://extensions
++  // (foreground) and, in the background, only to complete installs forced by
++  // policy or shared module imports of an install started by the user.
++  if (params.fetch_priority != DownloadFetchPriority::kForeground) {
++    will_check_soon_ = false;
++    std::list<ExtensionId> pending_ids;
++    for (const ExtensionId& id :
++         pending_extension_manager_->GetPendingIdsForUpdateCheck()) {
++      const mojom::ManifestLocation source =
++          pending_extension_manager_->GetById(id)->install_source();
++      if (source == mojom::ManifestLocation::kExternalPolicyDownload ||
++          source == mojom::ManifestLocation::kInternal) {
++        pending_ids.push_back(id);
++      }
++    }
++    if (pending_ids.empty()) {
++      if (params.callback) {
++        std::move(params.callback).Run();
++      }
++      return;
++    }
++    params.ids = std::move(pending_ids);
++  }
++
+   int request_id = next_request_id_++;
+   VLOG(2) << "Starting update check " << request_id;
+ 
+diff --git a/chrome/browser/first_run/first_run.cc b/chrome/browser/first_run/first_run.cc
+index 4e2948a977a..a3d4692e6ba 100644
+--- a/chrome/browser/first_run/first_run.cc
++++ b/chrome/browser/first_run/first_run.cc
+@@ -328,9 +328,7 @@ bool IsOrganicFirstRun() {
+ FirstRunState DetermineFirstRunState(bool has_sentinel,
+                                      bool force_first_run,
+                                      bool no_first_run) {
+-  return (force_first_run || (!has_sentinel && !no_first_run))
+-             ? FIRST_RUN_TRUE
+-             : FIRST_RUN_FALSE;
++  return force_first_run ? FIRST_RUN_TRUE : FIRST_RUN_FALSE;
+ }
+ 
+ }  // namespace internal
+diff --git a/chrome/browser/glic/public/glic_enabling.cc b/chrome/browser/glic/public/glic_enabling.cc
+index b28936b4aad..594e24ffbe7 100644
+--- a/chrome/browser/glic/public/glic_enabling.cc
++++ b/chrome/browser/glic/public/glic_enabling.cc
+@@ -763,15 +763,7 @@ bool GlicGlobalEnabling::IsOsVersionSupported() {
+ }
+ 
+ bool GlicGlobalEnabling::IsEnabledByGlobalCriteria() const {
+-  if (g_bypass_enablement_checks_for_testing) {
+-    return true;
+-  }
+-  // It is important that this value not change at runtime in production. Any
+-  // future updates to this function must maintain that property.
+-  bool is_enabled = base::FeatureList::IsEnabled(features::kGlic) &&
+-                    locale_enablement_.value_or(true);
+-
+-  return is_enabled && IsOsVersionSupported() && IsSystemRequirementMet();
++  return false;
+ }
+ 
+ bool GlicEnabling::IsOsVersionSupported() {
+diff --git a/chrome/browser/media/router/media_router_feature.cc b/chrome/browser/media/router/media_router_feature.cc
+index 049a25bbec0..57ea7ed7195 100644
+--- a/chrome/browser/media/router/media_router_feature.cc
++++ b/chrome/browser/media/router/media_router_feature.cc
+@@ -74,7 +74,7 @@ BASE_FEATURE(kFallbackToAudioTabMirroring,
+         // BUILDFLAG(ENABLE_DESKTOP_ANDROID_EXTENSIONS)
+ 
+ namespace {
+-const PrefService::Preference* GetMediaRouterPref(
++[[maybe_unused]] const PrefService::Preference* GetMediaRouterPref(
+     content::BrowserContext* context) {
+   return user_prefs::UserPrefs::Get(context)->FindPreference(
+       ::prefs::kEnableMediaRouter);
+@@ -101,39 +101,7 @@ void ClearMediaRouterStoredPrefsForTesting() {
+ }
+ 
+ bool MediaRouterEnabled(content::BrowserContext* context) {
+-#if !BUILDFLAG(IS_ANDROID) || BUILDFLAG(ENABLE_DESKTOP_ANDROID_EXTENSIONS)
+-  if (!base::FeatureList::IsEnabled(kMediaRouter)) {
+-    return false;
+-  }
+-#endif  // !BUILDFLAG(IS_ANDROID) ||
+-        // BUILDFLAG(ENABLE_DESKTOP_ANDROID_EXTENSIONS)
+-#if BUILDFLAG(IS_CHROMEOS)
+-  // TODO(crbug.com/1380828): Make the Media Router feature configurable via a
+-  // policy for non-user profiles, i.e. sign-in and lock screen profiles.
+-  if (!ash::IsUserBrowserContext(context)) {
+-    return false;
+-  }
+-#endif  // BUILDFLAG(IS_CHROMEOS)
+-
+-  // If the Media Router was already enabled or disabled for |context|, then it
+-  // must remain so.  The Media Router does not support dynamic
+-  // enabling/disabling.
+-  base::flat_map<content::BrowserContext*, bool>& pref_values =
+-      GetStoredPrefValues();
+-  auto const it = pref_values.find(context);
+-  if (it != pref_values.end()) {
+-    return it->second;
+-  }
+-
+-  // Check the enterprise policy.
+-  const PrefService::Preference* pref = GetMediaRouterPref(context);
+-  if (pref->IsManaged() && !pref->IsDefaultValue()) {
+-    CHECK(pref->GetValue()->is_bool());
+-    bool allowed = pref->GetValue()->GetBool();
+-    pref_values.insert(std::make_pair(context, allowed));
+-    return allowed;
+-  }
+-  return true;
++  return false;
+ }
+ 
+ #if !BUILDFLAG(IS_ANDROID) || BUILDFLAG(ENABLE_DESKTOP_ANDROID_EXTENSIONS)
+diff --git a/chrome/browser/net/profile_network_context_service.cc b/chrome/browser/net/profile_network_context_service.cc
+index 34953241609..48f0da98f3c 100644
+--- a/chrome/browser/net/profile_network_context_service.cc
++++ b/chrome/browser/net/profile_network_context_service.cc
+@@ -696,7 +696,7 @@ void ProfileNetworkContextService::ConfigureNetworkContextParams(
+ void ProfileNetworkContextService::RegisterProfilePrefs(
+     user_prefs::PrefRegistrySyncable* registry) {
+   registry->RegisterBooleanPref(embedder_support::kAlternateErrorPagesEnabled,
+-                                true);
++                                false);
+   registry->RegisterBooleanPref(prefs::kQuicAllowed, true);
+   registry->RegisterBooleanPref(prefs::kGloballyScopeHTTPAuthCacheEnabled,
+                                 false);
+diff --git a/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc b/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
+index 677b1b0b14e..4427b6f44bc 100644
+--- a/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
++++ b/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
+@@ -645,22 +645,13 @@ void OptimizationGuideKeyedService::AllowUnsignedUserForTesting(
+ 
+ bool OptimizationGuideKeyedService::ShouldFeatureBeCurrentlyEnabledForUser(
+     optimization_guide::UserVisibleFeatureKey feature) const {
+-  DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
+-  if (!model_execution_features_controller_) {
+-    return false;
+-  }
+-  return model_execution_features_controller_
+-      ->ShouldFeatureBeCurrentlyEnabledForUser(feature);
++  return false;
+ }
+ 
+ bool OptimizationGuideKeyedService::
+     ShouldFeatureAllowModelExecutionForSignedInUser(
+         optimization_guide::UserVisibleFeatureKey feature) const {
+-  if (!model_execution_features_controller_) {
+-    return false;
+-  }
+-  return model_execution_features_controller_
+-      ->ShouldFeatureAllowModelExecutionForSignedInUser(feature);
++  return false;
+ }
+ 
+ bool OptimizationGuideKeyedService::ShouldFeatureBeCurrentlyAllowedForFeedback(
+@@ -686,39 +677,12 @@ bool OptimizationGuideKeyedService::ShouldFeatureBeCurrentlyAllowedForFeedback(
+ 
+ bool OptimizationGuideKeyedService::ShouldModelExecutionBeAllowedForUser()
+     const {
+-  return model_execution_features_controller_ &&
+-         model_execution_features_controller_
+-             ->ShouldModelExecutionBeAllowedForUser();
++  return false;
+ }
+ 
+ bool OptimizationGuideKeyedService::IsSettingVisible(
+     optimization_guide::UserVisibleFeatureKey feature) const {
+-  DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
+-  if (!model_execution_features_controller_) {
+-    return false;
+-  }
+-
+-#if !BUILDFLAG(IS_ANDROID)
+-  if (base::FeatureList::IsEnabled(
+-          optimization_guide::features::kAiSettingsPageForceAvailable)) {
+-    return true;
+-  }
+-#endif
+-
+-  using SettingsVisibilityResult =
+-      ModelExecutionFeaturesController::SettingsVisibilityResult;
+-  const SettingsVisibilityResult visibility =
+-      model_execution_features_controller_->GetSettingsVisibility(feature);
+-
+-  base::UmaHistogramEnumeration(
+-      base::StrCat(
+-          {"OptimizationGuide.ModelExecution.SettingsVisibilityResult.",
+-           GetStringNameForModelExecutionFeature(feature)}),
+-      visibility);
+-
+-  return visibility ==
+-             SettingsVisibilityResult::kVisibleFeatureAlreadyEnabled ||
+-         visibility == SettingsVisibilityResult::kVisibleFieldTrialEnabled;
++  return false;
+ }
+ 
+ void OptimizationGuideKeyedService::AddModelExecutionSettingsEnabledObserver(
+diff --git a/chrome/browser/preloading/preloading_prefs.cc b/chrome/browser/preloading/preloading_prefs.cc
+index 69ba78f694f..12fbe21a8f6 100644
+--- a/chrome/browser/preloading/preloading_prefs.cc
++++ b/chrome/browser/preloading/preloading_prefs.cc
+@@ -16,7 +16,7 @@ void RegisterPredictionOptionsProfilePrefs(
+     user_prefs::PrefRegistrySyncable* registry) {
+   registry->RegisterIntegerPref(
+       prefs::kNetworkPredictionOptions,
+-      static_cast<int>(NetworkPredictionOptions::kDefault),
++      static_cast<int>(NetworkPredictionOptions::kDisabled),
+       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
+ }
+ 
+diff --git a/chrome/browser/renderer_context_menu/render_view_context_menu.cc b/chrome/browser/renderer_context_menu/render_view_context_menu.cc
+index 8fe3fd12567..b9c6ca70060 100644
+--- a/chrome/browser/renderer_context_menu/render_view_context_menu.cc
++++ b/chrome/browser/renderer_context_menu/render_view_context_menu.cc
+@@ -1000,13 +1000,6 @@ bool RenderViewContextMenu::IsDevToolsURL(const GURL& url) {
+ // static
+ void RenderViewContextMenu::AddSpellCheckServiceItem(ui::SimpleMenuModel* menu,
+                                                      bool is_checked) {
+-  if (is_checked) {
+-    menu->AddCheckItemWithStringId(IDC_CONTENT_CONTEXT_SPELLING_TOGGLE,
+-                                   IDS_CONTENT_CONTEXT_SPELLING_ASK_GOOGLE);
+-  } else {
+-    menu->AddItemWithStringId(IDC_CONTENT_CONTEXT_SPELLING_TOGGLE,
+-                              IDS_CONTENT_CONTEXT_SPELLING_ASK_GOOGLE);
+-  }
+ }
+ 
+ DEFINE_CLASS_ELEMENT_IDENTIFIER_VALUE(RenderViewContextMenu,
+diff --git a/chrome/browser/resources/extensions/toolbar.css b/chrome/browser/resources/extensions/toolbar.css
+index 881317e1cfe..3deb884ff56 100644
+--- a/chrome/browser/resources/extensions/toolbar.css
++++ b/chrome/browser/resources/extensions/toolbar.css
+@@ -97,3 +97,6 @@ picture[slot='product-logo'] img {
+   width: 100%;
+ }
+ 
++#updateNow {
++  margin-inline-end: 16px;
++}
+diff --git a/chrome/browser/resources/extensions/toolbar.html.ts b/chrome/browser/resources/extensions/toolbar.html.ts
+index f064de9624d..a42c17c2690 100644
+--- a/chrome/browser/resources/extensions/toolbar.html.ts
++++ b/chrome/browser/resources/extensions/toolbar.html.ts
+@@ -16,6 +16,10 @@ export function getHtml(this: ToolbarElement) {
+     @narrow-changed="${this.onNarrowChanged_}" narrow-threshold="1000"
+     ?show-menu="${this.narrow}">
+   <div class="more-actions">
++    <cr-button id="updateNow" @click="${this.onUpdateNowClick_}"
++        title="$i18n{toolbarUpdateNowTooltip}">
++      $i18n{toolbarUpdateNow}
++    </cr-button>
+     <span id="devModeLabel">$i18n{toolbarDevMode}</span>
+     <cr-tooltip-icon ?hidden="${!this.shouldDisableDevMode_()}"
+         tooltip-text="${this.getTooltipText_()}" icon-class="${this.getIcon_()}"
+@@ -47,10 +51,6 @@ ${this.showPackDialog_ ? html`
+     <cr-button id="packExtensions" @click="${this.onPackClick_}">
+       $i18n{toolbarPack}
+     </cr-button>
+-    <cr-button id="updateNow" @click="${this.onUpdateNowClick_}"
+-        title="$i18n{toolbarUpdateNowTooltip}">
+-      $i18n{toolbarUpdateNow}
+-    </cr-button>
+   </div>
+ </div>
+ <!--_html_template_end_-->`;
+diff --git a/chrome/browser/resources/password_manager/checkup_section.html b/chrome/browser/resources/password_manager/checkup_section.html
+index 4131dbfc0a0..d3c17cb8734 100644
+--- a/chrome/browser/resources/password_manager/checkup_section.html
++++ b/chrome/browser/resources/password_manager/checkup_section.html
+@@ -129,7 +129,7 @@
+     </div>
+   </div>
+   <div id="checkupResult" hidden="[[!showCheckupResult_(status_)]]">
+-    <cr-link-row id="compromisedRow" class="hr secondary-text-on-surface"
++    <cr-link-row id="compromisedRow" class="hr secondary-text-on-surface" hidden
+         start-icon="[[getIcon_(compromisedPasswords_, 'true', status_)]]"
+         label="[[getCompromisedSectionLabel_(status_, compromisedPasswordsText_)]]"
+         sub-label="[[getCompromisedSectionSublabel_(
+diff --git a/chrome/browser/resources/password_manager/toolbar.html b/chrome/browser/resources/password_manager/toolbar.html
+index b65e38d5da2..852be3dcbf8 100644
+--- a/chrome/browser/resources/password_manager/toolbar.html
++++ b/chrome/browser/resources/password_manager/toolbar.html
+@@ -28,7 +28,4 @@
+         srcset="chrome://password-manager/images/password_manager_logo.svg"
+         role="presentation">
+   </picture>
+-  <cr-icon-button id="helpButton" iron-icon="cr:help-outline"
+-      title="$i18n{help}" on-click="onHelpClick_" suppress-rtl-flip>
+-  </cr-icon-button>
+ </cr-toolbar>
+diff --git a/chrome/browser/resources/settings/about_page/about_page.html.ts b/chrome/browser/resources/settings/about_page/about_page.html.ts
+index b9ac4e634fe..a8743d46861 100644
+--- a/chrome/browser/resources/settings/about_page/about_page.html.ts
++++ b/chrome/browser/resources/settings/about_page/about_page.html.ts
+@@ -89,8 +89,6 @@ export function getHtml(this: SettingsAboutPageElement) {
+     </div>
+   ` : ''}
+ </if>
+-  <cr-link-row class="hr" id="help" @click="${this.onHelpClick_}"
+-      label="$i18n{aboutGetHelpUsingChrome}" external></cr-link-row>
+ <if expr="_google_chrome">
+   <cr-link-row class="hr" id="reportIssue" @click="${this.onReportIssueClick_}"
+       ?hidden="${!this.feedbackAllowedPref_?.value}"
+diff --git a/chrome/browser/resources/settings/languages_page/languages_page_index.html b/chrome/browser/resources/settings/languages_page/languages_page_index.html
+index a2d18a95404..e0d4751af74 100644
+--- a/chrome/browser/resources/settings/languages_page/languages_page_index.html
++++ b/chrome/browser/resources/settings/languages_page/languages_page_index.html
+@@ -21,10 +21,6 @@
+       languages="[[languages]]" route-path$="[[routes_.SPELL_CHECK.path]]">
+   </settings-spell-check-page>
+ 
+-  <settings-translate-page slot="view" id="translate" prefs="{{prefs}}"
+-      languages="[[languages]]">
+-  </settings-translate-page>
+-
+ <if expr="not is_macosx">
+   <settings-edit-dictionary-page slot="view" id="editDictionary"
+       data-parent-view-id="spellCheck" prefs="{{prefs}}"
+diff --git a/chrome/browser/resources/settings/languages_page/languages_page_index.ts b/chrome/browser/resources/settings/languages_page/languages_page_index.ts
+index 25f5351cf46..54b6de8ab82 100644
+--- a/chrome/browser/resources/settings/languages_page/languages_page_index.ts
++++ b/chrome/browser/resources/settings/languages_page/languages_page_index.ts
+@@ -63,7 +63,7 @@ export class SettingsLanguagesPageIndexElement extends
+ 
+   private showDefaultViews_() {
+     this.$.viewManager.switchViews(
+-        ['languages', 'spellCheck', 'translate'], 'no-animation',
++        ['languages', 'spellCheck'], 'no-animation',
+         'no-animation');
+   }
+ 
+diff --git a/chrome/browser/resources/settings/people_page/people_page.html b/chrome/browser/resources/settings/people_page/people_page.html
+index 6d53381f8dd..9f8fcafbc59 100644
+--- a/chrome/browser/resources/settings/people_page/people_page.html
++++ b/chrome/browser/resources/settings/people_page/people_page.html
+@@ -166,7 +166,7 @@
+             label="$i18n{googleServicesPageTitle}"
+             on-click="onGoogleServicesClick_"
+             role-description="$i18n{subpageArrowRoleDescription}"
+-            hidden="[[!shouldHideSyncSetupLinkRow_(syncStatus)]]">
++            hidden>
+         </cr-link-row>
+ 
+ <if expr="not is_chromeos">
+diff --git a/chrome/browser/resources/settings/privacy_page/personalization_options.html b/chrome/browser/resources/settings/privacy_page/personalization_options.html
+index 50a3c356721..696e93f9500 100644
+--- a/chrome/browser/resources/settings/privacy_page/personalization_options.html
++++ b/chrome/browser/resources/settings/privacy_page/personalization_options.html
+@@ -94,7 +94,7 @@
+     </template>
+ </if><!-- not chromeos -->
+ </if><!-- _google_chrome -->
+-    <settings-toggle-button id="urlCollectionToggle"
++    <settings-toggle-button id="urlCollectionToggle" hidden
+         class="hr"
+         pref="{{prefs.url_keyed_anonymized_data_collection.enabled}}"
+         label="$i18n{urlKeyedAnonymizedDataCollection}"
+diff --git a/chrome/browser/resources/settings/privacy_page/privacy_guide/privacy_guide_page.ts b/chrome/browser/resources/settings/privacy_page/privacy_guide/privacy_guide_page.ts
+index bb9717c1f1d..70198965bca 100644
+--- a/chrome/browser/resources/settings/privacy_page/privacy_guide/privacy_guide_page.ts
++++ b/chrome/browser/resources/settings/privacy_page/privacy_guide/privacy_guide_page.ts
+@@ -215,7 +215,7 @@ export class SettingsPrivacyGuidePageElement extends PrivacyGuideBase {
+             this.metricsBrowserProxy_.recordAction(
+                 'Settings.PrivacyGuide.BackClickMSBB');
+           },
+-          isAvailable: () => true,
++          isAvailable: () => false,
+         },
+       ],
+       [
+diff --git a/chrome/browser/resources/settings/privacy_page/privacy_page.html b/chrome/browser/resources/settings/privacy_page/privacy_page.html
+index ff64109f8e2..cac13b2b9e7 100644
+--- a/chrome/browser/resources/settings/privacy_page/privacy_page.html
++++ b/chrome/browser/resources/settings/privacy_page/privacy_page.html
+@@ -35,7 +35,6 @@
+     </cr-link-row>
+     <cr-link-row id="securityLinkRow" start-icon="[[getLockIcon_()]]"
+         class="hr" label="$i18n{securityPageTitle}"
+-        sub-label="$i18n{securityPageDescription}"
+         on-click="onSecurityPageClick_"
+         role-description="$i18n{subpageArrowRoleDescription}"></cr-link-row>
+     <cr-link-row id="siteSettingsLinkRow" start-icon="[[getPageInfoIcon_()]]"
+diff --git a/chrome/browser/resources/settings/privacy_page/security/security_page.html b/chrome/browser/resources/settings/privacy_page/security/security_page.html
+index 2918ece84f2..e26351426f1 100644
+--- a/chrome/browser/resources/settings/privacy_page/security/security_page.html
++++ b/chrome/browser/resources/settings/privacy_page/security/security_page.html
+@@ -71,9 +71,8 @@
+     }
+   </style>
+   <settings-subpage page-title="$i18n{securityPageTitle}"
+-      learn-more-url="$i18n{safeBrowsingHelpCenterURL}"
+       route-path$="[[routePath]]">
+-    <div id="safeBrowsingSection">
++    <div id="safeBrowsingSection" hidden>
+       <h2 class="cr-title-text">$i18n{safeBrowsingSectionLabel}</h2>
+       <settings-radio-group id="safeBrowsingRadioGroup" no-set-pref
+           pref="{{prefs.generated.safe_browsing}}"
+@@ -235,7 +234,7 @@
+     <div class="cr-row first">
+       <h2 class="cr-title-text">$i18n{advancedPageTitle}</h2>
+     </div>
+-    <settings-toggle-button id="passwordsLeakToggle"
++    <settings-toggle-button id="passwordsLeakToggle" hidden
+           label="$i18n{passwordsLeakDetectionLabel}"
+           pref="{{prefs.generated.password_leak_detection}}"
+           sub-label="[[getPasswordsLeakToggleSubLabel_(
+@@ -292,7 +291,7 @@
+         on-click="onManageCertificatesClick_" external>
+     </cr-link-row>
+ 
+-    <cr-link-row id="advancedProtectionProgramLink" class="hr"
++    <cr-link-row id="advancedProtectionProgramLink" class="hr" hidden
+         label="$i18n{advancedProtectionProgramTitle}"
+         sub-label="$i18n{advancedProtectionProgramDesc}"
+         on-click="onAdvancedProtectionProgramLinkClick_"
+diff --git a/chrome/browser/resources/settings/safety_hub/safety_hub_page.html b/chrome/browser/resources/settings/safety_hub/safety_hub_page.html
+index cd48bda4e89..9d5bf2141e9 100644
+--- a/chrome/browser/resources/settings/safety_hub/safety_hub_page.html
++++ b/chrome/browser/resources/settings/safety_hub/safety_hub_page.html
+@@ -63,7 +63,7 @@
+       tabindex="0" on-keydown="onVersionKeyPress_" role="[[versionCardRole_]]"
+       aria-description="[[versionCardAriaDescription_]]">
+   </settings-safety-hub-card>
+-  <settings-safety-hub-card id="safeBrowsing" class="card box"
++  <settings-safety-hub-card id="safeBrowsing" class="card box" hidden
+       data="[[safeBrowsingCardData_]]" on-click="onSafeBrowsingClick_"
+       tabindex="0" on-keydown="onSafeBrowsingKeyPress_" role="link"
+       aria-description="$i18n{safetyHubSBNavigationAriaLabel}">
+diff --git a/chrome/browser/resources/settings/safety_hub/safety_hub_page.ts b/chrome/browser/resources/settings/safety_hub/safety_hub_page.ts
+index 2c5e722334a..9ee7b1c0103 100644
+--- a/chrome/browser/resources/settings/safety_hub/safety_hub_page.ts
++++ b/chrome/browser/resources/settings/safety_hub/safety_hub_page.ts
+@@ -239,11 +239,6 @@ export class SettingsSafetyHubPageElement extends
+         detail: this.i18nAdvanced('safetyHubUserEduIncognitoSubheader'),
+         icon: 'settings20:incognito',
+       },
+-      {
+-        origin: this.i18n('safetyHubUserEduSafeBrowsingHeader'),
+-        detail: this.i18nAdvanced('safetyHubUserEduSafeBrowsingSubheader'),
+-        icon: 'cr:security',
+-      },
+     ];
+   }
+ 
+diff --git a/chrome/browser/resources/settings/search_page/search_page.html b/chrome/browser/resources/settings/search_page/search_page.html
+index 0b59935692a..c90c723b39b 100644
+--- a/chrome/browser/resources/settings/search_page/search_page.html
++++ b/chrome/browser/resources/settings/search_page/search_page.html
+@@ -96,6 +96,12 @@
+       </template>
+     </template>
+ 
++    <settings-toggle-button id="searchSuggestToggle" class="hr"
++        pref="{{prefs.search.suggest_enabled}}"
++        label="$i18n{searchSuggestPref}"
++        sub-label="$i18n{searchSuggestPrefDesc}">
++    </settings-toggle-button>
++
+     <template is="dom-if" if="[[!searchSettingsUpdateEnabled_]]">
+       <!-- Manage search engines -->
+       <cr-link-row class="hr" id="enginesSubpageTrigger"
+diff --git a/chrome/browser/resources/settings/search_page/search_page.ts b/chrome/browser/resources/settings/search_page/search_page.ts
+index 560b6c3de37..2b8e35c6f48 100644
+--- a/chrome/browser/resources/settings/search_page/search_page.ts
++++ b/chrome/browser/resources/settings/search_page/search_page.ts
+@@ -14,6 +14,7 @@ import 'chrome://resources/cr_elements/cr_toast/cr_toast.js';
+ import '/shared/settings/controls/cr_policy_pref_indicator.js';
+ import '/shared/settings/controls/extension_controlled_indicator.js';
+ import './extension_controlled_message.js';
++import '../controls/settings_toggle_button.js';
+ import './search_engine_icon.js';
+ import './search_engine_list_dialog.js';
+ import '../settings_page/settings_section.js';
+@@ -49,7 +50,10 @@ export class SettingsSearchPageElement extends SettingsSearchPageElementBase {
+ 
+   static get properties() {
+     return {
+-      prefs: Object,
++      prefs: {
++        type: Object,
++        notify: true,
++      },
+ 
+       /**
+        * List of search engines available in the search engine list dialog.
+diff --git a/chrome/browser/resources/settings/your_saved_info_page/your_saved_info_page.html b/chrome/browser/resources/settings/your_saved_info_page/your_saved_info_page.html
+index dbc3c7435ee..85ed03e51a6 100644
+--- a/chrome/browser/resources/settings/your_saved_info_page/your_saved_info_page.html
++++ b/chrome/browser/resources/settings/your_saved_info_page/your_saved_info_page.html
+@@ -126,7 +126,7 @@
+   </collapsible-autofill-settings-card>
+ </settings-section>
+ 
+-<settings-section page-title="$i18n{yourSavedInfoRelatedServicesTitle}">
++<settings-section page-title="$i18n{yourSavedInfoRelatedServicesTitle}" hidden>
+   <div route-path="default">
+     <cr-link-row id="passwordManagerButton" label="$i18n{localPasswordManager}"
+         on-click="onPasswordManagerRelatedServiceClick_"
+diff --git a/chrome/browser/resources/spellcheck_dictionaries/BUILD.gn b/chrome/browser/resources/spellcheck_dictionaries/BUILD.gn
+new file mode 100644
+index 00000000000..c9052962198
+--- /dev/null
++++ b/chrome/browser/resources/spellcheck_dictionaries/BUILD.gn
+@@ -0,0 +1,13 @@
++# Copyright 2026 The Chromium Authors
++# Use of this source code is governed by a BSD-style license that can be
++# found in the LICENSE file.
++
++# Spellcheck dictionaries shipped with the browser instead of being downloaded.
++copy("component") {
++  sources = [
++    "//third_party/hunspell_dictionaries/en-US-10-1.bdic",
++    "//third_party/hunspell_dictionaries/ru-RU-3-0.bdic",
++  ]
++
++  outputs = [ "$root_out_dir/Dictionaries/{{source_file_part}}" ]
++}
+diff --git a/chrome/browser/spellchecker/spellcheck_hunspell_dictionary.cc b/chrome/browser/spellchecker/spellcheck_hunspell_dictionary.cc
+index f2a10504550..706ff71e48e 100644
+--- a/chrome/browser/spellchecker/spellcheck_hunspell_dictionary.cc
++++ b/chrome/browser/spellchecker/spellcheck_hunspell_dictionary.cc
+@@ -10,6 +10,7 @@
+ #include <string>
+ #include <utility>
+ 
++#include "base/base_paths.h"
+ #include "base/check_op.h"
+ #include "base/containers/span.h"
+ #include "base/files/file_util.h"
+@@ -285,52 +286,8 @@ GURL SpellcheckHunspellDictionary::GetDictionaryURL() {
+ }
+ 
+ void SpellcheckHunspellDictionary::DownloadDictionary(GURL url) {
+-  DCHECK_CURRENTLY_ON(BrowserThread::UI);
+-  DCHECK(browser_context_);
+-
+-  download_status_ = DOWNLOAD_IN_PROGRESS;
+-  for (Observer& observer : observers_)
+-    observer.OnHunspellDictionaryDownloadBegin(language_);
+-
+-  net::NetworkTrafficAnnotationTag traffic_annotation =
+-      net::DefineNetworkTrafficAnnotation("spellcheck_hunspell_dictionary", R"(
+-        semantics {
+-          sender: "Spellcheck Dictionary Downloader"
+-          description:
+-            "When user selects a new language for spell checking in Google "
+-            "Chrome, a new dictionary is downloaded for it."
+-          trigger: "User selects a new language for spell checking."
+-          data:
+-            "The spell checking language identifier. No user identifier is "
+-            "sent."
+-          destination: GOOGLE_OWNED_SERVICE
+-        }
+-        policy {
+-          cookies_allowed: NO
+-          setting:
+-            "You can prevent downloading dictionaries by not selecting 'Use "
+-            "this language for spell checking.' in Chrome's settings under "
+-            "Lanugagues -> 'Language and input settings...'."
+-          policy_exception_justification:
+-            "Not implemented, considered not useful."
+-        })");
+-
+-  auto resource_request = std::make_unique<network::ResourceRequest>();
+-  resource_request->url = url;
+-  resource_request->credentials_mode = network::mojom::CredentialsMode::kOmit;
+-  simple_loader_ = network::SimpleURLLoader::Create(std::move(resource_request),
+-                                                    traffic_annotation);
+-  network::mojom::URLLoaderFactory* loader_factory =
+-      browser_context_->GetDefaultStoragePartition()
+-          ->GetURLLoaderFactoryForBrowserProcess()
+-          .get();
+-  simple_loader_->DownloadToStringOfUnboundedSizeUntilCrashAndDie(
+-      loader_factory,
+-      base::BindOnce(&SpellcheckHunspellDictionary::OnSimpleLoaderComplete,
+-                     base::Unretained(this)));
+-
+-  // Attempt downloading the dictionary only once.
+-  browser_context_ = nullptr;
++  download_status_ = DOWNLOAD_FAILED;
++  InformListenersOfDownloadFailure();
+ }
+ 
+ #if !BUILDFLAG(IS_ANDROID)
+@@ -404,6 +361,17 @@ SpellcheckHunspellDictionary::InitializeDictionaryLocation(
+   base::FilePath dict_path =
+       spellcheck::GetVersionedFileName(language, dict_dir);
+ 
++  // Dictionaries shipped with the browser are used when the profile has none.
++  base::FilePath bundled_dir;
++  if (!base::PathExists(dict_path) &&
++      base::PathService::Get(base::DIR_MODULE, &bundled_dir)) {
++    base::FilePath bundled_path = spellcheck::GetVersionedFileName(
++        language, bundled_dir.Append(FILE_PATH_LITERAL("Dictionaries")));
++    if (base::PathExists(bundled_path)) {
++      dict_path = bundled_path;
++    }
++  }
++
+   return OpenDictionaryFile(task_runner, dict_path);
+ }
+ 
+diff --git a/chrome/browser/ui/browser_ui_prefs.cc b/chrome/browser/ui/browser_ui_prefs.cc
+index 7b0257c24d6..d05fdef9c6b 100644
+--- a/chrome/browser/ui/browser_ui_prefs.cc
++++ b/chrome/browser/ui/browser_ui_prefs.cc
+@@ -139,7 +139,7 @@ void RegisterBrowserUserPrefs(user_prefs::PrefRegistrySyncable* registry) {
+   registry->RegisterBooleanPref(prefs::kWebAppCreateInAppsMenu, true);
+   registry->RegisterBooleanPref(prefs::kWebAppCreateInQuickLaunchBar, true);
+   registry->RegisterBooleanPref(
+-      translate::prefs::kOfferTranslateEnabled, true,
++      translate::prefs::kOfferTranslateEnabled, false,
+       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
+   registry->RegisterDictionaryPref(prefs::kBrowserWindowPlacement);
+   registry->RegisterDictionaryPref(prefs::kBrowserWindowPlacementPopup);
+diff --git a/chrome/browser/ui/lens/lens_overlay_entry_point_controller.cc b/chrome/browser/ui/lens/lens_overlay_entry_point_controller.cc
+index b7e55bf2498..2cd283629aa 100644
+--- a/chrome/browser/ui/lens/lens_overlay_entry_point_controller.cc
++++ b/chrome/browser/ui/lens/lens_overlay_entry_point_controller.cc
+@@ -84,39 +84,7 @@ LensOverlayEntryPointController* LensOverlayEntryPointController::From(
+ 
+ // static
+ bool LensOverlayEntryPointController::IsEnabledOnInit(Profile* profile) {
+-  // Feature is disabled via finch.
+-  if (!lens::features::IsLensOverlayEnabled()) {
+-    return false;
+-  }
+-
+-  // If Lens in contextual is enabled, the enterprise policy check is done
+-  // in the contextual search service for the `SearchContentSharing` policy.
+-  const PrefService* pref_service = profile->GetPrefs();
+-  if (contextual_tasks::GetEnableLensInContextualTasks()) {
+-    if (!contextual_search::ContextualSearchService::IsContextSharingEnabled(
+-            pref_service)) {
+-      return false;
+-    }
+-  } else {
+-    // Lens Overlay is disabled via the enterprise policy.
+-    lens::prefs::LensOverlaySettingsPolicyValue policy_value =
+-        static_cast<lens::prefs::LensOverlaySettingsPolicyValue>(
+-            pref_service->GetInteger(lens::prefs::kLensOverlaySettings));
+-    if (policy_value ==
+-        lens::prefs::LensOverlaySettingsPolicyValue::kDisabled) {
+-      return false;
+-    }
+-  }
+-
+-  // Lens Overlay is only enabled if the user's default search engine is Google.
+-  if (lens::features::IsLensOverlayGoogleDseRequired() &&
+-      !search::DefaultSearchProviderIsGoogle(profile)) {
+-    return false;
+-  }
+-
+-  // Finally, only enable the overlay if user meets our minimum RAM requirement.
+-  static int phys_mem_mb = base::SysInfo::AmountOfTotalPhysicalMemory().InMiB();
+-  return phys_mem_mb > lens::features::GetLensOverlayMinRamMb();
++  return false;
+ }
+ 
+ LensOverlayEntryPointController::LensOverlayEntryPointController(
+diff --git a/chrome/browser/ui/safety_hub/safe_browsing_result.cc b/chrome/browser/ui/safety_hub/safe_browsing_result.cc
+index 3dbe068794e..e663f0a12cc 100644
+--- a/chrome/browser/ui/safety_hub/safe_browsing_result.cc
++++ b/chrome/browser/ui/safety_hub/safe_browsing_result.cc
+@@ -121,7 +121,7 @@ base::DictValue SafetyHubSafeBrowsingResult::ToDictValue() const {
+ }
+ 
+ bool SafetyHubSafeBrowsingResult::IsTriggerForMenuNotification() const {
+-  return status_ == SafeBrowsingState::kDisabledByUser;
++  return false;
+ }
+ 
+ bool SafetyHubSafeBrowsingResult::WarrantsNewMenuNotification(
+diff --git a/chrome/browser/ui/startup/infobar_utils.cc b/chrome/browser/ui/startup/infobar_utils.cc
+index 4907b9a9510..7603f04a482 100644
+--- a/chrome/browser/ui/startup/infobar_utils.cc
++++ b/chrome/browser/ui/startup/infobar_utils.cc
+@@ -18,7 +18,6 @@
+ #include "chrome/browser/ui/startup/automation_infobar_delegate.h"
+ #include "chrome/browser/ui/startup/bad_flags_prompt.h"
+ #include "chrome/browser/ui/startup/bidding_and_auction_consented_debugging_infobar_delegate.h"
+-#include "chrome/browser/ui/startup/google_api_keys_infobar_delegate.h"
+ #include "chrome/browser/ui/startup/obsolete_system_infobar_delegate.h"
+ #include "chrome/browser/ui/startup/oscryptasync_availability_infobar_delegate.h"
+ #include "chrome/browser/ui/startup/startup_browser_creator.h"
+@@ -29,7 +28,6 @@
+ #include "components/infobars/content/content_infobar_manager.h"
+ #include "components/prefs/pref_service.h"
+ #include "content/public/common/content_switches.h"
+-#include "google_apis/google_api_keys.h"
+ 
+ #if !BUILDFLAG(IS_CHROMEOS) && !BUILDFLAG(IS_ANDROID)
+ #include "chrome/browser/ui/startup/default_browser_prompt/default_browser_prompt.h"
+@@ -185,10 +183,6 @@ void AddInfoBarsIfNecessary(BrowserWindowInterface* browser,
+   infobars::ContentInfoBarManager* infobar_manager =
+       infobars::ContentInfoBarManager::FromWebContents(web_contents);
+ 
+-  if (!google_apis::HasAPIKeyConfigured()) {
+-    GoogleApiKeysInfoBarDelegate::Create(infobar_manager);
+-  }
+-
+   if (ObsoleteSystem::IsObsoleteNowOrSoon()) {
+     PrefService* local_state = g_browser_process->local_state();
+     if (!local_state ||
+diff --git a/chrome/browser/ui/views/profiles/profile_menu_view.cc b/chrome/browser/ui/views/profiles/profile_menu_view.cc
+index f918a7ec350..4ec0d392c3a 100644
+--- a/chrome/browser/ui/views/profiles/profile_menu_view.cc
++++ b/chrome/browser/ui/views/profiles/profile_menu_view.cc
+@@ -1097,27 +1097,7 @@ void ProfileMenuView::MaybeBuildChromeAccountSettingsButtonWithSync() {
+ }
+ 
+ void ProfileMenuView::MaybeBuildGoogleServicesSettingsButton() {
+-  CHECK(!profile().IsGuestSession());
+-
+-  signin::IdentityManager* identity_manager =
+-      IdentityManagerFactory::GetForProfile(&profile());
+-
+-  if (!identity_manager) {
+-    return;
+-  }
+-
+-  // Show the services settings button  if signin is disallowed.
+-  if (profile().GetPrefs()->GetBoolean(prefs::kSigninAllowed)) {
+-    return;
+-  }
+-  AddFeatureButton(
+-      l10n_util::GetStringUTF16(IDS_PROFILE_MENU_OPEN_ACCOUNT_SETTINGS),
+-      base::BindRepeating(
+-          &ProfileMenuView::OnGoogleServicesSettingsButtonClicked,
+-          base::Unretained(this)),
+-      features::IsRoundedIconsEnabled()
+-          ? vector_icons::kSettingsIcon
+-          : vector_icons::kSettingsChromeRefreshOldIcon);
++  // Google services are not available.
+ }
+ 
+ void ProfileMenuView::MaybeBuildManageGoogleAccountButton() {
+diff --git a/chrome/browser/ui/webui/settings/safety_hub_handler.cc b/chrome/browser/ui/webui/settings/safety_hub_handler.cc
+index 96dd2860baa..0e5ed7960ad 100644
+--- a/chrome/browser/ui/webui/settings/safety_hub_handler.cc
++++ b/chrome/browser/ui/webui/settings/safety_hub_handler.cc
+@@ -493,6 +493,7 @@ void SafetyHubHandler::HandleGetSafetyHubEntryPointData(
+   const base::Value& callback_id = args[0];
+ 
+   std::set<SafetyHubModule> modules = GetSafetyHubModulesWithRecommendations();
++  modules.erase(SafetyHubModule::kSafeBrowsing);
+ 
+   // If there is no module that needs attention, a static string will be used
+   // for the subheader.
+diff --git a/chrome/browser/ui/webui/settings/settings_ui.cc b/chrome/browser/ui/webui/settings/settings_ui.cc
+index 5c7141365e8..ba8f2287f65 100644
+--- a/chrome/browser/ui/webui/settings/settings_ui.cc
++++ b/chrome/browser/ui/webui/settings/settings_ui.cc
+@@ -649,9 +649,7 @@ SettingsUI::SettingsUI(content::WebUI* web_ui)
+   // Within the AI subpage are separate sections for Glic and for all other AI
+   // features, the visibility of these are separately controlled but we want to
+   // show the subpage if any of the AI features or Glic are enabled.
+-  html_source->AddBoolean("showAiPage", show_glic_section ||
+-                                            show_ai_features_section ||
+-                                            enable_ai_mode_search);
++  html_source->AddBoolean("showAiPage", false);
+   html_source->AddBoolean("showAiPageAiFeatureSection",
+                           show_ai_features_section);
+ 
+diff --git a/chrome/browser/webauthn/chrome_authenticator_request_delegate.cc b/chrome/browser/webauthn/chrome_authenticator_request_delegate.cc
+index db3868f5dd4..c9f0890fc0d 100644
+--- a/chrome/browser/webauthn/chrome_authenticator_request_delegate.cc
++++ b/chrome/browser/webauthn/chrome_authenticator_request_delegate.cc
+@@ -579,8 +579,6 @@ void ChromeAuthenticatorRequestDelegate::ConfigureDiscoveries(
+   }
+ #endif
+ 
+-  discovery_factory->set_cable_data(request_type, qr_generator_key);
+-
+   if (SystemNetworkContextManager::GetInstance()) {
+     // caBLE and the enclave depend on the network context factory.
+     // TODO(nsatragno): this should probably use a storage partition network
+diff --git a/chrome/installer/linux/BUILD.gn b/chrome/installer/linux/BUILD.gn
+index 4c76e864197..510a680a0dd 100644
+--- a/chrome/installer/linux/BUILD.gn
++++ b/chrome/installer/linux/BUILD.gn
+@@ -103,6 +103,8 @@ packaging_files = packaging_files_binaries + [
+                     "$root_out_dir/locales/en-US.pak",
+                     "$root_out_dir/MEIPreload/manifest.json",
+                     "$root_out_dir/MEIPreload/preloaded_data.pb",
++                    "$root_out_dir/Dictionaries/en-US-10-1.bdic",
++                    "$root_out_dir/Dictionaries/ru-RU-3-0.bdic",
+                     "$root_out_dir/PrivacySandboxAttestationsPreloaded/manifest.json",
+                     "$root_out_dir/PrivacySandboxAttestationsPreloaded/privacy-sandbox-attestations.dat",
+                   ]
+@@ -468,6 +470,7 @@ group("installer_deps") {
+     "//chrome:packed_resources",
+     "//chrome/browser/enterprise/connectors/device_trust/key_management/installer/management_service:chrome_management_service",
+     "//chrome/browser/resources/media/mei_preload:component",
++    "//chrome/browser/resources/spellcheck_dictionaries:component",
+     "//components/crash/core/app:chrome_crashpad_handler",
+     "//components/privacy_sandbox/privacy_sandbox_attestations/preload:component",
+     "//sandbox/linux:chrome_sandbox",
+diff --git a/chrome/installer/linux/common/installer.py b/chrome/installer/linux/common/installer.py
+index d279483191a..dfd7a28dd23 100644
+--- a/chrome/installer/linux/common/installer.py
++++ b/chrome/installer/linux/common/installer.py
+@@ -654,6 +654,16 @@ class InstallerConfig:
+                     StandardPermissions.REGULAR,
+                 ))
+ 
++        # Spellcheck dictionaries
++        for bdic in (self.output_dir / "Dictionaries").glob("*.bdic"):
++            artifacts.append(
++                Artifact(
++                    bdic.relative_to(self.output_dir),
++                    pathlib.Path("Dictionaries") / bdic.name,
++                    ArtifactType.RESOURCE,
++                    StandardPermissions.REGULAR,
++                ))
++
+         # Privacy Sandbox Attestation
+         psa_dir = "PrivacySandboxAttestationsPreloaded"
+         psa_manifest = self.output_dir / psa_dir / "manifest.json"
+diff --git a/components/autofill/core/browser/crowdsourcing/autofill_crowdsourcing_manager.cc b/components/autofill/core/browser/crowdsourcing/autofill_crowdsourcing_manager.cc
+index a81af1dac96..d0bd13e2349 100644
+--- a/components/autofill/core/browser/crowdsourcing/autofill_crowdsourcing_manager.cc
++++ b/components/autofill/core/browser/crowdsourcing/autofill_crowdsourcing_manager.cc
+@@ -721,9 +721,7 @@ AutofillCrowdsourcingManager::AutofillCrowdsourcingManager(
+ AutofillCrowdsourcingManager::~AutofillCrowdsourcingManager() = default;
+ 
+ bool AutofillCrowdsourcingManager::IsEnabled() const {
+-  return autofill_server_url_.is_valid() &&
+-         base::FeatureList::IsEnabled(
+-             features::debug::kAutofillServerCommunication);
++  return false;
+ }
+ 
+ bool AutofillCrowdsourcingManager::StartQueryRequest(
+diff --git a/components/component_updater/component_updater_service.cc b/components/component_updater/component_updater_service.cc
+index b8210dce96d..494670a5e7c 100644
+--- a/components/component_updater/component_updater_service.cc
++++ b/components/component_updater/component_updater_service.cc
+@@ -200,52 +200,7 @@ void CrxUpdateService::Stop() {
+ // it will be replaced.
+ bool CrxUpdateService::RegisterComponent(
+     const ComponentRegistration& component) {
+-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+-  if (component.app_id.empty() || !component.version.IsValid() ||
+-      !component.installer) {
+-    return false;
+-  }
+-
+-  // Cancel any pending unregistration for this component.
+-  std::erase(components_pending_unregistration_, component.app_id);
+-
+-  // Update the registration data if the component has been registered before.
+-  auto it = components_.find(component.app_id);
+-  if (it != components_.end()) {
+-    it->second = component;
+-    return true;
+-  }
+-
+-  components_.insert(std::make_pair(component.app_id, component));
+-  components_order_.push_back(component.app_id);
+-
+-  // Create an initial state for this component. The state is mutated in
+-  // response to events from the UpdateClient instance.
+-  CrxUpdateItem item;
+-  item.id = component.app_id;
+-  item.component = ToCrxComponent(component);
+-  const auto [unused, inserted] =
+-      component_states_.insert(std::make_pair(component.app_id, item));
+-  CHECK(inserted);
+-
+-#if BUILDFLAG(CHROME_FOR_TESTING)
+-  if (required_components_controller_ &&
+-      required_components_controller_->RequestComponentUpdate(component)) {
+-    OnDemandUpdateInternal(component.app_id,
+-                           OnDemandUpdater::Priority::FOREGROUND,
+-                           base::DoNothing());
+-  }
+-#endif
+-
+-  // Start the timer if this is the first component registered. The first timer
+-  // event occurs after an interval defined by the component update
+-  // configurator. The subsequent timer events are repeated with a period
+-  // defined by the same configurator.
+-  if (components_.size() == 1) {
+-    Start();
+-  }
+-
+-  return true;
++  return false;
+ }
+ 
+ bool CrxUpdateService::UnregisterComponent(const std::string& id) {
+diff --git a/components/component_updater/installer_policies/on_device_head_suggest_component_installer.cc b/components/component_updater/installer_policies/on_device_head_suggest_component_installer.cc
+index 7e85efc9ef5..7ea3658959c 100644
+--- a/components/component_updater/installer_policies/on_device_head_suggest_component_installer.cc
++++ b/components/component_updater/installer_policies/on_device_head_suggest_component_installer.cc
+@@ -137,14 +137,7 @@ OnDeviceHeadSuggestInstallerPolicy::GetInstallerAttributes() const {
+ 
+ void RegisterOnDeviceHeadSuggestComponent(ComponentUpdateService* cus,
+                                           const std::string& locale) {
+-  // Ideally we should only check if the feature is enabled for non-incognito or
+-  // incognito, but whether the browser is currently on incognito or not is not
+-  // available yet during component registration on iOS platform.
+-  if (OmniboxFieldTrial::IsOnDeviceHeadSuggestEnabledForLocale(locale)) {
+-    auto installer = base::MakeRefCounted<ComponentInstaller>(
+-        std::make_unique<OnDeviceHeadSuggestInstallerPolicy>(locale));
+-    installer->Register(cus, base::OnceClosure());
+-  }
++  return;
+ }
+ 
+ }  // namespace component_updater
+diff --git a/components/gcm_driver/gcm_driver_desktop.cc b/components/gcm_driver/gcm_driver_desktop.cc
+index 16e142aed30..dc4ef4baa45 100644
+--- a/components/gcm_driver/gcm_driver_desktop.cc
++++ b/components/gcm_driver/gcm_driver_desktop.cc
+@@ -1187,27 +1187,7 @@ void GCMDriverDesktop::SetAccountTokens(
+ 
+ GCMClient::Result GCMDriverDesktop::EnsureStarted(
+     GCMClient::StartMode start_mode) {
+-  DCHECK(ui_thread_->RunsTasksInCurrentSequence());
+-
+-  if (gcm_started_)
+-    return GCMClient::SUCCESS;
+-
+-  // Have any app requested the service?
+-  if (app_handlers().empty())
+-    return GCMClient::UNKNOWN_ERROR;
+-
+-  if (!delayed_task_controller_)
+-    delayed_task_controller_ = std::make_unique<GCMDelayedTaskController>();
+-
+-  // Note that we need to pass weak pointer again since the existing weak
+-  // pointer in IOWorker might have been invalidated when GCM is stopped.
+-  io_thread_->PostTask(
+-      FROM_HERE, base::BindOnce(&GCMDriverDesktop::IOWorker::Start,
+-                                base::Unretained(io_worker_.get()), start_mode,
+-                                weak_ptr_factory_.GetWeakPtr(),
+-                                /*time_task_posted=*/base::TimeTicks::Now()));
+-
+-  return GCMClient::SUCCESS;
++  return GCMClient::GCM_DISABLED;
+ }
+ 
+ void GCMDriverDesktop::RemoveCachedData() {
+diff --git a/components/handoff/handoff_manager.mm b/components/handoff/handoff_manager.mm
+index 9ac88b2e618..99a0001565d 100644
+--- a/components/handoff/handoff_manager.mm
++++ b/components/handoff/handoff_manager.mm
+@@ -63,7 +63,7 @@
+ }
+ 
+ - (BOOL)shouldUseActiveURL {
+-  return _activeURL.SchemeIsHTTPOrHTTPS();
++  return NO;
+ }
+ 
+ - (void)updateUserActivity {
+diff --git a/components/live_caption/caption_util.cc b/components/live_caption/caption_util.cc
+index ac2ca7f517f..c95b64b09fc 100644
+--- a/components/live_caption/caption_util.cc
++++ b/components/live_caption/caption_util.cc
+@@ -125,11 +125,7 @@ std::optional<ui::CaptionStyle> GetCaptionStyleFromUserSettings(
+ }
+ 
+ bool IsLiveCaptionFeatureSupported() {
+-#if !BUILDFLAG(IS_FUCHSIA) && !BUILDFLAG(IS_ANDROID)
+-  return speech::IsOnDeviceSpeechRecognitionSupported();
+-#else
+   return false;
+-#endif  // !BUILDFLAG(IS_FUCHSIA) && !BUILDFLAG(IS_ANDROID)
+ }
+ 
+ bool IsHeadlessCaptionFeatureSupported() {
+diff --git a/components/network_time/network_time_tracker.cc b/components/network_time/network_time_tracker.cc
+index ada56340053..a1d806989d5 100644
+--- a/components/network_time/network_time_tracker.cc
++++ b/components/network_time/network_time_tracker.cc
+@@ -329,8 +329,7 @@ void NetworkTimeTracker::UpdateNetworkTime(base::Time network_time,
+ }
+ 
+ bool NetworkTimeTracker::AreTimeFetchesEnabled() const {
+-  return is_initialized() &&
+-         base::FeatureList::IsEnabled(kNetworkTimeServiceQuerying);
++  return false;
+ }
+ 
+ NetworkTimeTracker::FetchBehavior NetworkTimeTracker::GetFetchBehavior() const {
+diff --git a/components/omnibox/browser/search_provider.cc b/components/omnibox/browser/search_provider.cc
+index a4d03c38c74..1792819909a 100644
+--- a/components/omnibox/browser/search_provider.cc
++++ b/components/omnibox/browser/search_provider.cc
+@@ -677,8 +677,6 @@ void SearchProvider::Run(bool query_is_private) {
+     default_loader_ =
+         CreateSuggestLoader(providers_.GetDefaultProviderURL(), input_);
+   }
+-  keyword_loader_ =
+-      CreateSuggestLoader(providers_.GetKeywordProviderURL(), keyword_input_);
+ 
+   // Both the above can fail if the providers have been modified or deleted
+   // since the query began.
+diff --git a/components/optimization_guide/core/delivery/prediction_model_fetcher_impl.cc b/components/optimization_guide/core/delivery/prediction_model_fetcher_impl.cc
+index 57904e66023..7321324128a 100644
+--- a/components/optimization_guide/core/delivery/prediction_model_fetcher_impl.cc
++++ b/components/optimization_guide/core/delivery/prediction_model_fetcher_impl.cc
+@@ -54,92 +54,7 @@ bool PredictionModelFetcherImpl::FetchOptimizationGuideServiceModels(
+     proto::RequestContext request_context,
+     const std::string& locale,
+     ModelsFetchedCallback models_fetched_callback) {
+-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+-
+-  TRACE_EVENT(
+-      "optimization_guide",
+-      "PredictionModelFetcherImpl::FetchOptimizationGuideServiceModels");
+-
+-  if (url_loader_) {
+-    return false;
+-  }
+-
+-  // If there are no models to request, do not make a GetModelsRequest.
+-  if (models_request_info.empty()) {
+-    std::move(models_fetched_callback).Run(nullptr);
+-    return false;
+-  }
+-
+-  pending_models_request_ =
+-      std::make_unique<optimization_guide::proto::GetModelsRequest>();
+-
+-  pending_models_request_->set_request_context(request_context);
+-  pending_models_request_->set_locale(locale);
+-  *pending_models_request_->mutable_origin_info() =
+-      optimization_guide::GetClientOriginInfo();
+-  pending_models_request_->mutable_origin_info()->set_version(
+-      version_info::GetVersionNumber());
+-
+-  for (const auto& model_request_info : models_request_info) {
+-    *pending_models_request_->add_requested_models() = model_request_info;
+-  }
+-
+-  std::string serialized_request;
+-  pending_models_request_->SerializeToString(&serialized_request);
+-
+-  net::NetworkTrafficAnnotationTag traffic_annotation =
+-      net::DefineNetworkTrafficAnnotation("optimization_guide_model",
+-                                          R"(
+-        semantics {
+-          sender: "Optimization Guide"
+-          description:
+-            "Requests the updated set of machine learning models from the "
+-            "Optimization Guide Service that are applicable to the current "
+-            "client version."
+-          trigger:
+-            "Requested at the beginning of each session if there are features "
+-            "enabled by the current client version that require machine "
+-            "learning models."
+-          data: "A list of models supported by the client."
+-          destination: GOOGLE_OWNED_SERVICE
+-        }
+-         policy {
+-          cookies_allowed: NO
+-          setting: "This feature cannot be disabled."
+-          chrome_policy {
+-            ComponentUpdatesEnabled {
+-              policy_options {mode: MANDATORY}
+-              ComponentUpdatesEnabled: false
+-            }
+-          }
+-        })");
+-
+-  auto resource_request = std::make_unique<network::ResourceRequest>();
+-
+-  resource_request->url = optimization_guide_service_get_models_url_;
+-
+-  // POST request for providing the GetModelsRequest proto to the remote
+-  // Optimization Guide Service.
+-  resource_request->method = "POST";
+-  resource_request->credentials_mode = network::mojom::CredentialsMode::kOmit;
+-
+-  url_loader_ = variations::CreateSimpleURLLoaderWithVariationsHeader(
+-      std::move(resource_request),
+-      // This is always InIncognito::kNo as the OptimizationGuideKeyedService is
+-      // not enabled on incognito sessions and is rechecked before each fetch.
+-      variations::InIncognito::kNo, variations::SignedIn::kNo,
+-      traffic_annotation);
+-
+-  url_loader_->AttachStringForUpload(serialized_request,
+-                                     "application/x-protobuf");
+-
+-  url_loader_->DownloadToStringOfUnboundedSizeUntilCrashAndDie(
+-      url_loader_factory_.get(),
+-      base::BindOnce(&PredictionModelFetcherImpl::OnURLLoadComplete,
+-                     base::Unretained(this)));
+-
+-  models_fetched_callback_ = std::move(models_fetched_callback);
+-  return true;
++  return false;
+ }
+ 
+ void PredictionModelFetcherImpl::HandleResponse(
+diff --git a/components/optimization_guide/core/optimization_guide_features.cc b/components/optimization_guide/core/optimization_guide_features.cc
+index 86f9b2221f7..31a038fcd53 100644
+--- a/components/optimization_guide/core/optimization_guide_features.cc
++++ b/components/optimization_guide/core/optimization_guide_features.cc
+@@ -496,14 +496,11 @@ base::TimeDelta GetOnDeviceStartupMetricDelay() {
+ }
+ 
+ bool CanLaunchOnDeviceModelService() {
+-  return base::FeatureList::IsEnabled(kOptimizationGuideOnDeviceModel) ||
+-         base::FeatureList::IsEnabled(kLogOnDeviceMetricsOnStartup);
++  return false;
+ }
+ 
+ bool IsOnDeviceExecutionEnabled() {
+-  return base::FeatureList::IsEnabled(
+-             features::kOptimizationGuideModelExecution) &&
+-         base::FeatureList::IsEnabled(kOptimizationGuideOnDeviceModel);
++  return false;
+ }
+ 
+ base::TimeDelta GetOnDeviceEligibleModelFeatureRecentUsePeriod() {
+diff --git a/components/password_manager/core/browser/password_manager.cc b/components/password_manager/core/browser/password_manager.cc
+index 5a25928268e..37e799a96c3 100644
+--- a/components/password_manager/core/browser/password_manager.cc
++++ b/components/password_manager/core/browser/password_manager.cc
+@@ -572,7 +572,7 @@ void PasswordManager::RegisterProfilePrefs(
+   registry->RegisterListPref(prefs::kPasswordHashDataList,
+                              PrefRegistry::NO_REGISTRATION_FLAGS);
+   registry->RegisterBooleanPref(
+-      prefs::kPasswordLeakDetectionEnabled, true,
++      prefs::kPasswordLeakDetectionEnabled, false,
+       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
+   registry->RegisterBooleanPref(
+       prefs::kPasswordDismissCompromisedAlertEnabled, true,
+diff --git a/components/safe_browsing/core/common/safe_browsing_prefs.cc b/components/safe_browsing/core/common/safe_browsing_prefs.cc
+index 3921d014f20..624a2147e20 100644
+--- a/components/safe_browsing/core/common/safe_browsing_prefs.cc
++++ b/components/safe_browsing/core/common/safe_browsing_prefs.cc
+@@ -276,7 +276,7 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry) {
+   registry->RegisterTimePref(
+       prefs::kSafeBrowsingEsbProtegoPingWithoutTokenLastLogTime, base::Time());
+   registry->RegisterBooleanPref(
+-      prefs::kSafeBrowsingEnabled, true,
++      prefs::kSafeBrowsingEnabled, false,
+       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
+   if (base::FeatureList::IsEnabled(kEsbAsASyncedSetting)) {
+     registry->RegisterBooleanPref(
+diff --git a/components/signin/internal/identity_manager/gaia_cookie_manager_service.cc b/components/signin/internal/identity_manager/gaia_cookie_manager_service.cc
+index db2e0266aa2..eb7fef20749 100644
+--- a/components/signin/internal/identity_manager/gaia_cookie_manager_service.cc
++++ b/components/signin/internal/identity_manager/gaia_cookie_manager_service.cc
+@@ -867,9 +867,7 @@ void GaiaCookieManagerService::StartGaiaLogOut() {
+ }
+ 
+ void GaiaCookieManagerService::StartFetchingListAccounts() {
+-  gaia_auth_fetcher_ =
+-      signin_client_->CreateGaiaAuthFetcher(this, requests_.front().source());
+-  gaia_auth_fetcher_->StartListAccounts();
++  OnListAccountsSuccess(std::string());
+ }
+ 
+ void GaiaCookieManagerService::StartSetAccounts() {
+diff --git a/components/signin/internal/identity_manager/primary_account_manager.cc b/components/signin/internal/identity_manager/primary_account_manager.cc
+index 3f8997799d3..95d555a4b6c 100644
+--- a/components/signin/internal/identity_manager/primary_account_manager.cc
++++ b/components/signin/internal/identity_manager/primary_account_manager.cc
+@@ -391,7 +391,7 @@ void PrimaryAccountManager::RegisterProfilePrefs(PrefRegistrySimple* registry) {
+       prefs::kGoogleServicesSyncingUsernameMigratedToSignedIn, std::string());
+   registry->RegisterIntegerPref(prefs::kGoogleServicesSyncingUserMigrationType,
+                                 /*SyncToSigninMigrationType::kUnknown=*/0);
+-  registry->RegisterBooleanPref(prefs::kSigninAllowed, true);
++  registry->RegisterBooleanPref(prefs::kSigninAllowed, false);
+   registry->RegisterBooleanPref(prefs::kSignedInWithCredentialProvider, false);
+   registry->RegisterBooleanPref(prefs::kExplicitBrowserSignin, false);
+   registry->RegisterBooleanPref(
+diff --git a/components/translate/core/browser/translate_manager.cc b/components/translate/core/browser/translate_manager.cc
+index 0b6955177ae..956ce815eeb 100644
+--- a/components/translate/core/browser/translate_manager.cc
++++ b/components/translate/core/browser/translate_manager.cc
+@@ -161,100 +161,7 @@ void TranslateManager::InitiateTranslation(std::string_view page_lang) {
+ }
+ 
+ bool TranslateManager::CanManuallyTranslate(bool menu_logging) {
+-  bool can_translate = true;
+-
+-  if (net::NetworkChangeNotifier::IsOffline()) {
+-    if (!menu_logging) {
+-      return false;
+-    }
+-    TranslateBrowserMetrics::ReportMenuTranslationUnavailableReason(
+-        TranslateBrowserMetrics::MenuTranslationUnavailableReason::
+-            kNetworkOffline);
+-    can_translate = false;
+-  }
+-
+-  if (!ignore_missing_key_for_testing_ &&
+-      !::google_apis::HasAPIKeyConfigured()) {
+-    if (!menu_logging) {
+-      return false;
+-    }
+-    TranslateBrowserMetrics::ReportMenuTranslationUnavailableReason(
+-        TranslateBrowserMetrics::MenuTranslationUnavailableReason::
+-            kApiKeysMissing);
+-    can_translate = false;
+-  }
+-
+-  // not supported MIME type pages currently cannot be translated.
+-  // See bug: 217945, 1208340.
+-  if (!IsMimeTypeSupported(translate_driver_->GetContentsMimeType())) {
+-    if (!menu_logging) {
+-      return false;
+-    }
+-    TranslateBrowserMetrics::ReportMenuTranslationUnavailableReason(
+-        TranslateBrowserMetrics::MenuTranslationUnavailableReason::
+-            kMIMETypeUnsupported);
+-    can_translate = false;
+-  }
+-
+-  if (!translate_client_->IsTranslatableURL(
+-          translate_driver_->GetVisibleURL())) {
+-    if (!menu_logging) {
+-      return false;
+-    }
+-    TranslateBrowserMetrics::ReportMenuTranslationUnavailableReason(
+-        TranslateBrowserMetrics::MenuTranslationUnavailableReason::
+-            kURLNotTranslatable);
+-    can_translate = false;
+-  }
+-
+-  const std::string source_language = language_state_.source_language();
+-  // The source language is empty when language detection has not finished
+-  // running. In this case, Android queues the translation and waits until the
+-  // source language has been determined. Android is the only platform that
+-  // supports manual translation in this case.
+-#if !BUILDFLAG(IS_ANDROID)
+-  if (source_language.empty()) {
+-    if (!menu_logging) {
+-      return false;
+-    }
+-    TranslateBrowserMetrics::ReportMenuTranslationUnavailableReason(
+-        TranslateBrowserMetrics::MenuTranslationUnavailableReason::
+-            kSourceLangUnknown);
+-    can_translate = false;
+-  }
+-#endif
+-
+-  std::unique_ptr<TranslatePrefs> translate_prefs(
+-      translate_client_->GetTranslatePrefs());
+-  if (!translate_prefs->IsTranslateAllowedByPolicy()) {
+-    if (!menu_logging) {
+-      return false;
+-    }
+-    TranslateBrowserMetrics::ReportMenuTranslationUnavailableReason(
+-        TranslateBrowserMetrics::MenuTranslationUnavailableReason::
+-            kNotAllowedByPolicy);
+-    can_translate = false;
+-  }
+-
+-  const std::string target_lang = GetTargetLanguage(
+-      translate_prefs.get(), language_model_,
+-      TranslateDownloadManager::GetLanguageCode(source_language));
+-  if (target_lang.empty()) {
+-    if (!menu_logging) {
+-      return false;
+-    }
+-    TranslateBrowserMetrics::ReportMenuTranslationUnavailableReason(
+-        TranslateBrowserMetrics::MenuTranslationUnavailableReason::
+-            kTargetLangUnknown);
+-    can_translate = false;
+-  }
+-
+-  if (menu_logging) {
+-    UMA_HISTOGRAM_BOOLEAN("Translate.MenuTranslation.IsAvailable",
+-                          can_translate);
+-  }
+-
+-  return can_translate;
++  return false;
+ }
+ 
+ bool TranslateManager::CanPartiallyTranslateTargetLanguage() {
+diff --git a/net/BUILD.gn b/net/BUILD.gn
+index 9bc810251cc..a7eac09b01b 100644
+--- a/net/BUILD.gn
++++ b/net/BUILD.gn
+@@ -1127,6 +1127,8 @@ component("net") {
+     "ssl/crypto_private_key.cc",
+     "ssl/crypto_private_key.h",
+     "ssl/ech_mode_getter.h",
++    "base/crgost_egress.cc",
++    "base/crgost_egress.h",
+     "ssl/gostssl_util.cc",
+     "ssl/gostssl_util.h",
+     "ssl/openssl_private_key.cc",
+diff --git a/net/base/crgost_egress.cc b/net/base/crgost_egress.cc
+new file mode 100644
+index 00000000000..c7eb0a179d2
+--- /dev/null
++++ b/net/base/crgost_egress.cc
+@@ -0,0 +1,91 @@
++// Copyright 2026 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "net/base/crgost_egress.h"
++
++#include <algorithm>
++
++#include "base/environment.h"
++#include "base/logging.h"
++#include "net/traffic_annotation/network_traffic_annotation.h"
++
++namespace net {
++
++namespace {
++
++using internal::ComputeAnnotationHash;
++
++constexpr int32_t kPageTraffic[] = {
++    ComputeAnnotationHash("navigation_url_loader"),
++    ComputeAnnotationHash("blink_resource_loader"),
++    ComputeAnnotationHash("blink_extension_resource_loader"),
++    ComputeAnnotationHash("blink_fetch_later_manager"),
++    ComputeAnnotationHash("favicon_loader"),
++    ComputeAnnotationHash("keepalive_fetch_retry"),
++    ComputeAnnotationHash("background_fetch_context"),
++    ComputeAnnotationHash("early_hints_preload"),
++    ComputeAnnotationHash("webauthn_rp_id_check"),
++    ComputeAnnotationHash("websocket_stream"),
++    ComputeAnnotationHash("webrtc_peer_connection"),
++    ComputeAnnotationHash("webrtc_rtc_transport"),
++    ComputeAnnotationHash("direct_sockets"),
++    ComputeAnnotationHash("worker_script_load"),
++    ComputeAnnotationHash("service_worker_script_load"),
++    ComputeAnnotationHash("service_worker_update_checker"),
++    ComputeAnnotationHash("service_worker_navigation_preload"),
++    ComputeAnnotationHash("service_worker_race_network_request"),
++    ComputeAnnotationHash("shared_storage_worklet_module_script_downloader"),
++    ComputeAnnotationHash("speculation_rules_prefetch"),
++    ComputeAnnotationHash("speculation_rules_prefetch_probe"),
++    ComputeAnnotationHash("sigined_exchange_cert_fetcher"),
++    ComputeAnnotationHash("payment_manifest_downloader"),
++    ComputeAnnotationHash("fedcm"),
++    ComputeAnnotationHash("renderer_initiated_download"),
++    ComputeAnnotationHash("download_web_contents_frame"),
++    ComputeAnnotationHash("download_manager_resume"),
++    ComputeAnnotationHash("download_bubble_retry_download"),
++    ComputeAnnotationHash("drag_download_file"),
++    ComputeAnnotationHash("render_view_context_menu"),
++    ComputeAnnotationHash("downloads_dom_handler"),
++    ComputeAnnotationHash("downloads_api_run_async"),
++    ComputeAnnotationHash("parallel_download_job"),
++    ComputeAnnotationHash("save_file_manager"),
++    ComputeAnnotationHash("devtools_network_resource"),
++    ComputeAnnotationHash("devtools_cdp_network_resource"),
++    ComputeAnnotationHash("dns_transaction"),
++    ComputeAnnotationHash("dns_over_https"),
++    ComputeAnnotationHash("proxy_config_system"),
++    ComputeAnnotationHash("proxy_config_settings"),
++    ComputeAnnotationHash("proxy_config_direct"),
++    ComputeAnnotationHash("certificate_verifier_url_loader"),
++    ComputeAnnotationHash("certificate_verifier_url_request"),
++    ComputeAnnotationHash("omnibox_suggest"),
++    ComputeAnnotationHash("extension_manifest_fetcher"),
++    ComputeAnnotationHash("extension_crx_fetcher"),
++    ComputeAnnotationHash("webstore_installer"),
++    ComputeAnnotationHash("webstore_install_helper"),
++    ComputeAnnotationHash("cws_fetch_item_snippet"),
++    ComputeAnnotationHash("update_client"),
++};
++
++bool LogOnly() {
++  static const bool log_only =
++      base::Environment::Create()->GetVar("CRGOST_EGRESS") == "log";
++  return log_only;
++}
++
++}  // namespace
++
++bool CrgostEgressAllowed(int32_t annotation_hash, std::string_view destination) {
++  if (std::ranges::contains(kPageTraffic, annotation_hash)) {
++    return true;
++  }
++  const bool allowed = LogOnly();
++  LOG(WARNING) << "CRGOST_EGRESS " << (allowed ? "pass" : "block")
++               << " annotation=" << annotation_hash
++               << " destination=" << destination;
++  return allowed;
++}
++
++}  // namespace net
+diff --git a/net/base/crgost_egress.h b/net/base/crgost_egress.h
+new file mode 100644
+index 00000000000..3cdfc6f4e2c
+--- /dev/null
++++ b/net/base/crgost_egress.h
+@@ -0,0 +1,28 @@
++// Copyright 2026 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef NET_BASE_CRGOST_EGRESS_H_
++#define NET_BASE_CRGOST_EGRESS_H_
++
++#include <cstdint>
++#include <string_view>
++
++#include "net/base/net_export.h"
++
++namespace net {
++
++// Single egress gate of the network service. Requests, preconnects and sockets
++// are admitted by traffic annotation hash: traffic of opened pages, the
++// network infrastructure it needs (DNS, proxy, certificate fetches),
++// suggestions of the default search engine and extension downloads started
++// by the user, forced by policy or required by a pending install pass, everything else is a browser
++// feature and is blocked. CRGOST_EGRESS=log lets everything pass. Every
++// decision outside page traffic is logged with the CRGOST_EGRESS prefix, the
++// annotation hash and the destination.
++NET_EXPORT bool CrgostEgressAllowed(int32_t annotation_hash,
++                                    std::string_view destination);
++
++}  // namespace net
++
++#endif  // NET_BASE_CRGOST_EGRESS_H_
+diff --git a/net/url_request/url_request.cc b/net/url_request/url_request.cc
+index 42f1b1a31b1..e1192fc1681 100644
+--- a/net/url_request/url_request.cc
++++ b/net/url_request/url_request.cc
+@@ -25,6 +25,7 @@
+ #include "net/base/io_buffer.h"
+ #include "net/base/load_flags.h"
+ #include "net/base/load_timing_info.h"
++#include "net/base/crgost_egress.h"
+ #include "net/base/net_errors.h"
+ #include "net/base/network_change_notifier.h"
+ #include "net/base/network_delegate.h"
+@@ -628,6 +629,15 @@ void URLRequest::Start() {
+   load_timing_info_.request_start_time = response_info_.request_time;
+   load_timing_info_.request_start = base::TimeTicks::Now();
+ 
++  if ((url().SchemeIsHTTPOrHTTPS() || url().SchemeIsWSOrWSS()) &&
++      !CrgostEgressAllowed(
++          traffic_annotation_.unique_id_hash_code,
++          std::string_view(url().spec()).substr(
++              0, url().spec().find_first_of("?#")))) {
++    StartJob(std::make_unique<URLRequestErrorJob>(this, ERR_BLOCKED_BY_CLIENT));
++    return;
++  }
++
+   if (network_delegate()) {
+     OnCallToDelegate(NetLogEventType::NETWORK_DELEGATE_BEFORE_URL_REQUEST);
+     int error = network_delegate()->NotifyBeforeURLRequest(
+diff --git a/services/network/network_context.cc b/services/network/network_context.cc
+index 789de76a8dc..b6d40d55955 100644
+--- a/services/network/network_context.cc
++++ b/services/network/network_context.cc
+@@ -63,6 +63,7 @@
+ #include "components/url_pattern/simple_url_pattern_matcher.h"
+ #include "components/variations/net/variations_http_headers.h"
+ #include "mojo/public/cpp/bindings/pending_receiver.h"
++#include "net/base/crgost_egress.h"
+ #include "net/base/features.h"
+ #include "net/base/isolation_info.h"
+ #include "net/base/load_flags.h"
+@@ -2573,6 +2574,12 @@ void NetworkContext::PreconnectSockets(
+     return;
+   }
+ 
++  if (!net::CrgostEgressAllowed(
++          traffic_annotation.unique_id_hash_code,
++          url.spec())) {
++    return;
++  }
++
+   std::string user_agent;
+   if (url_request_context_->http_user_agent_settings()) {
+     user_agent =
+diff --git a/services/network/p2p/socket_manager.cc b/services/network/p2p/socket_manager.cc
+index 3a814c12d15..9aad3a8b75d 100644
+--- a/services/network/p2p/socket_manager.cc
++++ b/services/network/p2p/socket_manager.cc
+@@ -16,6 +16,7 @@
+ #include "base/task/thread_pool.h"
+ #include "net/base/address_family.h"
+ #include "net/base/address_list.h"
++#include "net/base/crgost_egress.h"
+ #include "net/base/net_errors.h"
+ #include "net/base/network_anonymization_key.h"
+ #include "net/base/network_handle.h"
+@@ -411,6 +412,11 @@ void P2PSocketManager::CreateSocket(
+     const std::optional<base::UnguessableToken>& devtools_token,
+     mojo::PendingRemote<mojom::P2PSocketClient> client,
+     mojo::PendingReceiver<mojom::P2PSocket> receiver) {
++  if (!net::CrgostEgressAllowed(
++          traffic_annotation.unique_id_hash_code,
++          remote_address.ip_address.ToString())) {
++    return;
++  }
+   if (port_range.min_port > port_range.max_port ||
+       (port_range.min_port == 0 && port_range.max_port != 0)) {
+     trusted_socket_manager_client_->InvalidSocketPortRangeRequested();
+diff --git a/services/network/proxy_resolving_socket_factory_mojo.cc b/services/network/proxy_resolving_socket_factory_mojo.cc
+index e0f67826153..e30430a54ae 100644
+--- a/services/network/proxy_resolving_socket_factory_mojo.cc
++++ b/services/network/proxy_resolving_socket_factory_mojo.cc
+@@ -6,6 +6,8 @@
+ 
+ #include <utility>
+ 
++#include "net/base/crgost_egress.h"
++#include "net/base/net_errors.h"
+ #include "net/url_request/url_request_context.h"
+ #include "services/network/proxy_resolving_client_socket.h"
+ #include "services/network/proxy_resolving_client_socket_factory.h"
+@@ -28,6 +30,14 @@ void ProxyResolvingSocketFactoryMojo::CreateProxyResolvingSocket(
+     mojo::PendingReceiver<mojom::ProxyResolvingSocket> receiver,
+     mojo::PendingRemote<mojom::SocketObserver> observer,
+     CreateProxyResolvingSocketCallback callback) {
++  if (!net::CrgostEgressAllowed(
++          traffic_annotation.unique_id_hash_code,
++          url.spec())) {
++    std::move(callback).Run(net::ERR_BLOCKED_BY_CLIENT, std::nullopt,
++                            std::nullopt, mojo::ScopedDataPipeConsumerHandle(),
++                            mojo::ScopedDataPipeProducerHandle());
++    return;
++  }
+   std::unique_ptr<net::StreamSocket> net_socket = factory_impl_.CreateSocket(
+       url, network_anonymization_key, options && options->use_tls);
+   auto socket = std::make_unique<ProxyResolvingSocketMojo>(
+diff --git a/services/network/socket_factory.cc b/services/network/socket_factory.cc
+index e127ed5cf7b..2053c784e6e 100644
+--- a/services/network/socket_factory.cc
++++ b/services/network/socket_factory.cc
+@@ -11,6 +11,7 @@
+ 
+ #include "mojo/public/cpp/bindings/type_converter.h"
+ #include "net/base/completion_once_callback.h"
++#include "net/base/crgost_egress.h"
+ #include "net/base/net_errors.h"
+ #include "net/cert/cert_verifier.h"
+ #include "net/cert/multi_log_ct_verifier.h"
+@@ -65,6 +66,12 @@ void SocketFactory::CreateRestrictedUDPSocket(
+     bool allow_multicast,
+     bool allow_source_specific_multicast,
+     mojom::NetworkContext::CreateRestrictedUDPSocketCallback callback) {
++  if (!net::CrgostEgressAllowed(
++          traffic_annotation.unique_id_hash_code,
++          addr.ToString())) {
++    std::move(callback).Run(net::ERR_BLOCKED_BY_CLIENT, std::nullopt);
++    return;
++  }
+   auto udp_socket = std::make_unique<UDPSocket>(std::move(listener), net_log_);
+   switch (mode) {
+     case mojom::RestrictedUDPSocketMode::BOUND:
+@@ -182,6 +189,15 @@ void SocketFactory::CreateTCPConnectedSocket(
+     mojo::PendingReceiver<mojom::TCPConnectedSocket> receiver,
+     mojo::PendingRemote<mojom::SocketObserver> observer,
+     mojom::SocketFactory::CreateTCPConnectedSocketCallback callback) {
++  if (!net::CrgostEgressAllowed(
++          traffic_annotation.unique_id_hash_code,
++          remote_addr_list.empty() ? std::string()
++                                   : remote_addr_list.front().ToString())) {
++    std::move(callback).Run(net::ERR_BLOCKED_BY_CLIENT, std::nullopt,
++                            std::nullopt, mojo::ScopedDataPipeConsumerHandle(),
++                            mojo::ScopedDataPipeProducerHandle());
++    return;
++  }
+   auto socket = std::make_unique<TCPConnectedSocket>(
+       std::move(observer), net_log_, &tls_socket_factory_,
+       client_socket_factory_,
+diff --git a/services/network/tcp_bound_socket.cc b/services/network/tcp_bound_socket.cc
+index ba6e4607bb6..93d4d190112 100644
+--- a/services/network/tcp_bound_socket.cc
++++ b/services/network/tcp_bound_socket.cc
+@@ -12,6 +12,7 @@
+ #include "base/notreached.h"
+ #include "base/numerics/safe_conversions.h"
+ #include "net/base/ip_endpoint.h"
++#include "net/base/crgost_egress.h"
+ #include "net/base/net_errors.h"
+ #include "net/log/net_log.h"
+ #include "net/socket/tcp_client_socket.h"
+@@ -101,6 +102,16 @@ void TCPBoundSocket::Connect(
+   DCHECK(!connected_socket_receiver_);
+   DCHECK(!connecting_socket_);
+ 
++  if (!net::CrgostEgressAllowed(traffic_annotation_.unique_id_hash_code,
++                                remote_addr_list.empty()
++                                    ? std::string()
++                                    : remote_addr_list.front().ToString())) {
++    std::move(callback).Run(net::ERR_BLOCKED_BY_CLIENT, std::nullopt,
++                            std::nullopt, mojo::ScopedDataPipeConsumerHandle(),
++                            mojo::ScopedDataPipeProducerHandle());
++    return;
++  }
++
+   connected_socket_receiver_ = std::move(receiver);
+   connect_callback_ = std::move(callback);
+ 
+diff --git a/services/network/udp_socket.cc b/services/network/udp_socket.cc
+index afc92aa8229..4db9c64e91c 100644
+--- a/services/network/udp_socket.cc
++++ b/services/network/udp_socket.cc
+@@ -12,6 +12,7 @@
+ #include "base/functional/bind.h"
+ #include "base/numerics/checked_math.h"
+ #include "base/numerics/safe_conversions.h"
++#include "net/base/crgost_egress.h"
+ #include "net/base/io_buffer.h"
+ #include "net/base/net_errors.h"
+ #include "net/log/net_log.h"
+@@ -368,6 +369,12 @@ void UDPSocket::DoSendToOrWrite(
+     const base::span<const uint8_t>& data,
+     const net::NetworkTrafficAnnotationTag& traffic_annotation,
+     SendToCallback callback) {
++  if (!net::CrgostEgressAllowed(
++          traffic_annotation.unique_id_hash_code,
++          dest_addr ? dest_addr->ToString() : std::string("connected"))) {
++    std::move(callback).Run(net::ERR_BLOCKED_BY_CLIENT);
++    return;
++  }
+   if (pending_send_requests_.size() >= kMaxPendingSendRequests) {
+     std::move(callback).Run(net::ERR_INSUFFICIENT_RESOURCES);
+     return;

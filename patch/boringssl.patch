@@ -1,4 +1,4 @@
-From 95f907e102f4a22515b8e68d8bbc7999e592fadf Mon Sep 17 00:00:00 2001
+From 43fc39b5ab35775e93afc2aceb0901f77df25d8b Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Thu, 2 Oct 2025 13:57:57 +0300
 Subject: [PATCH] boringssl GOSTSSL
