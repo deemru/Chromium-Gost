@@ -1,7 +1,7 @@
-From 54a847fbd52b2ddf7664cb5305042c22d3bb51dc Mon Sep 17 00:00:00 2001
+From b4af41fa3121d5deafc5220284542dccb09dc4fc Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 13 May 2026 13:13:11 +0300
-Subject: [PATCH] services gate
+Subject: [PATCH] services-gate
 
 ---
  chrome/BUILD.gn                               |  2 +
@@ -14,13 +14,19 @@ Subject: [PATCH] services gate
  .../extensions/updater/extension_updater.cc   | 24 +++++
  chrome/browser/first_run/first_run.cc         |  4 +-
  chrome/browser/glic/public/glic_enabling.cc   | 10 +-
+ chrome/browser/history/top_sites_factory.cc   |  4 +-
  .../media/router/media_router_feature.cc      | 36 +------
+ ...credential_manager_support_reporter_win.cc |  2 +-
  .../net/profile_network_context_service.cc    |  2 +-
  .../optimization_guide_keyed_service.cc       | 44 +--------
  chrome/browser/preloading/preloading_prefs.cc |  2 +-
  .../render_view_context_menu.cc               |  7 --
  .../browser/resources/extensions/toolbar.css  |  3 +
  .../resources/extensions/toolbar.html.ts      |  8 +-
+ chrome/browser/resources/new_tab_page/app.ts  | 10 +-
+ chrome/browser/resources/new_tab_page/logo.ts |  2 +
+ .../resources/new_tab_page/ntp_searchbox.ts   |  4 +-
+ .../omnibox_popup/omnibox_popup_searchbox.ts  |  6 +-
  .../password_manager/checkup_section.html     |  2 +-
  .../resources/password_manager/toolbar.html   |  3 -
  .../settings/about_page/about_page.html.ts    |  2 -
@@ -37,17 +43,24 @@ Subject: [PATCH] services gate
  .../settings/search_page/search_page.ts       |  6 +-
  .../your_saved_info_page.html                 |  2 +-
  .../spellcheck_dictionaries/BUILD.gn          | 13 +++
+ .../webui_browser/webui_browser_searchbox.ts  |  6 +-
+ chrome/browser/search/search.cc               |  2 +
  .../spellcheck_hunspell_dictionary.cc         | 60 +++---------
  chrome/browser/ui/browser_ui_prefs.cc         |  2 +-
  .../lens_overlay_entry_point_controller.cc    | 34 +------
  .../ui/safety_hub/safe_browsing_result.cc     |  2 +-
  chrome/browser/ui/startup/infobar_utils.cc    |  6 --
+ .../ui/startup/startup_browser_creator.cc     |  2 +-
+ .../toolbar/chrome_labs/chrome_labs_utils.cc  |  2 +
  .../ui/views/profiles/profile_menu_view.cc    | 22 +----
  .../ui/webui/settings/safety_hub_handler.cc   |  1 +
  .../browser/ui/webui/settings/settings_ui.cc  |  4 +-
+ .../ui/webui/whats_new/whats_new_util.cc      |  2 +-
  .../chrome_authenticator_request_delegate.cc  |  2 -
  chrome/installer/linux/BUILD.gn               |  3 +
+ chrome/installer/linux/common/apt.include     |  6 ++
  chrome/installer/linux/common/installer.py    | 10 ++
+ chrome/installer/linux/common/rpm.include     |  8 ++
  .../autofill_crowdsourcing_manager.cc         |  4 +-
  .../component_updater_service.cc              | 47 +--------
  ...device_head_suggest_component_installer.cc |  9 +-
@@ -60,8 +73,11 @@ Subject: [PATCH] services gate
  .../core/optimization_guide_features.cc       |  7 +-
  .../core/browser/password_manager.cc          |  2 +-
  .../core/common/safe_browsing_prefs.cc        |  2 +-
+ components/search_engines/keyword_table.cc    |  4 +
+ .../search_engines/template_url_data_util.cc  |  6 +-
  .../gaia_cookie_manager_service.cc            |  4 +-
  .../primary_account_manager.cc                |  2 +-
+ .../core/browser/translate_language_list.cc   |  2 +-
  .../core/browser/translate_manager.cc         | 95 +------------------
  net/BUILD.gn                                  |  2 +
  net/base/crgost_egress.cc                     | 91 ++++++++++++++++++
@@ -73,7 +89,7 @@ Subject: [PATCH] services gate
  services/network/socket_factory.cc            | 16 ++++
  services/network/tcp_bound_socket.cc          | 11 +++
  services/network/udp_socket.cc                |  7 ++
- 69 files changed, 321 insertions(+), 593 deletions(-)
+ 85 files changed, 367 insertions(+), 615 deletions(-)
  create mode 100644 chrome/browser/resources/spellcheck_dictionaries/BUILD.gn
  create mode 100644 net/base/crgost_egress.cc
  create mode 100644 net/base/crgost_egress.h
@@ -327,6 +343,28 @@ index b28936b4aad..594e24ffbe7 100644
  }
  
  bool GlicEnabling::IsOsVersionSupported() {
+diff --git a/chrome/browser/history/top_sites_factory.cc b/chrome/browser/history/top_sites_factory.cc
+index 2b2e9f41874..3e98f460589 100644
+--- a/chrome/browser/history/top_sites_factory.cc
++++ b/chrome/browser/history/top_sites_factory.cc
+@@ -48,7 +48,7 @@ struct RawPrepopulatedPage {
+                          // roughly match favicon).
+ };
+ 
+-#if !BUILDFLAG(IS_ANDROID)
++#if !BUILDFLAG(IS_ANDROID) && 0 // no prepopulated
+ // Android does not use prepopulated pages.
+ constexpr auto kRawPrepopulatedPages = std::to_array<RawPrepopulatedPage>({
+     {
+@@ -63,7 +63,7 @@ constexpr auto kRawPrepopulatedPages = std::to_array<RawPrepopulatedPage>({
+ void InitializePrepopulatedPageList(
+     Profile* profile,
+     history::PrepopulatedPageList* prepopulated_pages) {
+-#if !BUILDFLAG(IS_ANDROID)
++#if !BUILDFLAG(IS_ANDROID) && 0 // no prepopulated
+   DCHECK(prepopulated_pages);
+   PrefService* pref_service = profile->GetPrefs();
+   bool hide_web_store_icon =
 diff --git a/chrome/browser/media/router/media_router_feature.cc b/chrome/browser/media/router/media_router_feature.cc
 index 049a25bbec0..57ea7ed7195 100644
 --- a/chrome/browser/media/router/media_router_feature.cc
@@ -381,6 +419,19 @@ index 049a25bbec0..57ea7ed7195 100644
  }
  
  #if !BUILDFLAG(IS_ANDROID) || BUILDFLAG(ENABLE_DESKTOP_ANDROID_EXTENSIONS)
+diff --git a/chrome/browser/metrics/key_credential_manager_support_reporter_win.cc b/chrome/browser/metrics/key_credential_manager_support_reporter_win.cc
+index 436bc47cadc..3c922aaefad 100644
+--- a/chrome/browser/metrics/key_credential_manager_support_reporter_win.cc
++++ b/chrome/browser/metrics/key_credential_manager_support_reporter_win.cc
+@@ -43,7 +43,7 @@ enum KeyCredentialManagerAvailability {
+ 
+ BASE_FEATURE(kReportKeyCredentialManagerSupportWinFeature,
+              "ReportKeyCredentialManagerSupportWin",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ void ReportIsSupportedOutcome(KeyCredentialManagerAvailability availability) {
+   base::UmaHistogramEnumeration(
 diff --git a/chrome/browser/net/profile_network_context_service.cc b/chrome/browser/net/profile_network_context_service.cc
 index 34953241609..48f0da98f3c 100644
 --- a/chrome/browser/net/profile_network_context_service.cc
@@ -533,6 +584,89 @@ index f064de9624d..a42c17c2690 100644
    </div>
  </div>
  <!--_html_template_end_-->`;
+diff --git a/chrome/browser/resources/new_tab_page/app.ts b/chrome/browser/resources/new_tab_page/app.ts
+index 3be515bc02a..4bd7c728a79 100644
+--- a/chrome/browser/resources/new_tab_page/app.ts
++++ b/chrome/browser/resources/new_tab_page/app.ts
+@@ -441,15 +441,15 @@ export class AppElement extends AppElementBase {
+   protected accessor logoEnabled_: boolean =
+       loadTimeData.getBoolean('logoEnabled');
+   protected accessor oneGoogleBarEnabled_: boolean =
+-      loadTimeData.getBoolean('oneGoogleBarEnabled');
++      false; // loadTimeData.getBoolean('oneGoogleBarEnabled');
+   protected accessor shortcutsEnabled_: boolean =
+       loadTimeData.getBoolean('shortcutsEnabled');
+   protected accessor middleSlotPromoEnabled_: boolean =
+-      loadTimeData.getBoolean('middleSlotPromoEnabled');
++      false; // loadTimeData.getBoolean('middleSlotPromoEnabled');
+   protected accessor modulesEnabled_: boolean =
+-      loadTimeData.getBoolean('modulesEnabled');
++      false; // loadTimeData.getBoolean('modulesEnabled');
+   protected accessor browserPromoType_: string =
+-      loadTimeData.getString('browserPromoType');
++      'blocked'; // loadTimeData.getString('browserPromoType');
+   protected accessor browserPromoLimit_: number =
+       loadTimeData.getInteger('browserPromoLimit');
+   protected accessor browserPromoCompletedLimit_: number =
+@@ -457,7 +457,7 @@ export class AppElement extends AppElementBase {
+   protected accessor showBrowserPromo_: boolean = false;
+   protected accessor modulesShownToUser: boolean = false;
+   protected accessor microsoftModuleEnabled_: boolean =
+-      loadTimeData.getBoolean('microsoftModuleEnabled');
++      false; // loadTimeData.getBoolean('microsoftModuleEnabled');
+   protected accessor microsoftAuthIframePath_: string = MSAL_IFRAME_ORIGIN;
+   protected accessor multiLineEnabled_: boolean =
+       loadTimeData.getBoolean('multiLineEnabled');
+diff --git a/chrome/browser/resources/new_tab_page/logo.ts b/chrome/browser/resources/new_tab_page/logo.ts
+index 17c796eea48..e80264e7894 100644
+--- a/chrome/browser/resources/new_tab_page/logo.ts
++++ b/chrome/browser/resources/new_tab_page/logo.ts
+@@ -106,10 +106,12 @@ export class LogoElement extends CrLitElement {
+     super();
+ 
+     this.pageHandler_ = NewTabPageProxy.getInstance().handler;
++    this.loaded_ = true; /*
+     this.pageHandler_.getDoodle().then(({doodle}) => {
+       this.doodle_ = doodle;
+       this.loaded_ = true;
+     });
++*/
+   }
+ 
+   override connectedCallback() {
+diff --git a/chrome/browser/resources/new_tab_page/ntp_searchbox.ts b/chrome/browser/resources/new_tab_page/ntp_searchbox.ts
+index 95f641d1b36..eeca5a6c33e 100644
+--- a/chrome/browser/resources/new_tab_page/ntp_searchbox.ts
++++ b/chrome/browser/resources/new_tab_page/ntp_searchbox.ts
+@@ -253,9 +253,9 @@ export class NtpSearchboxElement extends NtpSearchboxElementBase implements
+   protected accessor searchboxIcon_: string =
+       loadTimeData.getString('searchboxDefaultIcon');
+   protected accessor searchboxVoiceSearchEnabled_: boolean =
+-      loadTimeData.getBoolean('searchboxVoiceSearch');
++      false;
+   protected accessor searchboxLensSearchEnabled_: boolean =
+-      loadTimeData.getBoolean('searchboxLensSearch');
++      false;
+   protected accessor ntpRealboxDynamicAiModeButtonEnabled_: boolean =
+       loadTimeData.getBoolean('ntpRealboxDynamicAiModeButton');
+   protected accessor useWebkitSearchIcons_: boolean = false;
+diff --git a/chrome/browser/resources/omnibox_popup/omnibox_popup_searchbox.ts b/chrome/browser/resources/omnibox_popup/omnibox_popup_searchbox.ts
+index a33d6960f9d..fc651848614 100644
+--- a/chrome/browser/resources/omnibox_popup/omnibox_popup_searchbox.ts
++++ b/chrome/browser/resources/omnibox_popup/omnibox_popup_searchbox.ts
+@@ -184,10 +184,8 @@ export class OmniboxPopupSearchboxElement extends
+       loadTimeData.getBoolean('omniboxPopupDebugEnabled');
+   protected accessor searchboxIcon_: string =
+       loadTimeData.getString('searchboxDefaultIcon');
+-  protected accessor searchboxVoiceSearchEnabled_: boolean =
+-      loadTimeData.getBoolean('searchboxVoiceSearch');
+-  protected accessor searchboxLensSearchEnabled_: boolean =
+-      loadTimeData.getBoolean('searchboxLensSearch');
++  protected accessor searchboxVoiceSearchEnabled_: boolean = false;
++  protected accessor searchboxLensSearchEnabled_: boolean = false;
+   protected accessor useWebkitSearchIcons_: boolean = false;
+   override accessor multiLineEnabled: boolean =
+       loadTimeData.getBoolean('searchboxMultiline');
 diff --git a/chrome/browser/resources/password_manager/checkup_section.html b/chrome/browser/resources/password_manager/checkup_section.html
 index 4131dbfc0a0..d3c17cb8734 100644
 --- a/chrome/browser/resources/password_manager/checkup_section.html
@@ -785,6 +919,36 @@ index 00000000000..c9052962198
 +
 +  outputs = [ "$root_out_dir/Dictionaries/{{source_file_part}}" ]
 +}
+diff --git a/chrome/browser/resources/webui_browser/webui_browser_searchbox.ts b/chrome/browser/resources/webui_browser/webui_browser_searchbox.ts
+index 5dc4ae61681..884030dc7ec 100644
+--- a/chrome/browser/resources/webui_browser/webui_browser_searchbox.ts
++++ b/chrome/browser/resources/webui_browser/webui_browser_searchbox.ts
+@@ -83,10 +83,8 @@ export class WebuiBrowserSearchboxElement extends
+       loadTimeData.getBoolean('searchboxCr23SteadyStateShadow');
+   protected accessor searchboxIcon_: string =
+       loadTimeData.getString('searchboxDefaultIcon');
+-  protected accessor searchboxVoiceSearchEnabled_: boolean =
+-      loadTimeData.getBoolean('searchboxVoiceSearch');
+-  protected accessor searchboxLensSearchEnabled_: boolean =
+-      loadTimeData.getBoolean('searchboxLensSearch');
++  protected accessor searchboxVoiceSearchEnabled_: boolean = false;
++  protected accessor searchboxLensSearchEnabled_: boolean = false;
+   protected accessor useWebkitSearchIcons_: boolean = false;
+ 
+   private pageHandler_: PageHandlerInterface;
+diff --git a/chrome/browser/search/search.cc b/chrome/browser/search/search.cc
+index 621d90a7410..3765b01ae37 100644
+--- a/chrome/browser/search/search.cc
++++ b/chrome/browser/search/search.cc
+@@ -174,6 +174,8 @@ struct NewTabURLDetails {
+ 
+ #if BUILDFLAG(IS_ANDROID)
+     const GURL local_url;
++#elif 1 // Always use built-in NTp page
++    const GURL local_url(chrome::kChromeUINewTabPageURL);
+ #else
+     const bool default_is_google = DefaultSearchProviderIsGoogle(profile);
+     const GURL local_url(default_is_google
 diff --git a/chrome/browser/spellchecker/spellcheck_hunspell_dictionary.cc b/chrome/browser/spellchecker/spellcheck_hunspell_dictionary.cc
 index f2a10504550..706ff71e48e 100644
 --- a/chrome/browser/spellchecker/spellcheck_hunspell_dictionary.cc
@@ -972,6 +1136,32 @@ index 4907b9a9510..7603f04a482 100644
    if (ObsoleteSystem::IsObsoleteNowOrSoon()) {
      PrefService* local_state = g_browser_process->local_state();
      if (!local_state ||
+diff --git a/chrome/browser/ui/startup/startup_browser_creator.cc b/chrome/browser/ui/startup/startup_browser_creator.cc
+index 589da0f8965..2894e99887a 100644
+--- a/chrome/browser/ui/startup/startup_browser_creator.cc
++++ b/chrome/browser/ui/startup/startup_browser_creator.cc
+@@ -1037,7 +1037,7 @@ void StartupBrowserCreator::ClearLaunchedProfilesForTesting() {
+ // static
+ void StartupBrowserCreator::RegisterLocalStatePrefs(
+     PrefRegistrySimple* registry) {
+-  registry->RegisterBooleanPref(prefs::kPromotionsEnabled, true);
++  registry->RegisterBooleanPref(prefs::kPromotionsEnabled, false);
+ #if !BUILDFLAG(IS_CHROMEOS)
+   registry->RegisterBooleanPref(prefs::kCommandLineFlagSecurityWarningsEnabled,
+                                 true);
+diff --git a/chrome/browser/ui/toolbar/chrome_labs/chrome_labs_utils.cc b/chrome/browser/ui/toolbar/chrome_labs/chrome_labs_utils.cc
+index 3c310d91b55..087ef45ec14 100644
+--- a/chrome/browser/ui/toolbar/chrome_labs/chrome_labs_utils.cc
++++ b/chrome/browser/ui/toolbar/chrome_labs/chrome_labs_utils.cc
+@@ -139,6 +139,8 @@ bool AreNewChromeLabsExperimentsAvailable(Profile* profile) {
+ }
+ 
+ bool IsChromeLabsEnabled() {
++  if (!force_activation_for_testing)
++    return false;
+   // Always early out on the stable channel regardless of other conditions.
+   if (chrome::GetChannel() == version_info::Channel::STABLE) {
+     return false;
 diff --git a/chrome/browser/ui/views/profiles/profile_menu_view.cc b/chrome/browser/ui/views/profiles/profile_menu_view.cc
 index f918a7ec350..4ec0d392c3a 100644
 --- a/chrome/browser/ui/views/profiles/profile_menu_view.cc
@@ -1032,6 +1222,19 @@ index 5c7141365e8..ba8f2287f65 100644
    html_source->AddBoolean("showAiPageAiFeatureSection",
                            show_ai_features_section);
  
+diff --git a/chrome/browser/ui/webui/whats_new/whats_new_util.cc b/chrome/browser/ui/webui/whats_new/whats_new_util.cc
+index 72f8a1070f1..6aeafa34a3a 100644
+--- a/chrome/browser/ui/webui/whats_new/whats_new_util.cc
++++ b/chrome/browser/ui/webui/whats_new/whats_new_util.cc
+@@ -100,7 +100,7 @@ bool ShouldShowForState(PrefService* local_state,
+   // potentially displaying multiple times in a given milestone, e.g. for
+   // multiple profile relaunches (see https://crbug.com/40807492).
+   local_state->SetInteger(prefs::kLastWhatsNewVersion, CHROME_VERSION_MAJOR);
+-  return true;
++  return false;
+ #endif
+ }
+ 
 diff --git a/chrome/browser/webauthn/chrome_authenticator_request_delegate.cc b/chrome/browser/webauthn/chrome_authenticator_request_delegate.cc
 index db3868f5dd4..c9f0890fc0d 100644
 --- a/chrome/browser/webauthn/chrome_authenticator_request_delegate.cc
@@ -1066,6 +1269,56 @@ index 4c76e864197..510a680a0dd 100644
      "//components/crash/core/app:chrome_crashpad_handler",
      "//components/privacy_sandbox/privacy_sandbox_attestations/preload:component",
      "//sandbox/linux:chrome_sandbox",
+diff --git a/chrome/installer/linux/common/apt.include b/chrome/installer/linux/common/apt.include
+index b3368c18c9b..341918e192d 100644
+--- a/chrome/installer/linux/common/apt.include
++++ b/chrome/installer/linux/common/apt.include
+@@ -19,6 +19,7 @@ find_apt_sources() {
+ # Install the repository/package signing keys. The key cannot be part of the
+ # package since it's still needed if the package is removed but not purged.
+ install_key() {
++  if false; then
+   if [ ! -e /usr/share/keyrings ]; then
+     mkdir -p /usr/share/keyrings
+     chmod 755 /usr/share/keyrings
+@@ -28,6 +29,7 @@ install_key() {
+   echo "$PGP_KEY_DATA" | base64 -d >"$GPG_FILE.$$.tmp"
+   chmod 644 "$GPG_FILE.$$.tmp"
+   mv "$GPG_FILE.$$.tmp" "$GPG_FILE"
++  fi
+ }
+ 
+ uninstall_key() {
+@@ -80,6 +82,7 @@ EOF
+ # Add the Google repository to the apt sources. The sources cannot be part of
+ # the package since it's still needed if the package is removed but not purged.
+ create_sources_lists() {
++  if false; then
+   find_apt_sources
+ 
+   gen_sources_content >"$SOURCES_FILE.$$.tmp"
+@@ -95,6 +98,7 @@ create_sources_lists() {
+       echo 'repo_add_once="false"' >>"$DEFAULTS_FILE"
+     fi
+   fi
++  fi
+ }
+ 
+ # Remove our custom sources file.
+@@ -104,6 +108,7 @@ clean_sources_lists() {
+ }
+ 
+ install_deb822_sources() {
++  if false; then
+   find_apt_sources
+   LEGACY_LIST="$APT_SOURCESDIR/@@PACKAGE.list"
+ 
+@@ -140,4 +145,5 @@ upgrade to .*" \
+   if [ "$SHOULD_INSTALL_SOURCES" -eq 1 ]; then
+     create_sources_lists
+   fi
++  fi
+ }
 diff --git a/chrome/installer/linux/common/installer.py b/chrome/installer/linux/common/installer.py
 index d279483191a..dfd7a28dd23 100644
 --- a/chrome/installer/linux/common/installer.py
@@ -1087,6 +1340,70 @@ index d279483191a..dfd7a28dd23 100644
          # Privacy Sandbox Attestation
          psa_dir = "PrivacySandboxAttestationsPreloaded"
          psa_manifest = self.output_dir / psa_dir / "manifest.json"
+diff --git a/chrome/installer/linux/common/rpm.include b/chrome/installer/linux/common/rpm.include
+index 9965c822705..8b93287681e 100644
+--- a/chrome/installer/linux/common/rpm.include
++++ b/chrome/installer/linux/common/rpm.include
+@@ -4,6 +4,7 @@
+ # Install the repository signing key (see also:
+ # https://www.google.com/linuxrepositories/)
+ install_rpm_key() {
++  if false; then
+   KEY_PACKAGE="gpg-pubkey-d38b4796-570c8cd3"
+   # Check to see if all keys already exists.
+   # Make sure all the most recent signing subkeys are installed.
+@@ -51,6 +52,7 @@ KEYDATA
+     fi
+   fi
+   return 1
++  fi
+ }
+ 
+ determine_rpm_package_manager() {
+@@ -106,6 +108,7 @@ YUM_REPO_FILE="/etc/yum.repos.d/@@PACKAGE.repo"
+ ZYPPER_REPO_FILE="/etc/zypp/repos.d/@@PACKAGE.repo"
+ 
+ install_yum() {
++  if false; then
+   install_rpm_key
+ 
+   if [ ! "$REPOCONFIG" ]; then
+@@ -122,9 +125,11 @@ gpgcheck=1
+ gpgkey=https://dl.google.com/linux/linux_signing_key.pub
+ REPOCONTENT
+   fi
++  fi
+ }
+ 
+ install_zypp() {
++  if false; then
+   if [ ! "$REPOCONFIG" ]; then
+     return 0
+   fi
+@@ -145,6 +150,7 @@ type=rpm-md
+ keeppackages=0
+ REPOCONTENT
+   fi
++  fi
+ }
+ 
+ # Check if the automatic repository configuration is done, so we know when to
+@@ -164,6 +170,7 @@ verify_install() {
+ 
+ # Update the Google repository if it's not set correctly.
+ update_bad_repo() {
++  if false; then
+   if [ ! "$REPOCONFIG" ]; then
+     return 0
+   fi
+@@ -181,6 +188,7 @@ update_bad_repo() {
+       ;;
+     esac
+   done
++  fi
+ }
+ 
+ update_repo_file() {
 diff --git a/components/autofill/core/browser/crowdsourcing/autofill_crowdsourcing_manager.cc b/components/autofill/core/browser/crowdsourcing/autofill_crowdsourcing_manager.cc
 index a81af1dac96..d0bd13e2349 100644
 --- a/components/autofill/core/browser/crowdsourcing/autofill_crowdsourcing_manager.cc
@@ -1414,6 +1731,69 @@ index 3921d014f20..624a2147e20 100644
        user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
    if (base::FeatureList::IsEnabled(kEsbAsASyncedSetting)) {
      registry->RegisterBooleanPref(
+diff --git a/components/search_engines/keyword_table.cc b/components/search_engines/keyword_table.cc
+index b901155509a..87e6b7c5a8e 100644
+--- a/components/search_engines/keyword_table.cc
++++ b/components/search_engines/keyword_table.cc
+@@ -620,7 +620,9 @@ std::optional<TemplateURLData> KeywordTable::GetKeywordDataFromStatement(
+   data.SetURL(s.ColumnString(4));
+   data.suggestions_url = s.ColumnString(10);
+   data.image_url = s.ColumnString(16);
++#if 0 // Disable new tab overriding by search engines
+   data.new_tab_url = s.ColumnString(20);
++#endif
+   data.search_url_post_params = s.ColumnString(17);
+   data.suggestions_url_post_params = s.ColumnString(18);
+   data.image_url_post_params = s.ColumnString(19);
+@@ -759,7 +761,9 @@ void KeywordTable::BindURLToStatement(const TemplateURLData& data,
+   s->BindString(starting_column + 16, data.search_url_post_params);
+   s->BindString(starting_column + 17, data.suggestions_url_post_params);
+   s->BindString(starting_column + 18, data.image_url_post_params);
++#if 0 // Disable new tab overriding by search engines
+   s->BindString(starting_column + 19, data.new_tab_url);
++#endif
+   s->BindTime(starting_column + 20, data.last_visited);
+   // TODO(b:322513019): support other regulatory programs.
+   s->BindBool(starting_column + 21,
+diff --git a/components/search_engines/template_url_data_util.cc b/components/search_engines/template_url_data_util.cc
+index 9e91d92e47f..fa3ac23ff20 100644
+--- a/components/search_engines/template_url_data_util.cc
++++ b/components/search_engines/template_url_data_util.cc
+@@ -77,10 +77,12 @@ std::unique_ptr<TemplateURLData> TemplateURLDataFromDictionary(
+   if (string_value) {
+     result->image_translate_url = *string_value;
+   }
++#if 0 // Disable new tab overriding by search engines
+   string_value = dict.FindString(DefaultSearchManager::kNewTabURL);
+   if (string_value) {
+     result->new_tab_url = *string_value;
+   }
++#endif
+   string_value = dict.FindString(DefaultSearchManager::kContextualSearchURL);
+   if (string_value) {
+     result->contextual_search_url = *string_value;
+@@ -346,7 +348,7 @@ std::unique_ptr<TemplateURLData> TemplateURLDataFromPrepopulatedEngine(
+       ToU16StringView(engine.name), ToU16StringView(engine.keyword),
+       ToStringView(engine.search_url), ToStringView(engine.suggest_url),
+       ToStringView(engine.image_url), ToStringView(engine.image_translate_url),
+-      ToStringView(engine.new_tab_url),
++      ToStringView(nullptr),
+       ToStringView(engine.contextual_search_url), ToStringView(engine.logo_url),
+       ToStringView(engine.doodle_url),
+       ToStringView(engine.search_url_post_params),
+@@ -436,10 +438,12 @@ std::unique_ptr<TemplateURLData> TemplateURLDataFromOverrideDictionary(
+     if (string_value) {
+       image_translate_url = *string_value;
+     }
++#if 0 // Disable new tab overriding by search engines
+     string_value = engine_dict.FindString("new_tab_url");
+     if (string_value) {
+       new_tab_url = *string_value;
+     }
++#endif
+     string_value = engine_dict.FindString("contextual_search_url");
+     if (string_value) {
+       contextual_search_url = *string_value;
 diff --git a/components/signin/internal/identity_manager/gaia_cookie_manager_service.cc b/components/signin/internal/identity_manager/gaia_cookie_manager_service.cc
 index db2e0266aa2..eb7fef20749 100644
 --- a/components/signin/internal/identity_manager/gaia_cookie_manager_service.cc
@@ -1442,6 +1822,19 @@ index 3f8997799d3..95d555a4b6c 100644
    registry->RegisterBooleanPref(prefs::kSignedInWithCredentialProvider, false);
    registry->RegisterBooleanPref(prefs::kExplicitBrowserSignin, false);
    registry->RegisterBooleanPref(
+diff --git a/components/translate/core/browser/translate_language_list.cc b/components/translate/core/browser/translate_language_list.cc
+index c6c08437fee..27f956f61ed 100644
+--- a/components/translate/core/browser/translate_language_list.cc
++++ b/components/translate/core/browser/translate_language_list.cc
+@@ -442,7 +442,7 @@ void TranslateLanguageList::RequestLanguageList() {
+ }
+ 
+ void TranslateLanguageList::SetResourceRequestsAllowed(bool allowed) {
+-  resource_requests_allowed_ = allowed;
++  resource_requests_allowed_ = false;
+   if (resource_requests_allowed_ && request_pending_) {
+     RequestLanguageList();
+     DCHECK(!request_pending_);
 diff --git a/components/translate/core/browser/translate_manager.cc b/components/translate/core/browser/translate_manager.cc
 index 0b6955177ae..956ce815eeb 100644
 --- a/components/translate/core/browser/translate_manager.cc

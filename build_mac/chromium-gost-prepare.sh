@@ -28,9 +28,12 @@ git show-ref --quiet refs/heads/$GOST_BRANCH && git branch -D $GOST_BRANCH
 git checkout -f -b $GOST_BRANCH tags/$CHROMIUM_TAG
 git branch -D temp
 gclient sync --force --reset --upstream -D --with_branch_heads
-git am --3way --ignore-space-change < $CHROMIUM_GOST_REPO/patch/extra/extensions-manifestv2_ifdef.patch || exit
-git am --3way --ignore-space-change < $CHROMIUM_GOST_REPO/patch/chromium.patch || exit
-git am --3way --ignore-space-change < $CHROMIUM_GOST_REPO/patch/extra/services-gate.patch || exit
+git am --3way --ignore-space-change < $CHROMIUM_GOST_REPO/patch/extensions-manifest-v2.patch || exit
+git am --3way --ignore-space-change < $CHROMIUM_GOST_REPO/patch/fixes.patch || exit
+git am --3way --ignore-space-change < $CHROMIUM_GOST_REPO/patch/gostssl-chromium.patch || exit
+git am --3way --ignore-space-change < $CHROMIUM_GOST_REPO/patch/extensions-bundled.patch || exit
+git am --3way --ignore-space-change < $CHROMIUM_GOST_REPO/patch/branding.patch || exit
+git am --3way --ignore-space-change < $CHROMIUM_GOST_REPO/patch/services-gate.patch || exit
 
 python3 $CHROMIUM_GOST_REPO/extra/rebrand_strings.py || exit
 cp -f $CHROMIUM_GOST_REPO/extra/exit_0.sh chrome/installer/linux/common/repo.cron
@@ -67,7 +70,7 @@ git checkout -f -b temp
 git show-ref --quiet refs/heads/$GOST_BRANCH && git branch -D $GOST_BRANCH
 git checkout -f -b $GOST_BRANCH
 git branch -D temp
-git am --3way --ignore-space-change < $CHROMIUM_GOST_REPO/patch/boringssl.patch || exit
+git am --3way --ignore-space-change < $CHROMIUM_GOST_REPO/patch/gostssl-boringssl.patch || exit
 
 cd $SEARCH_ENGINES_PATH
 git checkout -f -b temp

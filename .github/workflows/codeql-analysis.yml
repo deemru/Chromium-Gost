@@ -34,7 +34,7 @@ jobs:
         git checkout -b temp $BORINGSSL_REVISION
         git config user.name "temp"
         git config user.email "temp@temp.temp"
-        git am --3way --ignore-space-change < ../patch/boringssl.patch
+        git am --3way --ignore-space-change < ../patch/gostssl-boringssl.patch
         cp -r ../src/gostssl.cpp ./
         cp -r ../src/msspi/src/* ./
         cp -r ../src/msspi/third_party/cprocsp/include/* ./include/

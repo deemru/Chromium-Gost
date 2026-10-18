@@ -1,0 +1,311 @@
+From ce9afd23fb893618cf31ac02e6f6efbb25752f7e Mon Sep 17 00:00:00 2001
+From: Dmitrii Pichulin <deem@deem.ru>
+Date: Wed, 13 May 2026 13:13:11 +0300
+Subject: [PATCH] fixes
+
+---
+ BUILD.gn                                              |  2 +-
+ chrome/app/resources/generated_resources_ru.xtb       |  2 +-
+ chrome/browser/ui/startup/startup_browser_creator.cc  |  2 +-
+ chrome/browser/ui/webui/help/BUILD.gn                 |  5 +++--
+ chrome/browser/ui/webui/help/version_updater_basic.cc |  5 +++++
+ chrome/installer/linux/rpm/additional_deps            |  5 ++---
+ chrome/installer/setup/install_worker.cc              |  4 ++++
+ .../blink/renderer/core/frame/reporting_context.cc    |  8 ++++++++
+ .../blink/renderer/core/frame/reporting_context.h     |  5 +++++
+ ui/linux/display_server_utils.cc                      |  4 ++--
+ ui/qt/qt_ui.cc                                        | 11 +++++++++++
+ 11 files changed, 43 insertions(+), 10 deletions(-)
+
+diff --git a/BUILD.gn b/BUILD.gn
+index 0bd5d40ff70..c4c69e2a941 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -605,7 +605,7 @@ group("gn_all") {
+       }
+ 
+       if (!is_debug && !is_component_build && !is_castos) {
+-        deps += [ "//chrome/tools/service_discovery_sniffer" ]
++        # deps += [ "//chrome/tools/service_discovery_sniffer" ]
+       }
+     }
+ 
+diff --git a/chrome/app/resources/generated_resources_ru.xtb b/chrome/app/resources/generated_resources_ru.xtb
+index 81e7f45885c..f11fd63c4e7 100644
+--- a/chrome/app/resources/generated_resources_ru.xtb
++++ b/chrome/app/resources/generated_resources_ru.xtb
+@@ -5427,7 +5427,7 @@
+ <translation id="5153234146675181447">Удаление телефона</translation>
+ <translation id="5153907427821264830"><ph name="STATUS" /> • <ph name="MESSAGE" /></translation>
+ <translation id="5154108062446123722"><ph name="PRINTING_DESTINATION" /> – дополнительные настройки</translation>
+-<translation id="5154702632169343078">Тема</translation>
++<translation id="5154702632169343078">Субъект</translation>
+ <translation id="5154917547274118687">Память</translation>
+ <translation id="5155299520372681119">Время загрузки истекло. Файл удален.</translation>
+ <translation id="5156638757840305347">Выделять текстовый курсор, когда он движется или появляется</translation>
+diff --git a/chrome/browser/ui/startup/startup_browser_creator.cc b/chrome/browser/ui/startup/startup_browser_creator.cc
+index b080481bfdd..b808c61fd1b 100644
+--- a/chrome/browser/ui/startup/startup_browser_creator.cc
++++ b/chrome/browser/ui/startup/startup_browser_creator.cc
+@@ -939,7 +939,7 @@ void StartupBrowserCreator::RegisterLocalStatePrefs(
+   registry->RegisterBooleanPref(prefs::kCommandLineFlagSecurityWarningsEnabled,
+                                 true);
+ #endif
+-  registry->RegisterBooleanPref(prefs::kSuppressUnsupportedOSWarning, false);
++  registry->RegisterBooleanPref(prefs::kSuppressUnsupportedOSWarning, true);
+   registry->RegisterBooleanPref(prefs::kWasRestarted, false);
+ 
+ #if BUILDFLAG(IS_WIN)
+diff --git a/chrome/browser/ui/webui/help/BUILD.gn b/chrome/browser/ui/webui/help/BUILD.gn
+index 17d8d3e2832..fc26fea8ae3 100644
+--- a/chrome/browser/ui/webui/help/BUILD.gn
++++ b/chrome/browser/ui/webui/help/BUILD.gn
+@@ -2,6 +2,7 @@
+ # Use of this source code is governed by a BSD-style license that can be
+ # found in the LICENSE file.
+ 
++import("//chrome/browser/buildflags.gni")
+ import("//chrome/common/features.gni")
+ 
+ source_set("help") {
+@@ -35,7 +36,7 @@ source_set("help") {
+     ]
+   }
+ 
+-  if (is_mac) {
++  if (is_mac && enable_updater) {
+     sources = [ "version_updater_mac.mm" ]
+     deps += [
+       "//base:i18n",
+@@ -66,7 +67,7 @@ source_set("help") {
+     }
+   }
+ 
+-  if (is_linux) {
++  if (is_linux || (is_mac && !enable_updater)) {
+     sources = [ "version_updater_basic.cc" ]
+   }
+ }
+diff --git a/chrome/browser/ui/webui/help/version_updater_basic.cc b/chrome/browser/ui/webui/help/version_updater_basic.cc
+index ebcef5637b1..a33a153029a 100644
+--- a/chrome/browser/ui/webui/help/version_updater_basic.cc
++++ b/chrome/browser/ui/webui/help/version_updater_basic.cc
+@@ -5,6 +5,7 @@
+ #include <memory>
+ #include <string>
+ 
++#include "build/build_config.h"
+ #include "chrome/browser/ui/webui/help/version_updater.h"
+ #include "chrome/browser/upgrade_detector/upgrade_detector.h"
+ 
+@@ -25,6 +26,10 @@ class VersionUpdaterBasic : public VersionUpdater {
+                               : DISABLED;
+     callback.Run(status, 0, false, false, std::string(), 0, std::u16string());
+   }
++
++#if BUILDFLAG(IS_MAC)
++  void PromoteUpdater() override {}
++#endif
+ };
+ 
+ }  // namespace
+diff --git a/chrome/installer/linux/rpm/additional_deps b/chrome/installer/linux/rpm/additional_deps
+index d6080c3a460..47e74211680 100644
+--- a/chrome/installer/linux/rpm/additional_deps
++++ b/chrome/installer/linux/rpm/additional_deps
+@@ -11,7 +11,7 @@ ca-certificates
+ liberation-fonts
+ 
+ # GTK is dlopen()'ed.  Versions 3 or 4 are supported.
+-(libgtk-3.so.0()(64bit) or libgtk-4.so.1()(64bit))
++libgtk-3.so.0()(64bit)
+ 
+ # Specify a more recent version for security and stability updates.
+ libnss3.so(NSS_3.39)(64bit)
+@@ -20,14 +20,13 @@ libnss3.so(NSS_3.39)(64bit)
+ # of expected dependencies when Chrome is built with the older versions, add it
+ # as a manual dependency.
+ rpmlib(FileDigests) <= 4.6.0-1
+-rpmlib(RichDependencies) <= 4.12.0-1
+ 
+ # libvulkan is dlopen()'ed, so must be added as a manual dependency.
+ libvulkan.so.1()(64bit)
+ 
+ # For uploading crash reports with Breakpad.
+ wget
+-(libcurl.so()(64bit) or libcurl-gnutls.so.4()(64bit) or libcurl-nss.so.4()(64bit) or libcurl.so.4()(64bit))
++libcurl.so.4()(64bit)
+ 
+ # For OS integration.
+ xdg-utils
+diff --git a/chrome/installer/setup/install_worker.cc b/chrome/installer/setup/install_worker.cc
+index dd67b7827ab..55889b7b9d9 100644
+--- a/chrome/installer/setup/install_worker.cc
++++ b/chrome/installer/setup/install_worker.cc
+@@ -109,6 +109,7 @@ void AddInstallerCopyTasks(const InstallParams& install_params,
+   }
+ }
+ 
++#if BUILDFLAG(GOOGLE_CHROME_BRANDING)
+ // Adds work items to register the Elevation Service with Windows. Only for
+ // system level installs.
+ void AddElevationServiceWorkItems(const base::FilePath& elevation_service_path,
+@@ -132,6 +133,7 @@ void AddElevationServiceWorkItems(const base::FilePath& elevation_service_path,
+       install_static::GetOldElevatorIids());
+   list->AddWorkItem(install_service_work_item);
+ }
++#endif  // BUILDFLAG(GOOGLE_CHROME_BRANDING)
+ 
+ // Create Version key for a product (if not already present) and sets the new
+ // product version as the last step.
+@@ -309,12 +311,14 @@ void AddChromeWorkItems(const InstallParams& install_params,
+   // Copy installer in install directory.
+   AddInstallerCopyTasks(install_params, install_list);
+ 
++#if BUILDFLAG(GOOGLE_CHROME_BRANDING)
+   if (installer_state.system_install()) {
+     // Register the elevation service, which is required for proper browser
+     // operation.
+     AddElevationServiceWorkItems(
+         GetElevationServicePath(target_path, new_version), install_list);
+   }
++#endif  // BUILDFLAG(GOOGLE_CHROME_BRANDING)
+ 
+   // Move chrome.exe to new_chrome.exe if the target is in use; otherwise,
+   // delete a pre-existing new_chrome.exe and overwrite the target.
+diff --git a/third_party/blink/renderer/core/frame/reporting_context.cc b/third_party/blink/renderer/core/frame/reporting_context.cc
+index d5ee3f909eb..6f199a7108d 100644
+--- a/third_party/blink/renderer/core/frame/reporting_context.cc
++++ b/third_party/blink/renderer/core/frame/reporting_context.cc
+@@ -60,7 +60,9 @@ const char ReportingContext::kSupplementName[] = "ReportingContext";
+ ReportingContext::ReportingContext(ExecutionContext& context)
+     : Supplement<ExecutionContext>(context),
+       execution_context_(context),
++#if BUILDFLAG(ENABLE_REPORTING)
+       reporting_service_(&context),
++#endif
+       receivers_(this, &context) {}
+ 
+ // static
+@@ -127,7 +129,9 @@ void ReportingContext::Trace(Visitor* visitor) const {
+   visitor->Trace(observers_);
+   visitor->Trace(report_buffer_);
+   visitor->Trace(execution_context_);
++#if BUILDFLAG(ENABLE_REPORTING)
+   visitor->Trace(reporting_service_);
++#endif
+   visitor->Trace(receivers_);
+   Supplement<ExecutionContext>::Trace(visitor);
+ }
+@@ -150,6 +154,7 @@ void ReportingContext::CountReport(Report* report) {
+   UseCounter::Count(execution_context_, feature);
+ }
+ 
++#if BUILDFLAG(ENABLE_REPORTING)
+ const HeapMojoRemote<mojom::blink::ReportingServiceProxy>&
+ ReportingContext::GetReportingService() const {
+   if (!reporting_service_.is_bound()) {
+@@ -159,6 +164,7 @@ ReportingContext::GetReportingService() const {
+   }
+   return reporting_service_;
+ }
++#endif
+ 
+ void ReportingContext::NotifyInternal(Report* report) {
+   if (!ShouldReportBeVisibleToObservers(report)) {
+@@ -187,6 +193,7 @@ void ReportingContext::NotifyInternal(Report* report) {
+ 
+ void ReportingContext::SendToReportingAPI(Report* report,
+                                           const String& endpoint) const {
++#if BUILDFLAG(ENABLE_REPORTING)
+   const String& type = report->type();
+   if (!(type == ReportType::kCSPViolation || type == ReportType::kCSPHash ||
+         type == ReportType::kDeprecation ||
+@@ -279,6 +286,7 @@ void ReportingContext::SendToReportingAPI(Report* report,
+         url, endpoint, body->url(), body->connection(), body->allowlist(),
+         body->disposition().AsString());
+   }
++#endif
+ }
+ 
+ }  // namespace blink
+diff --git a/third_party/blink/renderer/core/frame/reporting_context.h b/third_party/blink/renderer/core/frame/reporting_context.h
+index 48d64ece3de..1749703e33c 100644
+--- a/third_party/blink/renderer/core/frame/reporting_context.h
++++ b/third_party/blink/renderer/core/frame/reporting_context.h
+@@ -5,6 +5,7 @@
+ #ifndef THIRD_PARTY_BLINK_RENDERER_CORE_FRAME_REPORTING_CONTEXT_H_
+ #define THIRD_PARTY_BLINK_RENDERER_CORE_FRAME_REPORTING_CONTEXT_H_
+ 
++#include "net/net_buildflags.h"
+ #include "third_party/blink/public/mojom/frame/reporting_observer.mojom-blink.h"
+ #include "third_party/blink/public/mojom/reporting/reporting.mojom-blink.h"
+ #include "third_party/blink/renderer/core/core_export.h"
+@@ -57,8 +58,10 @@ class CORE_EXPORT ReportingContext : public GarbageCollected<ReportingContext>,
+   // Counts the use of a report type via UseCounter.
+   void CountReport(Report*);
+ 
++#if BUILDFLAG(ENABLE_REPORTING)
+   const HeapMojoRemote<mojom::blink::ReportingServiceProxy>&
+   GetReportingService() const;
++#endif
+ 
+   void NotifyInternal(Report* report);
+   // Send |report| via the Reporting API to |endpoint|.
+@@ -69,10 +72,12 @@ class CORE_EXPORT ReportingContext : public GarbageCollected<ReportingContext>,
+       report_buffer_;
+   Member<ExecutionContext> execution_context_;
+ 
++#if BUILDFLAG(ENABLE_REPORTING)
+   // This is declared mutable so that the service endpoint can be cached by
+   // const methods.
+   mutable HeapMojoRemote<mojom::blink::ReportingServiceProxy>
+       reporting_service_;
++#endif
+ 
+   // There might be up to two ReportingObservers stored here: one that is called
+   // from the CrossOriginEmbedderPolicyReporter and one that is called from the
+diff --git a/ui/linux/display_server_utils.cc b/ui/linux/display_server_utils.cc
+index 5d8ad66686e..a3090f5e2e7 100644
+--- a/ui/linux/display_server_utils.cc
++++ b/ui/linux/display_server_utils.cc
+@@ -53,7 +53,7 @@ void SetOzonePlatformForLinuxIfNeeded(base::CommandLine& command_line) {
+   if (command_line.HasSwitch(switches::kOzonePlatform)) {
+     return;
+   }
+-
++#if 0
+ #if BUILDFLAG(SUPPORTS_OZONE_WAYLAND)
+   auto env = base::Environment::Create();
+   std::optional<std::string> xdg_session_type =
+@@ -63,7 +63,7 @@ void SetOzonePlatformForLinuxIfNeeded(base::CommandLine& command_line) {
+     return;
+   }
+ #endif
+-
++#endif
+ #if BUILDFLAG(SUPPORTS_OZONE_X11)
+   command_line.AppendSwitchASCII(switches::kOzonePlatform, "x11");
+ #endif
+diff --git a/ui/qt/qt_ui.cc b/ui/qt/qt_ui.cc
+index b546b546e06..366cd888ec9 100644
+--- a/ui/qt/qt_ui.cc
++++ b/ui/qt/qt_ui.cc
+@@ -340,6 +340,17 @@ bool QtUi::Initialize() {
+   if (!libqt_shim) {
+     return false;
+   }
++
++#ifndef NO_GOSTSSL
++  if (qt_version_ == 6) {
++    auto env = base::Environment::Create();
++    if (!env->HasVar("QT_QPA_PLATFORMTHEME")) {
++      // Avoid KDEPlasmaPlatformTheme6.so in the browser process.
++      env->SetVar("QT_QPA_PLATFORMTHEME", "generic");
++    }
++  }
++#endif // GOSTSSL
++
+   void* create_qt_interface = dlsym(libqt_shim, "CreateQtInterface");
+   DCHECK(create_qt_interface);
+   shim_.reset((reinterpret_cast<decltype(&CreateQtInterface)>(

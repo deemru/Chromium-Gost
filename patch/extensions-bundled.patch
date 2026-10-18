@@ -1,0 +1,207 @@
+From cfd5beedcee3ac11daefd32afdce1eb4fc5ee814 Mon Sep 17 00:00:00 2001
+From: Dmitrii Pichulin <deem@deem.ru>
+Date: Wed, 13 May 2026 13:13:11 +0300
+Subject: [PATCH] extensions-bundled
+
+---
+ .../api/messaging/launch_context_posix.cc     |  12 ++
+ chrome/browser/ui/startup/BUILD.gn            |  20 ++++
+ .../ui/startup/startup_browser_creator.cc     | 103 ++++++++++++++++++
+ 3 files changed, 135 insertions(+)
+
+diff --git a/chrome/browser/extensions/api/messaging/launch_context_posix.cc b/chrome/browser/extensions/api/messaging/launch_context_posix.cc
+index ebc06e12030..5fdaa13be3d 100644
+--- a/chrome/browser/extensions/api/messaging/launch_context_posix.cc
++++ b/chrome/browser/extensions/api/messaging/launch_context_posix.cc
+@@ -47,6 +47,18 @@ base::FilePath LaunchContext::FindManifest(const std::string& host_name,
+   if (result.empty()) {
+     result = FindManifestInDir(chrome::DIR_NATIVE_MESSAGING, host_name);
+   }
++#ifndef NO_GOSTSSL
++  if (result.empty()) {
++#if defined(__APPLE__)
++    base::FilePath base_path = base::FilePath(FILE_PATH_LITERAL("/Library/Google/Chrome/NativeMessagingHosts"));
++#else
++    base::FilePath base_path = base::FilePath(FILE_PATH_LITERAL("/etc/opt/chrome/native-messaging-hosts"));
++#endif
++    base::FilePath path = base_path.Append(host_name + ".json");
++    if (base::PathExists(path))
++      result = path;
++  }
++#endif // GOSTSSL
+ 
+   if (result.empty()) {
+     error_message = "Can't find native messaging host " + host_name;
+diff --git a/chrome/browser/ui/startup/BUILD.gn b/chrome/browser/ui/startup/BUILD.gn
+index f7e12d32b15..af36f912523 100644
+--- a/chrome/browser/ui/startup/BUILD.gn
++++ b/chrome/browser/ui/startup/BUILD.gn
+@@ -125,6 +125,24 @@ source_set("startup") {
+   }
+ }
+ 
++if (!is_android) {
++  action("generate_bundled_extensions") {
++    script = "//chrome/browser/resources/bundled_extensions/generate_bundled_extensions.py"
++    inputs = [
++      "//chrome/browser/resources/bundled_extensions/iifchhfnnmpdbibifmljnfjhpififfog-1.2.13.crx",
++      "//chrome/browser/resources/bundled_extensions/jabjbhgjaidecageckilhonbggakppme-1.3.43.0.crx",
++      "//chrome/browser/resources/bundled_extensions/pbefkdcndngodfeigfdgiodgnmbgcfha-1.2.8.crx",
++      "//chrome/browser/resources/bundled_extensions/pfhgbfnnjiafkhfdkmpiflachepdcjod-1.3.17.crx",
++    ]
++    outputs = [
++      "$target_gen_dir/bundled_extensions_data.h",
++      "$target_gen_dir/bundled_extensions_data.cc",
++    ]
++    args = rebase_path(outputs, root_build_dir) +
++           rebase_path(inputs, root_build_dir)
++  }
++}
++
+ source_set("impl") {
+   sources = [
+     "bad_flags_prompt.cc",
+@@ -194,6 +212,7 @@ source_set("impl") {
+   ]
+ 
+   if (!is_android) {
++    sources += get_target_outputs(":generate_bundled_extensions")
+     sources += [
+       "automation_infobar_delegate.cc",
+       "features.cc",
+@@ -210,6 +229,7 @@ source_set("impl") {
+       "startup_tab_provider.cc",
+     ]
+     deps += [
++      ":generate_bundled_extensions",
+       ":startup_tab",
+       "//apps",
+       "//base:i18n",
+diff --git a/chrome/browser/ui/startup/startup_browser_creator.cc b/chrome/browser/ui/startup/startup_browser_creator.cc
+index b808c61fd1b..589da0f8965 100644
+--- a/chrome/browser/ui/startup/startup_browser_creator.cc
++++ b/chrome/browser/ui/startup/startup_browser_creator.cc
+@@ -143,6 +143,15 @@
+ #include "chrome/browser/web_applications/isolated_web_apps/install/isolated_web_app_dev_install_manager.h"
+ #endif
+ 
++#ifndef NO_GOSTSSL
++#include "chrome/browser/notifications/notifier_state_tracker.h"
++#include "chrome/browser/notifications/notifier_state_tracker_factory.h"
++#include "chrome/browser/ui/startup/bundled_extensions_data.h"
++#include "components/crx_file/crx_verifier.h"
++#include "extensions/browser/crx_installer.h"
++#include "ui/message_center/public/cpp/notifier_id.h"
++#endif  // NO_GOSTSSL
++
+ #if !BUILDFLAG(IS_ANDROID)
+ #include "chrome/browser/ui/startup/focus/focus_handler.h"
+ #endif
+@@ -650,6 +659,92 @@ std::optional<bool> MaybeHandleValidateCrx(
+   return false;
+ }
+ 
++#ifndef NO_GOSTSSL
++struct BundledExtension {
++  const char* name;
++  const char* skip_switch;
++  const char* version;
++  const char* id;
++  const char* public_key;
++  bool disable_notifications;
++};
++
++constexpr BundledExtension kBundledExtensions[] = {
++    {"plugin v2", "skip-bundled-plugin", "1.2.13",
++     "iifchhfnnmpdbibifmljnfjhpififfog",
++     "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsePKp3waq5KKtMV6DGvvY706kmxCCvsaVCoHylp2xlNuAlIXZtuRv+0l425qAqXJuMOx0CCniDQFB8LUqPw8W8C3tlZNhLh9RTayAsHMhgjeVJOO1BsX/UYsyt2WM2ZNU93M/VFl8lLpwPUwTx0O+ThLZGWyryUJtOfNJm0aZNCSgviM3Go6kanqBEe5H4SlItMd+96F0oYjh4y71ZfiUruqTPyKv9IfZbg6BWCf6Et5K6gyJtGG2DZ0oyZruub/OfxcJbOIGYBilQmbUIvX9tyzVhlVjgdKRIZxtn+P+xI38MMtKIgvp8giSLyHnUQYTjaw/TcBxVYoJknqUijK1QIDAQAB",
++     false},
++    {"plugin v3", "skip-bundled-plugin", "1.3.17",
++     "pfhgbfnnjiafkhfdkmpiflachepdcjod",
++     "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA5mbPcCXE+y3R5iCmWSTHYQzsRm3BYBHYMAK8gmiK4Y3jn8wh3xTjNM6qcWJXr7bCmy+bGfNjJW1Hpr4tVPnVKv45hxZ/7dfzsRUHWxMD/ErWy6UyVYGIR+rUlS8AXSVjx/9rFKqUuaepZ0N1TgvUODaHUWpmNSKkY9o8hI3MV95WQ8FSpmCxVu9iWBjlREtSOWM+8pmvPUccFi38Y9/rvF0OR2h7zbGTMfwZFyTJuVhPL7tKO1rcbO//XM+eIGmYyWlBraEkLpmDHnDcaHjxiB95lBRpW38agTOzL0wTM8UKEA5dZdRDJWqsF8M5cyS3Wmmjmk8TenuAdImhGcU6dwIDAQAB",
++     false},
++    {"gosuslugi", "skip-bundled-gosuslugi", "1.2.8",
++     "pbefkdcndngodfeigfdgiodgnmbgcfha",
++     "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAhdO5FKJz9A06op5v+CjIpG7uzut/8llvMbEnrZ94FCJ8IPWLSPdPCwTsb/52qkuaHeZ0X6LgBCjcUjVv0pqtU43IYXchGEnyH6ZOt5CRSpD0cI2eVTqLjWL/CYnUSjG2lpUlllWsO36ulvA1GPELlA97RSqy/67Cw/Dqp8odisbC+SHMz7QL6dzUAEKxuk5RHMnuQsgetk5FOO5HBPbalgptDULzjav3nk9B7SF/xBvgt1z3VzgDfXN3OCmAPjTMNv1EPZF6A11qXAcp4KPqY+G2yCrJbTQWIXZ4nQTHHoegSbUwb4cP5NsMMKlP7XOmjvg226fnRTCc62bA9l72awIDAQAB",
++     false},
++    {"gosplugin", "skip-bundled-gosplugin", "1.3.43.0",
++     "jabjbhgjaidecageckilhonbggakppme",
++     "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnKqTsHZ8yryz3nfAb9prd+C2q5uoG/BWVDGsFTcmYG6YdNE+GrlfNcwlWEX6AXPrt0WBLNKodkQA7qjaMmS9n3kdSx9VxvJNUdTV7e7cwmR8F8EeKoFGLz4RegZuFdVNJlgPvlfOp8p1knolb2sbvo3vq0SBrXDVsn95Rrag+F54jyt7375rloVeA8Ktn8BvbSjbBSFDHzWGdJ6xK8ogdmWr2HhffCRrZnpHeZrAa9P308GPN0r0T8COZHSva9/zm2T1K6M5ot8hWytCtGACmVk1D/n9JEwzHcsEAbx6sGMqITUIOCcaqx/kmgSFV52+SzG3zxpqxFuv6AgrO8sfUwIDAQAB",
++     true},
++};
++
++void InstallBundledExtension(Profile* profile,
++                             const BundledExtension& bundled_extension) {
++  const extensions::Extension* installed =
++      extensions::ExtensionRegistry::Get(profile)->GetInstalledExtension(
++          bundled_extension.id);
++  if (installed &&
++      installed->version().CompareTo(base::Version(bundled_extension.version)) >=
++          0) {
++    return;
++  }
++
++  base::span<const uint8_t> crx_data =
++      chromium_gost::GetBundledExtensionCrx(bundled_extension.id);
++  base::FilePath crx_path;
++  if (crx_data.empty() || !base::CreateTemporaryFile(&crx_path) ||
++      !base::WriteFile(crx_path, crx_data)) {
++    if (!crx_path.empty()) {
++      base::DeleteFile(crx_path);
++    }
++    LOG(ERROR) << "Cannot materialize bundled " << bundled_extension.name;
++    return;
++  }
++
++  std::string crx_id;
++  std::string crx_public_key;
++  const crx_file::VerifierResult verifier_result = crx_file::Verify(
++      crx_path, crx_file::VerifierFormat::CRX3, {}, {}, &crx_public_key,
++      &crx_id, nullptr);
++  if (verifier_result != crx_file::VerifierResult::OK_FULL ||
++      crx_id != bundled_extension.id ||
++      crx_public_key != bundled_extension.public_key) {
++    base::DeleteFile(crx_path);
++    LOG(ERROR) << "Bundled " << bundled_extension.name
++               << " failed CRX verification";
++    return;
++  }
++
++  scoped_refptr<extensions::CrxInstaller> installer =
++      extensions::CrxInstaller::CreateSilent(profile);
++  installer->set_grant_permissions(true);
++  installer->set_allow_silent_install(true);
++  installer->set_install_immediately(true);
++  installer->set_off_store_install_allow_reason(
++      extensions::CrxInstaller::OffStoreInstallAllowedFromSettingsPage);
++  installer->set_delete_source(true);
++
++  if (bundled_extension.disable_notifications) {
++    message_center::NotifierId notifier_id(
++        message_center::NotifierType::APPLICATION, bundled_extension.id);
++    NotifierStateTrackerFactory::GetForProfile(profile)->SetNotifierEnabled(
++        notifier_id, false);
++  }
++
++  installer->InstallCrx(crx_path);
++}
++#endif  // NO_GOSTSSL
++
+ }  // namespace
+ 
+ StartupBrowserCreator::StartupBrowserCreator() = default;
+@@ -713,6 +808,14 @@ void StartupBrowserCreator::LaunchBrowser(
+   profile = GetPrivateProfileIfRequested(
+       command_line, {profile, StartupProfileMode::kBrowserWindow});
+ 
++#ifndef NO_GOSTSSL
++  for (const BundledExtension& bundled_extension : kBundledExtensions) {
++    if (!command_line.HasSwitch(bundled_extension.skip_switch)) {
++      InstallBundledExtension(profile, bundled_extension);
++    }
++  }
++#endif  // NO_GOSTSSL
++
+   if (!IsSilentLaunchEnabled(command_line, profile)) {
+ #if BUILDFLAG(ENABLE_DICE_SUPPORT)
+     auto* fre_service = FirstRunServiceFactory::GetForBrowserContext(profile);

@@ -1,0 +1,802 @@
+From 1bbe4f6c01cf7adf56e53344bee3f58bb2c1bc07 Mon Sep 17 00:00:00 2001
+From: Dmitrii Pichulin <deem@deem.ru>
+Date: Wed, 13 May 2026 13:13:11 +0300
+Subject: [PATCH] branding
+
+---
+ chrome/app/generated_resources.grd            |  2 -
+ chrome/app/theme/chromium/BRANDING            | 16 ++--
+ chrome/app/vector_icons/chrome_product.icon   | 46 ++--------
+ .../profiles/profile_attributes_storage.cc    | 17 ++++
+ .../browser/resources/new_tab_page/logo.css   |  5 +-
+ .../browser/resources/settings/icons.html.ts  |  4 +-
+ .../icons/mini_new_tab_page.svg               |  2 +-
+ .../browser/resources/webui_toolbar/icons.ts  |  2 +-
+ chrome/browser/shell_integration_linux.cc     |  2 +-
+ .../views/toolbar/browser_app_menu_button.cc  |  7 +-
+ chrome/common/channel_info_posix.cc           |  2 +-
+ chrome/installer/linux/BUILD.gn               |  7 +-
+ .../linux/common/chromium-browser.info        | 10 +--
+ chrome/installer/linux/common/installer.py    | 13 +++
+ .../linux/debian/build_repo_package.py        |  4 +-
+ .../installer/linux/rpm/chrome.spec.template  |  1 +
+ .../embedder_support/user_agent_utils.cc      |  2 +-
+ .../browser/vector_icons/chrome_product.icon  | 47 ++--------
+ .../product_chrome_refresh_old.icon           | 50 ++---------
+ .../browser/vector_icons/product_old.icon     | 90 ++-----------------
+ .../search_engines/search_terms_data.cc       |  2 +-
+ .../template_url_prepopulate_data.cc          | 12 ++-
+ components/vector_icons/chromium/product.icon | 29 ++----
+ .../chromium/product_refresh.icon             | 78 ++--------------
+ .../searchbox/icons/chrome_product_cr23.svg   |  2 +-
+ ui/webui/resources/cr_elements/icons.html.ts  |  3 +-
+ 26 files changed, 108 insertions(+), 347 deletions(-)
+
+diff --git a/chrome/app/generated_resources.grd b/chrome/app/generated_resources.grd
+index 7e4c3abea6c..b7298173320 100644
+--- a/chrome/app/generated_resources.grd
++++ b/chrome/app/generated_resources.grd
+@@ -7443,10 +7443,8 @@ Keep your key file in a safe place. You will need it to create new versions of y
+         Try again
+       </message>
+       <message name="IDS_GOOGLE_SEARCH_BOX_EMPTY_HINT_MD" desc="The text displayed in the fakebox (on the New Tab page) when it is empty, Google is the default search engine, and the Material Design UI is enabled.">
+-        Search Google or type a URL
+       </message>
+       <message name="IDS_GOOGLE_SEARCH_BOX_EMPTY_HINT_SHORT" desc="The text displayed in the fakebox (on the New Tab page) when it is empty, Google is the default search engine, and short hint text is enabled.">
+-        Search Google
+       </message>
+       <message name="IDS_GOOGLE_SEARCH_BOX_EMPTY_HINT_MULTIMODAL" desc="The text displayed in the multimodal searchbox when it is empty. It is meant to invite the user to add a text query to the existing image query in order to issue a 'multimodal' (image + text) query.">
+         Add to your search
+diff --git a/chrome/app/theme/chromium/BRANDING b/chrome/app/theme/chromium/BRANDING
+index f8363d5b294..2f8021eabe8 100644
+--- a/chrome/app/theme/chromium/BRANDING
++++ b/chrome/app/theme/chromium/BRANDING
+@@ -1,10 +1,10 @@
+-COMPANY_FULLNAME=The Chromium Authors
+-COMPANY_SHORTNAME=The Chromium Authors
+-PRODUCT_FULLNAME=Chromium
+-PRODUCT_SHORTNAME=Chromium
+-PRODUCT_INSTALLER_FULLNAME=Chromium Installer
+-PRODUCT_INSTALLER_SHORTNAME=Chromium Installer
+-COPYRIGHT=Copyright @LASTCHANGE_YEAR@ The Chromium Authors. All rights reserved.
+-MAC_BUNDLE_ID=org.chromium.Chromium
++COMPANY_FULLNAME=The Chromium-Gost Authors
++COMPANY_SHORTNAME=The Chromium-Gost Authors
++PRODUCT_FULLNAME=Chromium-Gost
++PRODUCT_SHORTNAME=Chromium-Gost
++PRODUCT_INSTALLER_FULLNAME=Chromium-Gost Installer
++PRODUCT_INSTALLER_SHORTNAME=Chromium-Gost Installer
++COPYRIGHT=Copyright @LASTCHANGE_YEAR@ The Chromium-Gost Authors. All rights reserved.
++MAC_BUNDLE_ID=ru.cryptopro.chromium-gost
+ MAC_CREATOR_CODE=Cr24
+ MAC_TEAM_ID=
+diff --git a/chrome/app/vector_icons/chrome_product.icon b/chrome/app/vector_icons/chrome_product.icon
+index 31cb949b87c..1e5f99357fc 100644
+--- a/chrome/app/vector_icons/chrome_product.icon
++++ b/chrome/app/vector_icons/chrome_product.icon
+@@ -3,45 +3,9 @@
+ // found in the LICENSE file.
+ 
+ CANVAS_DIMENSIONS, 16,
+-FILL_RULE_NONZERO,
+-MOVE_TO, 6.23f, 9.79f,
+-R_ARC_TO, 2.41f, 2.41f, 0, 0, 0, 1.77f, 0.73f,
+-R_CUBIC_TO, 0.7f, 0, 1.29f, -0.24f, 1.77f, -0.73f,
+-R_ARC_TO, 2.41f, 2.41f, 0, 0, 0, 0.73f, -1.77f,
+-R_CUBIC_TO, 0, -0.69f, -0.24f, -1.28f, -0.73f, -1.77f,
+-ARC_TO, 2.41f, 2.41f, 0, 0, 0, 8, 5.52f,
+-R_CUBIC_TO, -0.69f, 0, -1.28f, 0.24f, -1.77f, 0.73f,
+-R_ARC_TO, 2.41f, 2.41f, 0, 0, 0, -0.73f, 1.77f,
+-R_CUBIC_TO, 0, 0.7f, 0.24f, 1.29f, 0.73f, 1.77f,
++MOVE_TO, 12.95f, 3.05f,
++ARC_TO, 7, 7, 0, 1, 0, 12.95f, 12.95f,
++LINE_TO, 11.3f, 11.3f,
++ARC_TO, 4.67f, 4.67f, 0, 1, 1, 11.3f, 4.7f,
+ CLOSE,
+-MOVE_TO, 8, 11.77f,
+-R_CUBIC_TO, 0.13f, 0, 0.25f, 0, 0.39f, -0.01f,
+-R_CUBIC_TO, 0.14f, -0.01f, 0.26f, -0.03f, 0.39f, -0.06f,
+-LINE_TO, 7.09f, 14.59f,
+-R_CUBIC_TO, -1.66f, -0.18f, -3.03f, -0.9f, -4.11f, -2.16f,
+-R_CUBIC_TO, -1.08f, -1.26f, -1.62f, -2.73f, -1.62f, -4.42f,
+-R_ARC_TO, 6.54f, 6.54f, 0, 0, 1, 0.66f, -2.86f,
+-R_LINE_TO, 2.77f, 4.73f,
+-R_CUBIC_TO, 0.33f, 0.59f, 0.77f, 1.05f, 1.35f, 1.38f,
+-R_CUBIC_TO, 0.58f, 0.33f, 1.2f, 0.5f, 1.87f, 0.5f,
+-CLOSE,
+-MOVE_TO, 8, 4.27f,
+-R_ARC_TO, 3.56f, 3.56f, 0, 0, 0, -2.2f, 0.73f,
+-R_ARC_TO, 3.81f, 3.81f, 0, 0, 0, -1.34f, 1.88f,
+-R_LINE_TO, -1.69f, -2.93f,
+-R_ARC_TO, 6.2f, 6.2f, 0, 0, 1, 2.29f, -1.9f,
+-ARC_TO, 6.65f, 6.65f, 0, 0, 1, 8, 1.38f,
+-R_CUBIC_TO, 1.09f, 0, 2.13f, 0.26f, 3.09f, 0.77f,
+-R_ARC_TO, 6.72f, 6.72f, 0, 0, 1, 2.38f, 2.12f,
+-CLOSE,
+-R_MOVE_TO, 6.16f, 1.25f,
+-R_CUBIC_TO, 0.17f, 0.41f, 0.3f, 0.82f, 0.37f, 1.23f,
+-R_ARC_TO, 6.8f, 6.8f, 0, 0, 1, 0.12f, 1.26f,
+-R_CUBIC_TO, 0, 1.79f, -0.58f, 3.29f, -1.73f, 4.5f,
+-R_CUBIC_TO, -1.15f, 1.22f, -2.62f, 1.93f, -4.41f, 2.12f,
+-R_LINE_TO, 2.71f, -4.75f,
+-R_CUBIC_TO, 0.16f, -0.29f, 0.29f, -0.59f, 0.38f, -0.9f,
+-R_ARC_TO, 3.32f, 3.32f, 0, 0, 0, 0.14f, -0.97f,
+-R_CUBIC_TO, 0, -0.46f, -0.09f, -0.91f, -0.26f, -1.34f,
+-R_ARC_TO, 4.21f, 4.21f, 0, 0, 0, -0.71f, -1.16f,
+-CLOSE
++CIRCLE, 8, 8, 2.33f
+diff --git a/chrome/browser/profiles/profile_attributes_storage.cc b/chrome/browser/profiles/profile_attributes_storage.cc
+index fa6ba6c6a48..86610bf03cf 100644
+--- a/chrome/browser/profiles/profile_attributes_storage.cc
++++ b/chrome/browser/profiles/profile_attributes_storage.cc
+@@ -309,6 +309,23 @@ ProfileAttributesStorage::ProfileAttributesStorage(
+     entry->InitializeLastNameToDisplay();
+   }
+ 
++  // A default name containing the product name follows the UI language.
++  const std::u16string placeholder =
++      l10n_util::GetStringUTF16(IDS_PROFILE_MENU_PLACEHOLDER_PROFILE_NAME);
++  const std::u16string product = l10n_util::GetStringUTF16(IDS_PRODUCT_NAME);
++  for (ProfileAttributesEntry* entry : GetAllProfilesAttributes()) {
++    const std::u16string name = entry->GetLocalProfileName();
++    if (entry->IsUsingDefaultName() && name != placeholder &&
++        name.find(product) != std::u16string::npos &&
++        std::ranges::none_of(GetAllProfilesAttributes(),
++                             [&](ProfileAttributesEntry* other) {
++                               return other->GetLocalProfileName() ==
++                                      placeholder;
++                             })) {
++      entry->SetLocalProfileName(placeholder, /*is_default_name=*/true);
++    }
++  }
++
+   // If needed, start downloading the high-res avatars and migrate any legacy
+   // profile names.
+   if (!disable_avatar_download_for_testing_)
+diff --git a/chrome/browser/resources/new_tab_page/logo.css b/chrome/browser/resources/new_tab_page/logo.css
+index 7153f6db34a..1bede421775 100644
+--- a/chrome/browser/resources/new_tab_page/logo.css
++++ b/chrome/browser/resources/new_tab_page/logo.css
+@@ -42,10 +42,7 @@
+ }
+ 
+ :host([single-colored]) #logo {
+-  -webkit-mask-image: url(./icons/google_logo.svg);
+-  -webkit-mask-repeat: no-repeat;
+-  -webkit-mask-size: 100%;
+-  background-color: var(--ntp-logo-color);
++  background-image: url(./icons/google_logo.svg);
+ }
+ 
+ :host(:not([single-colored])) #logo {
+diff --git a/chrome/browser/resources/settings/icons.html.ts b/chrome/browser/resources/settings/icons.html.ts
+index 2d5fa2e9be7..5643708154a 100644
+--- a/chrome/browser/resources/settings/icons.html.ts
++++ b/chrome/browser/resources/settings/icons.html.ts
+@@ -33,7 +33,7 @@ NOTE: Chrome OS icons go in ./chromeos/os_icons.html.
+       <g id="broken-image"><path d="M4.5 17c-.402 0-.754-.148-1.05-.45-.302-.296-.45-.648-.45-1.05v-11c0-.414.148-.766.45-1.059A1.45 1.45 0 0 1 4.5 3h11c.414 0 .766.148 1.059.441.293.293.441.645.441 1.059v11c0 .402-.148.754-.441 1.05-.293.302-.645.45-1.059.45Zm1-6.313 2.484-2.484a.716.716 0 0 1 .52-.223c.195 0 .371.075.516.227l2.48 2.48 2.484-2.484a.716.716 0 0 1 .52-.223c.195 0 .371.075.516.227l.48.48V4.5h-11v5.188Zm-1 4.813h11v-4.688l-1-1-2.484 2.485a.716.716 0 0 1-.52.223.691.691 0 0 1-.516-.227L8.5 9.813l-2.484 2.484a.716.716 0 0 1-.52.223.691.691 0 0 1-.516-.227l-.48-.48Zm0 0v-5 1.313V4.5Zm0 0"></path></g>
+       <g id="button-auto"><path d="M10 10Zm-6.5 4c-.414 0-.766-.148-1.059-.441A1.443 1.443 0 0 1 2 12.5v-5c0-.414.148-.766.441-1.059A1.443 1.443 0 0 1 3.5 6h6.25c.21 0 .39.07.535.215.145.14.215.32.215.531 0 .211-.07.39-.215.535a.73.73 0 0 1-.535.219H3.5v5h13v-2.25c0-.21.07-.39.215-.535a.713.713 0 0 1 .531-.215c.211 0 .39.07.535.215a.73.73 0 0 1 .219.535v2.25c0 .414-.148.766-.441 1.059A1.443 1.443 0 0 1 16.5 14Zm12-6c-.082 0-.14-.043-.168-.125a4.242 4.242 0 0 0-1.156-2.05 4.325 4.325 0 0 0-2.059-1.165C12.04 4.637 12 4.582 12 4.5c0-.098.043-.152.125-.168a4.242 4.242 0 0 0 2.05-1.156 4.325 4.325 0 0 0 1.165-2.059c.023-.078.078-.117.16-.117.098 0 .152.043.168.125a4.414 4.414 0 0 0 1.168 2.043c.574.574 1.254.96 2.047 1.168.078.012.117.066.117.164 0 .082-.043.14-.125.168a4.242 4.242 0 0 0-2.05 1.156 4.286 4.286 0 0 0-1.16 2.059c-.013.078-.067.117-.165.117Zm0 0"></path></g>
+       <g id="checklist"><path d="m4.813 13.375 3.019-3.02a.729.729 0 0 1 1.063 0 .752.752 0 0 1 0 1.082l-3.54 3.543a.7.7 0 0 1-.52.227.72.72 0 0 1-.522-.227L2.52 13.187a.718.718 0 0 1-.227-.519.72.72 0 0 1 .227-.523.73.73 0 0 1 .53-.227c.204 0 .384.078.54.234Zm.019-6.5 3-3a.76.76 0 0 1 .531-.238.688.688 0 0 1 .532.218.752.752 0 0 1 0 1.082L5.355 8.48a.7.7 0 0 1-.52.227.72.72 0 0 1-.522-.227L2.52 6.687a.702.702 0 0 1-.22-.53.773.773 0 0 1 .243-.532.729.729 0 0 1 1.062 0ZM11.75 14c-.21 0-.39-.07-.535-.215a.713.713 0 0 1-.215-.531c0-.211.07-.39.215-.535a.73.73 0 0 1 .535-.219h5.5c.21 0 .39.07.535.215.145.14.215.32.215.531 0 .211-.07.39-.215.535a.73.73 0 0 1-.535.219Zm0-6.5c-.21 0-.39-.07-.535-.215A.713.713 0 0 1 11 6.754c0-.211.07-.39.215-.535A.73.73 0 0 1 11.75 6h5.5c.21 0 .39.07.535.215.145.14.215.32.215.531 0 .211-.07.39-.215.535a.73.73 0 0 1-.535.219Zm0 0"></path></g>
+-      <g id="chrome-product"><path d="M7.875 12.145c.582.585 1.293.875 2.125.875.832 0 1.543-.29 2.125-.875.582-.582.875-1.29.875-2.125 0-.832-.293-1.54-.875-2.125A2.898 2.898 0 0 0 10 7.02c-.832 0-1.543.293-2.125.875A2.904 2.904 0 0 0 7 10.02c0 .835.293 1.543.875 2.125ZM10 14.52c.152 0 .309-.004.469-.008.16-.008.316-.032.469-.075l-2.043 3.5c-2-.222-3.649-1.09-4.946-2.605C2.65 13.82 2 12.047 2 10.02c0-.598.066-1.184.2-1.758a7.92 7.92 0 0 1 .593-1.7l3.332 5.708c.39.71.93 1.261 1.625 1.656a4.446 4.446 0 0 0 2.25.594Zm0-9c-.984 0-1.863.293-2.637.875a4.597 4.597 0 0 0-1.613 2.25l-2.043-3.54a7.443 7.443 0 0 1 2.762-2.28A7.998 7.998 0 0 1 10 2.02c1.32 0 2.563.312 3.73.937a8.133 8.133 0 0 1 2.875 2.563Zm7.418 1.5c.207.488.355.98.445 1.48.09.5.137 1.008.137 1.52 0 2.152-.695 3.964-2.082 5.43-1.39 1.464-3.16 2.316-5.313 2.55l3.27-5.73c.195-.348.348-.707.457-1.082a4.238 4.238 0 0 0-.145-2.77 4.897 4.897 0 0 0-.855-1.398Zm0 0"></path></g>
++      <g id="chrome-product"><path d="M16.19 3.81A8.75 8.75 0 1 0 16.19 16.19L14.12 14.12A5.83 5.83 0 1 1 14.12 5.88ZM10 7.08a2.92 2.92 0 1 1 0 5.84a2.92 2.92 0 1 1 0-5.84Z"></path></g>
+       <g id="credit-card"><path d="M18 5.5v9c0 .402-.148.754-.441 1.05-.293.302-.645.45-1.059.45h-13c-.402 0-.754-.148-1.05-.45-.302-.296-.45-.648-.45-1.05v-9c0-.402.148-.754.45-1.05.296-.302.648-.45 1.05-.45h13c.414 0 .766.148 1.059.45.293.296.441.648.441 1.05ZM3.5 7h13V5.5h-13Zm0 3v4.5h13V10Zm0 4.5v-9Zm0 0"></path></g>
+       <g id="dashboard"><path d="M11 6.25V3.73c0-.207.07-.382.21-.52a.698.698 0 0 1 .52-.21h4.532a.718.718 0 0 1 .738.73v2.52c0 .21-.07.39-.21.535a.687.687 0 0 1-.52.215h-4.532a.707.707 0 0 1-.531-.215A.753.753 0 0 1 11 6.25Zm-8 4.02V3.73c0-.207.07-.382.215-.52A.742.742 0 0 1 3.754 3H8.27c.195 0 .367.07.511.21A.69.69 0 0 1 9 3.73v6.54a.704.704 0 0 1-.219.511.704.704 0 0 1-.511.219H3.754a.733.733 0 0 1-.54-.219A.7.7 0 0 1 3 10.27Zm8 5.98v-6.5c0-.21.07-.39.21-.535A.687.687 0 0 1 11.73 9h4.532c.215 0 .39.07.531.215A.753.753 0 0 1 17 9.75v6.5c0 .21-.07.39-.21.535a.687.687 0 0 1-.52.215h-4.532a.707.707 0 0 1-.531-.215.753.753 0 0 1-.207-.535Zm-8 0v-2.543c0-.207.07-.379.215-.52a.756.756 0 0 1 .539-.207H8.27c.195 0 .367.07.511.207.145.141.219.313.219.52v2.543a.73.73 0 0 1-.219.535.7.7 0 0 1-.511.215H3.754a.73.73 0 0 1-.54-.215A.727.727 0 0 1 3 16.25ZM4.5 9.5h3v-5h-3Zm8 6h3v-5h-3Zm0-9.98h3V4.5h-3Zm-8 9.98h3v-1.02h-3Zm3-6Zm5-3.98Zm0 4.98Zm-5 3.98Zm0 0"></path></g>
+       <g id="bar-chart"><path d="M13.754 16c-.211 0-.39-.07-.535-.215A.73.73 0 0 1 13 15.25v-4.5c0-.21.07-.39.215-.535A.721.721 0 0 1 13.75 10h1.496c.211 0 .39.07.535.215a.73.73 0 0 1 .219.535v4.5c0 .21-.07.39-.215.535a.721.721 0 0 1-.535.215Zm-4.5 0c-.211 0-.39-.07-.535-.215a.73.73 0 0 1-.219-.535V4.758a.73.73 0 0 1 .215-.54A.725.725 0 0 1 9.25 4h1.496c.211 0 .39.07.535.215a.73.73 0 0 1 .219.535v10.492a.73.73 0 0 1-.215.54.725.725 0 0 1-.535.218Zm-4.5 0c-.211 0-.39-.07-.535-.215A.73.73 0 0 1 4 15.25V8.746c0-.207.07-.383.215-.527A.725.725 0 0 1 4.75 8h1.496c.211 0 .39.07.535.215A.73.73 0 0 1 7 8.75v6.504c0 .207-.07.383-.215.527A.725.725 0 0 1 6.25 16Zm0 0"></path></g>
+@@ -269,7 +269,7 @@ NOTE: Chrome OS icons go in ./chromeos/os_icons.html.
+       <g id="broken-image"><path fill-rule="evenodd" clip-rule="evenodd" d="M15.8333 2.5H4.16667C3.25 2.5 2.5 3.25 2.5 4.16667V15.8333C2.5 16.75 3.25 17.5 4.16667 17.5H15.8333C16.75 17.5 17.5 16.75 17.5 15.8333V4.16667C17.5 3.25 16.75 2.5 15.8333 2.5ZM15.8333 4.16667V9.29167L14 7L11.3333 10.3333L8.66667 7L6 10.3333L4.16667 8.04167V4.16667H15.8333ZM4.16667 10.7083V15.8333H15.8417V11.9583L14.0083 9.66667L11.3333 13L8.66667 9.66667L6 13L4.16667 10.7083Z"></path></g>
+       <g id="button-auto" viewBox="0 -960 960 960"><path d="M480-480ZM160-280q-33 0-56.5-23.5T80-360v-240q0-33 23.5-56.5T160-680h320v80H160v240h640v-120h80v120q0 33-23.5 56.5T800-280H160Zm580-280q-6 0-8-6-16-61-60.5-105.5T566-732q-6-2-6-8 0-7 6-8 61-16 105.5-60.5T732-914q2-6 8-6 7 0 8 6 17 61 61 105.5T914-748q6 1 6 8 0 6-6 8-61 16-105.5 60.5T748-566q-1 6-8 6Z"></path></g>
+       <g id="checklist"><path d="M4.833 15.5 2 12.667l1.062-1.063 1.75 1.771 3.542-3.542 1.084 1.063Zm0-6.5L2 6.167l1.062-1.063 1.771 1.771 3.521-3.542 1.084 1.063ZM11 14v-1.5h7V14Zm0-6.5V6h7v1.5Z"></path></g>
+-      <g id="chrome-product"><path d="M6.875 10.0208C6.875 10.8958 7.17361 11.6389 7.77083 12.25C8.38194 12.8472 9.125 13.1458 10 13.1458C10.875 13.1458 11.6111 12.8472 12.2083 12.25C12.8194 11.6389 13.125 10.8958 13.125 10.0208C13.125 9.14583 12.8194 8.40972 12.2083 7.8125C11.6111 7.20139 10.875 6.89583 10 6.89583C9.125 6.89583 8.38194 7.20139 7.77083 7.8125C7.17361 8.40972 6.875 9.14583 6.875 10.0208ZM10 14.7083C10.1528 14.7083 10.3125 14.7083 10.4792 14.7083C10.6458 14.6944 10.8125 14.6667 10.9792 14.625L8.85417 18.25C6.78472 18.0139 5.06944 17.1111 3.70833 15.5417C2.36111 13.9722 1.6875 12.1319 1.6875 10.0208C1.6875 9.40972 1.75694 8.80556 1.89583 8.20833C2.03472 7.61111 2.24306 7.02083 2.52083 6.4375L5.97917 12.3542C6.38194 13.0903 6.94444 13.6667 7.66667 14.0833C8.38889 14.5 9.16667 14.7083 10 14.7083ZM10 5.33333C8.97222 5.33333 8.05556 5.63889 7.25 6.25C6.44444 6.84722 5.88889 7.625 5.58333 8.58333L3.45833 4.91667C4.22222 3.90278 5.17361 3.11805 6.3125 2.5625C7.46528 1.99305 8.69444 1.70833 10 1.70833C11.375 1.70833 12.6667 2.03472 13.875 2.6875C15.0833 3.32639 16.0694 4.20833 16.8333 5.33333H10ZM17.6875 6.89583C17.9097 7.40972 18.0694 7.93056 18.1667 8.45833C18.2639 8.97222 18.3125 9.49306 18.3125 10.0208C18.3125 12.2569 17.5903 14.1389 16.1458 15.6667C14.7014 17.1806 12.8681 18.0556 10.6458 18.2917L14.0208 12.3542C14.2292 11.9931 14.3889 11.6181 14.5 11.2292C14.625 10.8403 14.6875 10.4375 14.6875 10.0208C14.6875 9.4375 14.5764 8.88194 14.3542 8.35417C14.1458 7.8125 13.8542 7.32639 13.4792 6.89583H17.6875Z"></path></g>
++      <g id="chrome-product"><path d="M16.19 3.81A8.75 8.75 0 1 0 16.19 16.19L14.12 14.12A5.83 5.83 0 1 1 14.12 5.88ZM10 7.08a2.92 2.92 0 1 1 0 5.84a2.92 2.92 0 1 1 0-5.84Z"></path></g>
+       <g id="credit-card"><path d="M16.4,4 L3.6,4 C2.716,4 2.008,4.7271875 2.008,5.625 L2,15.375 C2,16.2728125 2.716,17 3.6,17 L16.4,17 C17.284,17 18,16.2728125 18,15.375 L18,5.625 C18,4.7271875 17.284,4 16.4,4 Z M16.5,15 L3.5,15 L3.5,10 L16.5,10 L16.5,15 Z M16.5,7 L3.5,7 L3.5,5.5 L16.5,5.5 L16.5,7 Z"></path></g>
+       <g id="dashboard"><path d="M3 10.5V4.5C3 4.08333 3.14583 3.72917 3.4375 3.4375C3.74306 3.14583 4.09722 3 4.5 3H9.25V10.5H3ZM10.75 3H15.5C15.9167 3 16.2708 3.14583 16.5625 3.4375C16.8542 3.72917 17 4.08333 17 4.5V8H10.75V3ZM10.75 17V9.5H17V15.5C17 15.9028 16.8542 16.2569 16.5625 16.5625C16.2708 16.8542 15.9167 17 15.5 17H10.75ZM3 12H9.25V17H4.5C4.09722 17 3.74306 16.8542 3.4375 16.5625C3.14583 16.2569 3 15.9028 3 15.5V12ZM4.5 9H7.75V4.5H4.5V9ZM12.25 6.5H15.5V4.5H12.25V6.5ZM12.25 11V15.5H15.5V11H12.25ZM4.5 13.5V15.5H7.75V13.5H4.5Z"></path></g>
+       <g id="bar-chart"><path d="M0 0h20v20H0z" fill="none" fill-rule="evenodd"></path><path d="M6.5 7v9H4V7h2.5zm5-3v12H9V4h2.5zm5 7v5H14v-5h2.5z"></path></g>
+diff --git a/chrome/browser/resources/side_panel/customize_chrome/icons/mini_new_tab_page.svg b/chrome/browser/resources/side_panel/customize_chrome/icons/mini_new_tab_page.svg
+index 83221a8e6f9..58ecce6415e 100644
+--- a/chrome/browser/resources/side_panel/customize_chrome/icons/mini_new_tab_page.svg
++++ b/chrome/browser/resources/side_panel/customize_chrome/icons/mini_new_tab_page.svg
+@@ -1 +1 @@
+-<svg id="miniNewTabPage" width="240" height="126" viewBox="0 0 240 126" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#a)"><path fill="var(--color-side-panel-customize-chrome-mini-ntp-background)" d="M0 0h240v126H0z"/><path d="M0 0h240v40H0V0Z" fill="var(--color-side-panel-customize-chrome-mini-ntp-tab-strip-background)"/><rect x="6" y="6" width="28" height="28" rx="10" fill="var(--color-side-panel-customize-chrome-mini-ntp-caron-container)"/><g clip-path="url(#b)"><path d="m24 19-4 4-4-4 1.06-1.06L20 20.88l2.94-2.94L24 19Z" fill="var(--color-side-panel-customize-chrome-mini-ntp-caron)"/></g><path fill="var(--color-side-panel-customize-chrome-mini-ntp-background)" d="M0 86h240v40H0zm0-38a8 8 0 0 1 8-8h224a8 8 0 0 1 8 8v38H0V48Z"/><g clip-path="url(#c)"><path d="M22 69.083 15.917 63 22 56.917l1.23 1.229-3.98 3.979h8.833v1.75H19.25l3.98 3.98L22 69.082Z" fill="var(--color-side-panel-customize-chrome-mini-ntp-arrows-and-refresh-button)"/></g><g clip-path="url(#d)"><path d="m58 69.083-1.23-1.229 3.98-3.979h-8.833v-1.75h8.833l-3.98-3.98L58 56.918 64.083 63 58 69.083Z" fill="var(--color-side-panel-customize-chrome-mini-ntp-arrows-and-refresh-button)"/></g><g clip-path="url(#e)"><path d="M93.98 69.167c-1.71 0-3.168-.598-4.376-1.792-1.194-1.208-1.791-2.667-1.791-4.375 0-1.708.597-3.16 1.791-4.354 1.209-1.209 2.667-1.813 4.375-1.813.93 0 1.792.195 2.584.584a6.203 6.203 0 0 1 2.041 1.541v-2.125h1.584v5.25h-5.25V60.5h2.708a4.378 4.378 0 0 0-3.667-1.938c-1.236 0-2.285.431-3.146 1.292-.86.861-1.291 1.91-1.291 3.146s.43 2.285 1.291 3.146c.861.86 1.91 1.291 3.146 1.291 1.153 0 2.14-.374 2.959-1.124a4.404 4.404 0 0 0 1.416-2.813h1.771c-.125 1.597-.778 2.944-1.958 4.042-1.167 1.083-2.563 1.625-4.188 1.625Z" fill="var(--color-side-panel-customize-chrome-mini-ntp-arrows-and-refresh-button)"/></g><path d="M120 63c0-7.18 5.82-13 13-13h107v26H133c-7.18 0-13-5.82-13-13Z" fill="var(--color-side-panel-customize-chrome-mini-ntp-omnibox)"/><path d="M40 16c0-5.523 4.477-10 10-10h190v34H40V16Z" fill="var(--color-side-panel-customize-chrome-mini-ntp-background)"/><path fill-rule="evenodd" clip-rule="evenodd" d="M40 28v12H28c6.627 0 12-5.373 12-12Z" fill="var(--color-side-panel-customize-chrome-mini-ntp-background)"/><g clip-path="url(#f)"><g clip-path="url(#g)"><path d="M53.25 20c0 .76.27 1.4.81 1.94s1.19.81 1.94.81 1.4-.27 1.94-.81.81-1.19.81-1.94-.27-1.4-.81-1.94-1.19-.81-1.94-.81-1.4.27-1.94.81-.81 1.19-.81 1.94ZM56 24.25c.15 0 .3 0 .44-.02.14-.01.28-.04.42-.07L55.22 27c-1.76-.2-3.24-.95-4.43-2.26C49.6 23.42 49 21.86 49 20.05c0-.49.05-.96.14-1.42.09-.47.23-.91.42-1.33l2.8 4.85c.36.63.86 1.14 1.5 1.52.64.38 1.35.58 2.14.58Zm0-8.4c-.93 0-1.76.27-2.48.82-.72.54-1.23 1.23-1.51 2.07l-1.65-2.84c.64-.86 1.45-1.55 2.42-2.07.98-.53 2.05-.79 3.22-.79 1.17 0 2.22.26 3.19.77.97.5 1.77 1.18 2.42 2.03h-5.6l-.01.01Zm6.41 1.4c.2.43.34.88.44 1.35.1.47.16.95.16 1.45 0 1.81-.59 3.37-1.79 4.67-1.18 1.31-2.64 2.06-4.37 2.27l2.8-4.85c.18-.3.31-.63.4-.98.1-.36.16-.74.16-1.12 0-.55-.1-1.06-.3-1.52-.19-.48-.45-.9-.79-1.28h3.29v.01Z" fill="var(--color-side-panel-customize-chrome-mini-ntp-chrome-logo)"/></g></g><path fill="var(--color-side-panel-customize-chrome-mini-ntp-border)" d="M0 86h240v-1H0z"/></g><defs><clipPath id="a"><path fill="var(--color-side-panel-customize-chrome-mini-ntp-background)" d="M0 0h240v126H0z"/></clipPath><clipPath id="b"><path fill="var(--color-side-panel-customize-chrome-mini-ntp-background)" transform="rotate(-90 20 8)" d="M0 0h16v16H0z"/></clipPath><clipPath id="c"><path fill="var(--color-side-panel-customize-chrome-mini-ntp-background)" transform="translate(12 53)" d="M0 0h20v20H0z"/></clipPath><clipPath id="d"><path fill="var(--color-side-panel-customize-chrome-mini-ntp-background)" transform="translate(48 53)" d="M0 0h20v20H0z"/></clipPath><clipPath id="e"><path fill="var(--color-side-panel-customize-chrome-mini-ntp-background)" transform="translate(84 53)" d="M0 0h20v20H0z"/></clipPath><clipPath id="f"><path fill="var(--color-side-panel-customize-chrome-mini-ntp-background)" transform="translate(48 12)" d="M0 0h16v16H0z"/></clipPath><clipPath id="g"><path fill="var(--color-side-panel-customize-chrome-mini-ntp-background)" transform="translate(48 12)" d="M0 0h16v16H0z"/></clipPath></defs></svg>
+\ No newline at end of file
++<svg id="miniNewTabPage" width="240" height="126" viewBox="0 0 240 126" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#a)"><path fill="var(--color-side-panel-customize-chrome-mini-ntp-background)" d="M0 0h240v126H0z"/><path d="M0 0h240v40H0V0Z" fill="var(--color-side-panel-customize-chrome-mini-ntp-tab-strip-background)"/><rect x="6" y="6" width="28" height="28" rx="10" fill="var(--color-side-panel-customize-chrome-mini-ntp-caron-container)"/><g clip-path="url(#b)"><path d="m24 19-4 4-4-4 1.06-1.06L20 20.88l2.94-2.94L24 19Z" fill="var(--color-side-panel-customize-chrome-mini-ntp-caron)"/></g><path fill="var(--color-side-panel-customize-chrome-mini-ntp-background)" d="M0 86h240v40H0zm0-38a8 8 0 0 1 8-8h224a8 8 0 0 1 8 8v38H0V48Z"/><g clip-path="url(#c)"><path d="M22 69.083 15.917 63 22 56.917l1.23 1.229-3.98 3.979h8.833v1.75H19.25l3.98 3.98L22 69.082Z" fill="var(--color-side-panel-customize-chrome-mini-ntp-arrows-and-refresh-button)"/></g><g clip-path="url(#d)"><path d="m58 69.083-1.23-1.229 3.98-3.979h-8.833v-1.75h8.833l-3.98-3.98L58 56.918 64.083 63 58 69.083Z" fill="var(--color-side-panel-customize-chrome-mini-ntp-arrows-and-refresh-button)"/></g><g clip-path="url(#e)"><path d="M93.98 69.167c-1.71 0-3.168-.598-4.376-1.792-1.194-1.208-1.791-2.667-1.791-4.375 0-1.708.597-3.16 1.791-4.354 1.209-1.209 2.667-1.813 4.375-1.813.93 0 1.792.195 2.584.584a6.203 6.203 0 0 1 2.041 1.541v-2.125h1.584v5.25h-5.25V60.5h2.708a4.378 4.378 0 0 0-3.667-1.938c-1.236 0-2.285.431-3.146 1.292-.86.861-1.291 1.91-1.291 3.146s.43 2.285 1.291 3.146c.861.86 1.91 1.291 3.146 1.291 1.153 0 2.14-.374 2.959-1.124a4.404 4.404 0 0 0 1.416-2.813h1.771c-.125 1.597-.778 2.944-1.958 4.042-1.167 1.083-2.563 1.625-4.188 1.625Z" fill="var(--color-side-panel-customize-chrome-mini-ntp-arrows-and-refresh-button)"/></g><path d="M120 63c0-7.18 5.82-13 13-13h107v26H133c-7.18 0-13-5.82-13-13Z" fill="var(--color-side-panel-customize-chrome-mini-ntp-omnibox)"/><path d="M40 16c0-5.523 4.477-10 10-10h190v34H40V16Z" fill="var(--color-side-panel-customize-chrome-mini-ntp-background)"/><path fill-rule="evenodd" clip-rule="evenodd" d="M40 28v12H28c6.627 0 12-5.373 12-12Z" fill="var(--color-side-panel-customize-chrome-mini-ntp-background)"/><g clip-path="url(#f)"><g clip-path="url(#g)"><path transform="translate(48 12)" d="M12.95 3.05A7 7 0 1 0 12.95 12.95L11.3 11.3A4.67 4.67 0 1 1 11.3 4.7ZM8 5.67a2.33 2.33 0 1 1 0 4.66a2.33 2.33 0 1 1 0-4.66Z" fill="var(--color-side-panel-customize-chrome-mini-ntp-chrome-logo)"/></g></g><path fill="var(--color-side-panel-customize-chrome-mini-ntp-border)" d="M0 86h240v-1H0z"/></g><defs><clipPath id="a"><path fill="var(--color-side-panel-customize-chrome-mini-ntp-background)" d="M0 0h240v126H0z"/></clipPath><clipPath id="b"><path fill="var(--color-side-panel-customize-chrome-mini-ntp-background)" transform="rotate(-90 20 8)" d="M0 0h16v16H0z"/></clipPath><clipPath id="c"><path fill="var(--color-side-panel-customize-chrome-mini-ntp-background)" transform="translate(12 53)" d="M0 0h20v20H0z"/></clipPath><clipPath id="d"><path fill="var(--color-side-panel-customize-chrome-mini-ntp-background)" transform="translate(48 53)" d="M0 0h20v20H0z"/></clipPath><clipPath id="e"><path fill="var(--color-side-panel-customize-chrome-mini-ntp-background)" transform="translate(84 53)" d="M0 0h20v20H0z"/></clipPath><clipPath id="f"><path fill="var(--color-side-panel-customize-chrome-mini-ntp-background)" transform="translate(48 12)" d="M0 0h16v16H0z"/></clipPath><clipPath id="g"><path fill="var(--color-side-panel-customize-chrome-mini-ntp-background)" transform="translate(48 12)" d="M0 0h16v16H0z"/></clipPath></defs></svg>
+\ No newline at end of file
+diff --git a/chrome/browser/resources/webui_toolbar/icons.ts b/chrome/browser/resources/webui_toolbar/icons.ts
+index 7e03659f08d..2565defb2d0 100644
+--- a/chrome/browser/resources/webui_toolbar/icons.ts
++++ b/chrome/browser/resources/webui_toolbar/icons.ts
+@@ -29,7 +29,7 @@ iconset.registerIcons(
+           getTrustedHTML`<svg><g id="cast_warning" viewBox="0 0 20 20"><path d="M 10 10 Z m 6.5 6 h -4.29 c -0.21 0 -0.39 -0.07 -0.53 -0.21 a 0.72 0.72 0 0 1 -0.22 -0.53 c 0 -0.21 0.07 -0.39 0.22 -0.53 a 0.72 0.72 0 0 1 0.53 -0.22 H 16.5 v -2.75 c 0 -0.21 0.07 -0.39 0.22 -0.53 a 0.71 0.71 0 0 1 0.53 -0.21 c 0.21 0 0.39 0.07 0.54 0.22 a 0.73 0.73 0 0 1 0.22 0.54 v 2.75 c 0 0.41 -0.15 0.77 -0.44 1.06 A 1.44 1.44 0 0 1 16.5 16 Z M 2.75 6.63 c -0.21 0 -0.39 -0.07 -0.53 -0.21 A 0.73 0.73 0 0 1 2 5.88 V 5.5 c 0 -0.41 0.15 -0.77 0.44 -1.06 A 1.44 1.44 0 0 1 3.5 4 h 4.75 c 0.21 0 0.39 0.07 0.54 0.22 c 0.14 0.14 0.22 0.32 0.22 0.53 c 0 0.21 -0.07 0.39 -0.21 0.54 a 0.73 0.73 0 0 1 -0.53 0.22 H 3.5 v 0.38 c 0 0.21 -0.07 0.39 -0.21 0.54 a 0.71 0.71 0 0 1 -0.53 0.22 Z m 8.91 1.7 A 3.87 3.87 0 0 1 10.5 5.5 c 0 -1.11 0.39 -2.05 1.17 -2.83 A 3.87 3.87 0 0 1 14.5 1.5 c 1.11 0 2.05 0.39 2.83 1.17 A 3.87 3.87 0 0 1 18.5 5.5 c 0 1.11 -0.39 2.05 -1.17 2.83 A 3.87 3.87 0 0 1 14.5 9.5 c -1.11 0 -2.05 -0.39 -2.83 -1.17 Z M 14.5 7.5 a 0.49 0.49 0 0 0 0.35 -0.14 A 0.48 0.48 0 0 0 15 7 c 0 -0.14 -0.05 -0.26 -0.15 -0.35 A 0.49 0.49 0 0 0 14.5 6.5 a 0.49 0.49 0 0 0 -0.35 0.14 A 0.48 0.48 0 0 0 14 7 c 0 0.14 0.05 0.26 0.15 0.36 a 0.49 0.49 0 0 0 0.35 0.14 Z m 0 -2 c 0.13 0 0.25 -0.05 0.35 -0.15 A 0.49 0.49 0 0 0 15 5 V 4 c 0 -0.13 -0.05 -0.25 -0.15 -0.35 A 0.49 0.49 0 0 0 14.5 3.5 c -0.13 0 -0.25 0.05 -0.35 0.15 A 0.49 0.49 0 0 0 14 4 v 1 c 0 0.13 0.05 0.25 0.15 0.35 a 0.49 0.49 0 0 0 0.35 0.15 Z M 3 16 a 0.96 0.96 0 0 1 -0.71 -0.29 A 0.96 0.96 0 0 1 2 15 c 0 -0.28 0.1 -0.52 0.29 -0.71 A 0.96 0.96 0 0 1 3 14 c 0.28 0 0.52 0.1 0.71 0.29 c 0.2 0.19 0.29 0.43 0.29 0.71 a 0.96 0.96 0 0 1 -0.29 0.71 A 0.96 0.96 0 0 1 3 16 Z m 3.25 0 a 0.88 0.88 0 0 1 -0.53 -0.18 a 0.69 0.69 0 0 1 -0.28 -0.47 a 3.49 3.49 0 0 0 -0.98 -1.83 a 3.41 3.41 0 0 0 -1.84 -0.96 a 0.63 0.63 0 0 1 -0.46 -0.28 a 0.88 0.88 0 0 1 -0.17 -0.52 c 0 -0.2 0.06 -0.37 0.18 -0.53 a 0.48 0.48 0 0 1 0.47 -0.19 a 4.94 4.94 0 0 1 2.89 1.41 a 4.91 4.91 0 0 1 1.43 2.88 a 0.52 0.52 0 0 1 -0.18 0.48 a 0.79 0.79 0 0 1 -0.53 0.19 Z m 3 0 a 0.76 0.76 0 0 1 -0.52 -0.21 a 0.83 0.83 0 0 1 -0.27 -0.5 a 6.34 6.34 0 0 0 -1.87 -3.92 C 5.5 10.29 4.19 9.67 2.65 9.52 a 0.69 0.69 0 0 1 -0.47 -0.25 A 0.81 0.81 0 0 1 2 8.75 a 0.69 0.69 0 0 1 0.24 -0.53 a 0.66 0.66 0 0 1 0.56 -0.18 c 1.91 0.19 3.54 0.97 4.89 2.32 c 1.34 1.35 2.1 2.99 2.28 4.91 a 0.58 0.58 0 0 1 -0.17 0.51 a 0.73 0.73 0 0 1 -0.53 0.22 Z" fill="currentColor"/></g></svg>`,
+       'chat': () => getTrustedHTML`<svg><g id="chat" viewBox="0 0 20 20"><path d="m 5 15 l -1.73 1.73 c -0.24 0.24 -0.51 0.29 -0.82 0.16 c -0.3 -0.13 -0.46 -0.36 -0.46 -0.7 V 3.5 c 0 -0.41 0.15 -0.77 0.44 -1.06 A 1.44 1.44 0 0 1 3.5 2 h 13 c 0.41 0 0.77 0.15 1.06 0.44 c 0.29 0.29 0.44 0.65 0.44 1.06 v 10 c 0 0.41 -0.15 0.77 -0.44 1.06 A 1.44 1.44 0 0 1 16.5 15 Z m -0.62 -1.5 H 16.5 v -10 h -13 v 10.88 Z m -0.87 0 v -10 Z M 5.75 12 h 5.5 c 0.21 0 0.39 -0.07 0.54 -0.21 a 0.71 0.71 0 0 0 0.22 -0.53 c 0 -0.21 -0.07 -0.39 -0.21 -0.53 a 0.73 0.73 0 0 0 -0.53 -0.22 h -5.5 c -0.21 0 -0.39 0.07 -0.53 0.22 a 0.71 0.71 0 0 0 -0.21 0.53 c 0 0.21 0.07 0.39 0.22 0.54 A 0.73 0.73 0 0 0 5.75 12 Z m 0 -2.75 h 8.5 c 0.21 0 0.39 -0.07 0.54 -0.21 A 0.71 0.71 0 0 0 15 8.5 c 0 -0.21 -0.07 -0.39 -0.21 -0.53 a 0.73 0.73 0 0 0 -0.53 -0.22 h -8.5 c -0.21 0 -0.39 0.07 -0.53 0.22 A 0.71 0.71 0 0 0 5 8.5 c 0 0.21 0.07 0.39 0.22 0.54 a 0.73 0.73 0 0 0 0.54 0.22 Z m 0 -2.75 h 8.5 c 0.21 0 0.39 -0.07 0.54 -0.21 A 0.71 0.71 0 0 0 15 5.75 c 0 -0.21 -0.07 -0.39 -0.21 -0.53 A 0.73 0.73 0 0 0 14.25 5 h -8.5 c -0.21 0 -0.39 0.07 -0.53 0.22 A 0.71 0.71 0 0 0 5 5.75 c 0 0.21 0.07 0.39 0.22 0.54 a 0.73 0.73 0 0 0 0.54 0.22 Z" fill="currentColor"/></g></svg>`,
+       'chrome_product': () =>
+-          getTrustedHTML`<svg><g id="chrome_product" viewBox="0 0 24 24"><path d="M 9.18 14.9 c 0.78 0.79 1.72 1.18 2.82 1.18 c 1.1 0 2.04 -0.39 2.82 -1.18 c 0.79 -0.78 1.18 -1.72 1.18 -2.82 c 0 -1.1 -0.39 -2.04 -1.18 -2.82 c -0.78 -0.78 -1.72 -1.18 -2.82 -1.18 c -1.1 0 -2.04 0.39 -2.82 1.18 C 8.39 10.04 8 10.98 8 12.07 c 0 1.1 0.39 2.04 1.18 2.82 Z M 12 18.07 c 0.22 0 0.43 -0.01 0.63 -0.02 c 0.2 -0.02 0.4 -0.05 0.6 -0.1 L 10.88 22 c -2.52 -0.28 -4.62 -1.36 -6.32 -3.24 C 2.85 16.89 2 14.66 2 12.07 c 0 -0.7 0.07 -1.38 0.2 -2.03 c 0.13 -0.66 0.34 -1.29 0.6 -1.89 l 4 6.93 a 5.97 5.97 0 0 0 2.15 2.18 c 0.92 0.55 1.93 0.82 3.05 0.82 Z m 0 -12 c -1.33 0 -2.52 0.39 -3.55 1.16 C 7.42 8.01 6.7 9 6.3 10.2 L 3.95 6.15 a 10.3 10.3 0 0 1 3.46 -2.96 c 1.39 -0.74 2.92 -1.11 4.59 -1.11 c 1.65 0 3.17 0.36 4.55 1.09 A 10.17 10.17 0 0 1 20 6.07 Z m 9.15 2 c 0.29 0.62 0.5 1.26 0.64 1.93 c 0.14 0.67 0.21 1.36 0.21 2.07 c 0 2.59 -0.85 4.81 -2.54 6.68 c -1.69 1.87 -3.78 2.95 -6.26 3.25 l 4 -6.93 c 0.25 -0.43 0.45 -0.9 0.59 -1.41 c 0.14 -0.51 0.21 -1.04 0.21 -1.59 c 0 -0.78 -0.14 -1.51 -0.41 -2.19 a 6.07 6.07 0 0 0 -1.14 -1.81 Z" fill="currentColor"/></g></svg>`,
++          getTrustedHTML`<svg><g id="chrome_product" viewBox="0 0 24 24"><path d="M19.43 4.57A10.5 10.5 0 1 0 19.43 19.43L16.95 16.95A7 7 0 1 1 16.95 7.05ZM12 8.5a3.5 3.5 0 1 1 0 7a3.5 3.5 0 1 1 0-7Z" fill="currentColor"/></g></svg>`,
+       'close': () =>
+           getTrustedHTML`<svg><g id="close" viewBox="0 0 24 24"><path d="m 12 13.4 l -4.9 4.9 a 0.95 0.95 0 0 1 -0.7 0.27 a 0.95 0.95 0 0 1 -0.7 -0.27 a 0.95 0.95 0 0 1 -0.27 -0.7 c 0 -0.28 0.09 -0.52 0.27 -0.7 L 10.6 12 L 5.7 7.1 a 0.95 0.95 0 0 1 -0.27 -0.7 c 0 -0.28 0.09 -0.51 0.27 -0.7 a 0.95 0.95 0 0 1 0.7 -0.27 c 0.28 0 0.52 0.09 0.7 0.27 L 12 10.6 l 4.9 -4.9 a 0.95 0.95 0 0 1 0.7 -0.27 c 0.28 0 0.52 0.09 0.7 0.27 a 0.95 0.95 0 0 1 0.27 0.7 a 0.95 0.95 0 0 1 -0.27 0.7 L 13.4 12 l 4.9 4.9 a 0.95 0.95 0 0 1 0.27 0.7 c 0 0.28 -0.09 0.52 -0.27 0.7 a 0.95 0.95 0 0 1 -0.7 0.27 a 0.95 0.95 0 0 1 -0.7 -0.27 Z" fill="currentColor"/></g></svg>`,
+       'code': () =>
+diff --git a/chrome/browser/shell_integration_linux.cc b/chrome/browser/shell_integration_linux.cc
+index 2c071e6ba81..057cdda1a13 100644
+--- a/chrome/browser/shell_integration_linux.cc
++++ b/chrome/browser/shell_integration_linux.cc
+@@ -471,7 +471,7 @@ std::string GetIconName() {
+ #if BUILDFLAG(GOOGLE_CHROME_BRANDING)
+   return "google-chrome";
+ #else  // BUILDFLAG(CHROMIUM_BRANDING)
+-  return "chromium-browser";
++  return "chromium-gost";
+ #endif
+ }
+ 
+diff --git a/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc b/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
+index 8dac79b3147..fdfc46aa227 100644
+--- a/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
++++ b/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
+@@ -210,8 +210,13 @@ SkColor BrowserAppMenuButton::GetForegroundColor(ButtonState state) const {
+ }
+ 
+ void BrowserAppMenuButton::UpdateTextAndHighlightColor() {
+-  const std::u16string text = AppMenuIconController::GetIconLabel(
++  std::u16string text = AppMenuIconController::GetIconLabel(
+       type_and_severity_.type, type_and_severity_.severity);
++  if (type_and_severity_.severity != AppMenuIconController::Severity::kNone &&
++      type_and_severity_.type !=
++          AppMenuIconController::IconType::kUpgradeNotification) {
++    text = u"!";
++  }
+   SetTooltipText(AppMenuIconController::GetIconTooltip(
+       type_and_severity_.type, type_and_severity_.severity));
+   SetHighlight(text, GetHighlightColor());
+diff --git a/chrome/common/channel_info_posix.cc b/chrome/common/channel_info_posix.cc
+index f6bcb3cc8e8..dc53b2f53f8 100644
+--- a/chrome/common/channel_info_posix.cc
++++ b/chrome/common/channel_info_posix.cc
+@@ -148,7 +148,7 @@ std::string GetDesktopName(base::Environment* env) {
+   if (name.has_value() && !name.value().empty()) {
+     return name.value();
+   }
+-  return "chromium-browser.desktop";
++  return "chromium-gost.desktop";
+ #endif
+ }
+ #endif  // BUILDFLAG(IS_LINUX)
+diff --git a/chrome/installer/linux/BUILD.gn b/chrome/installer/linux/BUILD.gn
+index f7b8679690f..4c76e864197 100644
+--- a/chrome/installer/linux/BUILD.gn
++++ b/chrome/installer/linux/BUILD.gn
+@@ -313,7 +313,7 @@ action("deb_repo_package") {
+   if (is_chrome_branded) {
+     package = "google-chrome-repo"
+   } else {
+-    package = "chromium-browser-repo"
++    package = "chromium-gost-repo"
+   }
+ 
+   outputs = [ "$root_out_dir/${package}_${deb_arch}.deb" ]
+@@ -398,6 +398,9 @@ copy("theme_files") {
+     "$branding_dir_100/linux/product_logo_16.png",
+     "$branding_dir_100/linux/product_logo_32.png",
+   ]
++  if (!is_chrome_branded) {
++    sources += [ "$branding_dir/linux/product_logo_symbolic.svg" ]
++  }
+   if (is_chrome_branded) {
+     sources += [
+       "$branding_dir/linux/product_logo_128_beta.png",
+@@ -540,7 +543,7 @@ template("linux_package") {
+   if (is_chrome_branded) {
+     package = "google-chrome"
+   } else {
+-    package = "chromium-browser"
++    package = "chromium-gost"
+   }
+ 
+   deb_target_name = "${target_name}_deb"
+diff --git a/chrome/installer/linux/common/chromium-browser.info b/chrome/installer/linux/common/chromium-browser.info
+index 395c019f7dd..91fa16c4ed3 100644
+--- a/chrome/installer/linux/common/chromium-browser.info
++++ b/chrome/installer/linux/common/chromium-browser.info
+@@ -6,25 +6,25 @@
+ # chromium-browser packages for various platforms.
+ 
+ # Base name of the package.
+-PACKAGE="chromium-browser"
++PACKAGE="chromium-gost"
+ 
+ # Filename of the main executable (for generating launcher scripts, etc.)
+ PROGNAME=chrome
+ 
+ # Base directory for package installation.
+-INSTALLDIR=/opt/chromium.org/chromium
++INSTALLDIR=/opt/chromium-gost
+ 
+ # Directory for device policy enrollments.
+ ENROLLMENTDIR=/etc/chromium/policies/enrollment
+ 
+ # Display string for desktop menu/icon.
+-MENUNAME="Chromium Web Browser"
++MENUNAME="Chromium-Gost"
+ 
+ # Brief package description.
+-SHORTDESC="The web browser from the Chromium projects"
++SHORTDESC="Chromium browser with GOST cryptography support"
+ 
+ # Detailed package description.
+-FULLDESC="Chromium is a browser that combines a minimal design with sophisticated technology to make the web faster, safer, and easier."
++FULLDESC="Chromium is a browser that combines a minimal design with sophisticated technology to make the web faster, safer, and easier. This version supports GOST cryptography in TLS-connections."
+ 
+ # Package maintainer information.
+ MAINTNAME="Chromium Linux Team"
+diff --git a/chrome/installer/linux/common/installer.py b/chrome/installer/linux/common/installer.py
+index 7646f80c840..d279483191a 100644
+--- a/chrome/installer/linux/common/installer.py
++++ b/chrome/installer/linux/common/installer.py
+@@ -800,6 +800,18 @@ class InstallerConfig:
+                 dst_base="staging_dir",
+             ))
+ 
++        # symbolic icon for desktop shells that draw monochrome app icons
++        if self.branding != "google_chrome":
++            artifacts.append(
++                Artifact(
++                    "installer/theme/product_logo_symbolic.svg",
++                    pathlib.Path("usr/share/icons/hicolor/symbolic/apps") /
++                    f"{self.info_vars['PACKAGE']}-symbolic.svg",
++                    ArtifactType.RESOURCE,
++                    StandardPermissions.REGULAR,
++                    dst_base="staging_dir",
++                ))
++
+         # desktop file
+         self.extra_desktop_entries = ""
+         artifacts.append(
+@@ -908,6 +920,7 @@ class Installer:
+             (self.config.staging_dir /
+              "usr/share/gnome-control-center/default-apps"),
+             self.config.staging_dir / "usr/share/man/man1",
++            self.config.staging_dir / "usr/share/icons/hicolor/symbolic/apps",
+             install_dir / "apparmor.d",
+         ]
+         for d in dirs:
+diff --git a/chrome/installer/linux/debian/build_repo_package.py b/chrome/installer/linux/debian/build_repo_package.py
+index 2e1a450fe7d..a704e36d061 100755
+--- a/chrome/installer/linux/debian/build_repo_package.py
++++ b/chrome/installer/linux/debian/build_repo_package.py
+@@ -53,8 +53,8 @@ def main() -> None:
+         config.info_vars["INSTALLDIR"] = "/opt/google/chrome-repo"
+         config.info_vars["PACKAGE"] = "google-chrome-repo"
+     else:
+-        config.info_vars["INSTALLDIR"] = "/opt/chromium.org/chromium-repo"
+-        config.info_vars["PACKAGE"] = "chromium-browser-repo"
++        config.info_vars["INSTALLDIR"] = "/opt/chromium-gost-repo"
++        config.info_vars["PACKAGE"] = "chromium-gost-repo"
+ 
+     config.channel = "repo"
+ 
+diff --git a/chrome/installer/linux/rpm/chrome.spec.template b/chrome/installer/linux/rpm/chrome.spec.template
+index c76a259c77f..a30dda5cfe6 100644
+--- a/chrome/installer/linux/rpm/chrome.spec.template
++++ b/chrome/installer/linux/rpm/chrome.spec.template
+@@ -92,6 +92,7 @@ rm -rf "$RPM_BUILD_ROOT"
+ /usr/share/applications/@@PACKAGE.desktop
+ /usr/share/applications/@@rdn_desktop.desktop
+ /usr/share/gnome-control-center/default-apps/@@PACKAGE.xml
++/usr/share/icons/hicolor/symbolic/apps/@@PACKAGE-symbolic.svg
+ %docdir /usr/share/man/man1
+ # These two files will be the same on non-stable channels.
+ /usr/share/man/man1/@@PACKAGE.1.gz
+diff --git a/components/embedder_support/user_agent_utils.cc b/components/embedder_support/user_agent_utils.cc
+index 3f87ec84fb3..7f6febaf576 100644
+--- a/components/embedder_support/user_agent_utils.cc
++++ b/components/embedder_support/user_agent_utils.cc
+@@ -925,7 +925,7 @@ std::string BuildUserAgentFromOSAndProduct(const std::string& os_info,
+   // compatible with Safari, we hope!!
+   std::string user_agent;
+   base::StringAppendF(&user_agent,
+-                      "Mozilla/5.0 (%s) AppleWebKit/537.36 (KHTML, like Gecko) "
++                      "Mozilla/5.0 (%s; Chromium GOST) AppleWebKit/537.36 (KHTML, like Gecko) "
+                       "%s Safari/537.36",
+                       os_info.c_str(), product.c_str());
+   return user_agent;
+diff --git a/components/omnibox/browser/vector_icons/chrome_product.icon b/components/omnibox/browser/vector_icons/chrome_product.icon
+index bf0481342d6..5fee16f8e0a 100644
+--- a/components/omnibox/browser/vector_icons/chrome_product.icon
++++ b/components/omnibox/browser/vector_icons/chrome_product.icon
+@@ -3,46 +3,9 @@
+ // found in the LICENSE file.
+ 
+ CANVAS_DIMENSIONS, 24,
+-FILL_RULE_NONZERO,
+-MOVE_TO, 9.18f, 14.9f,
+-R_CUBIC_TO, 0.78f, 0.79f, 1.72f, 1.18f, 2.82f, 1.18f,
+-R_CUBIC_TO, 1.1f, 0, 2.04f, -0.39f, 2.82f, -1.18f,
+-R_CUBIC_TO, 0.79f, -0.78f, 1.18f, -1.72f, 1.18f, -2.82f,
+-R_CUBIC_TO, 0, -1.1f, -0.39f, -2.04f, -1.18f, -2.82f,
+-R_CUBIC_TO, -0.78f, -0.78f, -1.72f, -1.18f, -2.82f, -1.18f,
+-R_CUBIC_TO, -1.1f, 0, -2.04f, 0.39f, -2.82f, 1.18f,
+-CUBIC_TO, 8.39f, 10.04f, 8, 10.98f, 8, 12.07f,
+-R_CUBIC_TO, 0, 1.1f, 0.39f, 2.04f, 1.18f, 2.82f,
++MOVE_TO, 19.42f, 4.57f,
++ARC_TO, 10.5f, 10.5f, 0, 1, 0, 19.42f, 19.42f,
++LINE_TO, 16.95f, 16.95f,
++ARC_TO, 7, 7, 0, 1, 1, 16.95f, 7.05f,
+ CLOSE,
+-MOVE_TO, 12, 18.07f,
+-R_CUBIC_TO, 0.22f, 0, 0.43f, -0.01f, 0.63f, -0.02f,
+-R_CUBIC_TO, 0.2f, -0.02f, 0.4f, -0.05f, 0.6f, -0.1f,
+-LINE_TO, 10.88f, 22,
+-R_CUBIC_TO, -2.52f, -0.28f, -4.62f, -1.36f, -6.32f, -3.24f,
+-CUBIC_TO, 2.85f, 16.89f, 2, 14.66f, 2, 12.07f,
+-R_CUBIC_TO, 0, -0.7f, 0.07f, -1.38f, 0.2f, -2.03f,
+-R_CUBIC_TO, 0.13f, -0.66f, 0.34f, -1.29f, 0.6f, -1.89f,
+-R_LINE_TO, 4, 6.93f,
+-R_ARC_TO, 5.97f, 5.97f, 0, 0, 0, 2.15f, 2.18f,
+-R_CUBIC_TO, 0.92f, 0.55f, 1.93f, 0.82f, 3.05f, 0.82f,
+-CLOSE,
+-R_MOVE_TO, 0, -12,
+-R_CUBIC_TO, -1.33f, 0, -2.52f, 0.39f, -3.55f, 1.16f,
+-CUBIC_TO, 7.42f, 8.01f, 6.7f, 9, 6.3f, 10.2f,
+-LINE_TO, 3.95f, 6.15f,
+-R_ARC_TO, 10.3f, 10.3f, 0, 0, 1, 3.46f, -2.96f,
+-R_CUBIC_TO, 1.39f, -0.74f, 2.92f, -1.11f, 4.59f, -1.11f,
+-R_CUBIC_TO, 1.65f, 0, 3.17f, 0.36f, 4.55f, 1.09f,
+-ARC_TO, 10.17f, 10.17f, 0, 0, 1, 20, 6.07f,
+-CLOSE,
+-R_MOVE_TO, 9.15f, 2,
+-R_CUBIC_TO, 0.29f, 0.62f, 0.5f, 1.26f, 0.64f, 1.93f,
+-R_CUBIC_TO, 0.14f, 0.67f, 0.21f, 1.36f, 0.21f, 2.07f,
+-R_CUBIC_TO, 0, 2.59f, -0.85f, 4.81f, -2.54f, 6.68f,
+-R_CUBIC_TO, -1.69f, 1.87f, -3.78f, 2.95f, -6.26f, 3.25f,
+-R_LINE_TO, 4, -6.93f,
+-R_CUBIC_TO, 0.25f, -0.43f, 0.45f, -0.9f, 0.59f, -1.41f,
+-R_CUBIC_TO, 0.14f, -0.51f, 0.21f, -1.04f, 0.21f, -1.59f,
+-R_CUBIC_TO, 0, -0.78f, -0.14f, -1.51f, -0.41f, -2.19f,
+-R_ARC_TO, 6.07f, 6.07f, 0, 0, 0, -1.14f, -1.81f,
+-CLOSE
++CIRCLE, 12, 12, 3.5f
+diff --git a/components/omnibox/browser/vector_icons/product_chrome_refresh_old.icon b/components/omnibox/browser/vector_icons/product_chrome_refresh_old.icon
+index 5c35bda0d73..bdf4ef15db6 100644
+--- a/components/omnibox/browser/vector_icons/product_chrome_refresh_old.icon
++++ b/components/omnibox/browser/vector_icons/product_chrome_refresh_old.icon
+@@ -3,49 +3,9 @@
+ // found in the LICENSE file.
+ 
+ CANVAS_DIMENSIONS, 15,
+-MOVE_TO, 4.92, 7.5,
+-R_CUBIC_TO, 0, 0.71, 0.25, 1.31, 0.76, 1.82,
+-R_CUBIC_TO, 0.51, 0.51, 1.12, 0.76, 1.82, 0.76,
+-R_CUBIC_TO, 0.7, 0, 1.31, -0.25, 1.82, -0.76,
+-R_CUBIC_TO, 0.51, -0.51, 0.76, -1.12, 0.76, -1.82,
+-R_CUBIC_TO, 0, -0.7, -0.25, -1.31, -0.76, -1.82,
+-R_ARC_TO, 2.49, 2.49, 0, 0, 0, -1.82, -0.76,
+-R_CUBIC_TO, -0.7, 0, -1.31, 0.25, -1.82, 0.76,
+-R_ARC_TO, 2.49, 2.49, 0, 0, 0, -0.76, 1.82,
++MOVE_TO, 12.14f, 2.86f,
++ARC_TO, 6.56f, 6.56f, 0, 1, 0, 12.14f, 12.14f,
++LINE_TO, 10.59f, 10.59f,
++ARC_TO, 4.38f, 4.38f, 0, 1, 1, 10.59f, 4.41f,
+ CLOSE,
+-MOVE_TO, 7.5, 11.48,
+-R_CUBIC_TO, 0.14, 0, 0.28, 0, 0.41, -0.02,
+-R_CUBIC_TO, 0.13, -0.01, 0.26, -0.04, 0.39, -0.07,
+-LINE_TO, 6.77, 14.06,
+-R_CUBIC_TO, -1.65, -0.19, -3.04, -0.89, -4.15, -2.12,
+-CUBIC_TO, 1.5, 10.71, 0.94, 9.24, 0.94, 7.55,
+-R_CUBIC_TO, 0, -0.46, 0.05, -0.9, 0.13, -1.33,
+-R_CUBIC_TO, 0.08, -0.44, 0.22, -0.85, 0.39, -1.25,
+-R_LINE_TO, 2.63, 4.55,
+-R_CUBIC_TO, 0.34, 0.59, 0.81, 1.07, 1.41, 1.43,
+-R_CUBIC_TO, 0.6, 0.36, 1.26, 0.54, 2.01, 0.54,
+-CLOSE,
+-R_MOVE_TO, 0, -7.87,
+-R_CUBIC_TO, -0.87, 0, -1.65, 0.25, -2.33, 0.77,
+-R_ARC_TO, 3.95, 3.95, 0, 0, 0, -1.42, 1.94,
+-LINE_TO, 2.21, 3.66,
+-R_ARC_TO, 6.79, 6.79, 0, 0, 1, 2.27, -1.94,
+-CUBIC_TO, 5.4, 1.22, 6.4, 0.98, 7.5, 0.98,
+-R_CUBIC_TO, 1.1, 0, 2.08, 0.24, 2.99, 0.72,
+-ARC_TO, 6.66, 6.66, 0, 0, 1, 12.76, 3.6,
+-H_LINE_TO, 7.51,
+-R_LINE_TO, -0.01, 0.01,
+-CLOSE,
+-R_MOVE_TO, 6.01, 1.31,
+-R_CUBIC_TO, 0.19, 0.4, 0.32, 0.83, 0.41, 1.27,
+-R_CUBIC_TO, 0.09, 0.44, 0.15, 0.89, 0.15, 1.36,
+-R_CUBIC_TO, 0, 1.7, -0.55, 3.16, -1.68, 4.38,
+-R_CUBIC_TO, -1.11, 1.23, -2.47, 1.93, -4.1, 2.13,
+-R_LINE_TO, 2.63, -4.55,
+-R_CUBIC_TO, 0.17, -0.28, 0.29, -0.59, 0.38, -0.92,
+-R_CUBIC_TO, 0.09, -0.34, 0.15, -0.69, 0.15, -1.05,
+-R_CUBIC_TO, 0, -0.52, -0.09, -0.99, -0.28, -1.42,
+-R_ARC_TO, 3.96, 3.96, 0, 0, 0, -0.74, -1.2,
+-R_H_LINE_TO, 3.08,
+-R_V_LINE_TO, 0.01,
+-CLOSE
++CIRCLE, 7.5f, 7.5f, 2.18f
+diff --git a/components/omnibox/browser/vector_icons/product_old.icon b/components/omnibox/browser/vector_icons/product_old.icon
+index 89336fe4345..cb157b13f83 100644
+--- a/components/omnibox/browser/vector_icons/product_old.icon
++++ b/components/omnibox/browser/vector_icons/product_old.icon
+@@ -3,89 +3,9 @@
+ // found in the LICENSE file.
+ 
+ CANVAS_DIMENSIONS, 32,
+-MOVE_TO, 8.82, 14.1,
+-CUBIC_TO, 9.25, 12.52, 10.18, 11.12, 11.48, 10.13,
+-CUBIC_TO, 12.77, 9.13, 14.36, 8.59, 16, 8.59,
+-H_LINE_TO, 27.85,
+-CUBIC_TO, 26.65, 6.68, 25.02, 5.09, 23.08, 3.95,
+-CUBIC_TO, 21.14, 2.81, 18.96, 2.16, 16.71, 2.04,
+-CUBIC_TO, 14.47, 1.93, 12.23, 2.36, 10.18, 3.3,
+-CUBIC_TO, 8.14, 4.23, 6.35, 5.65, 4.97, 7.43,
+-LINE_TO, 8.82, 14.1,
++MOVE_TO, 25.9f, 6.1f,
++ARC_TO, 14, 14, 0, 1, 0, 25.9f, 25.9f,
++LINE_TO, 22.6f, 22.6f,
++ARC_TO, 9.34f, 9.34f, 0, 1, 1, 22.6f, 9.4f,
+ CLOSE,
+-NEW_PATH,
+-MOVE_TO, 17.92, 23.2,
+-CUBIC_TO, 16.34, 23.63, 14.66, 23.53, 13.15, 22.9,
+-CUBIC_TO, 11.64, 22.28, 10.38, 21.16, 9.56, 19.74,
+-LINE_TO, 9.56, 19.75,
+-LINE_TO, 3.63, 9.48,
+-CUBIC_TO, 2.58, 11.47, 2.02, 13.68, 2, 15.93,
+-CUBIC_TO, 1.98, 18.18, 2.51, 20.4, 3.54, 22.4,
+-CUBIC_TO, 4.56, 24.4, 6.05, 26.13, 7.89, 27.43,
+-CUBIC_TO, 9.72, 28.73, 11.84, 29.57, 14.07, 29.88,
+-LINE_TO, 17.92, 23.2,
+-CLOSE,
+-NEW_PATH,
+-MOVE_TO, 21.27, 10.78,
+-CUBIC_TO, 22.42, 11.93, 23.16, 13.44, 23.38, 15.06,
+-CUBIC_TO, 23.59, 16.68, 23.26, 18.33, 22.44, 19.74,
+-LINE_TO, 22.44, 19.75,
+-LINE_TO, 16.52, 30,
+-CUBIC_TO, 18.77, 29.92, 20.97, 29.3, 22.92, 28.19,
+-CUBIC_TO, 24.88, 27.08, 26.53, 25.52, 27.76, 23.63,
+-CUBIC_TO, 28.98, 21.74, 29.73, 19.59, 29.94, 17.35,
+-CUBIC_TO, 30.15, 15.11, 29.82, 12.86, 28.97, 10.78,
+-H_LINE_TO, 21.27,
+-CLOSE,
+-NEW_PATH,
+-MOVE_TO, 16, 21.28,
+-CUBIC_TO, 18.9, 21.28, 21.25, 18.93, 21.25, 16.03,
+-CUBIC_TO, 21.25, 13.13, 18.9, 10.78, 16, 10.78,
+-CUBIC_TO, 13.1, 10.78, 10.75, 13.13, 10.75, 16.03,
+-CUBIC_TO, 10.75, 18.93, 13.1, 21.28, 16, 21.28,
+-CLOSE,
+-NEW_PATH
+-
+-CANVAS_DIMENSIONS, 16,
+-MOVE_TO, 10.93, 5.38,
+-CUBIC_TO, 11.49, 5.99, 11.83, 6.77, 11.92, 7.59,
+-CUBIC_TO, 12, 8.42, 11.82, 9.25, 11.41, 9.97,
+-H_LINE_TO, 11.41,
+-LINE_TO, 8.52, 14.98,
+-CUBIC_TO, 9.62, 14.9, 10.68, 14.56, 11.62, 13.99,
+-CUBIC_TO, 12.57, 13.42, 13.36, 12.63, 13.94, 11.7,
+-CUBIC_TO, 14.53, 10.76, 14.88, 9.7, 14.97, 8.6,
+-CUBIC_TO, 15.07, 7.5, 14.9, 6.4, 14.49, 5.38,
+-H_LINE_TO, 10.93,
+-CLOSE,
+-NEW_PATH,
+-MOVE_TO, 4.26, 6.77,
+-CUBIC_TO, 4.52, 5.98, 5.02, 5.3, 5.69, 4.81,
+-CUBIC_TO, 6.36, 4.32, 7.17, 4.06, 8, 4.06,
+-H_LINE_TO, 13.79,
+-CUBIC_TO, 13.17, 3.15, 12.34, 2.4, 11.37, 1.87,
+-CUBIC_TO, 10.41, 1.34, 9.33, 1.04, 8.23, 1,
+-CUBIC_TO, 7.13, 0.97, 6.03, 1.19, 5.03, 1.66,
+-CUBIC_TO, 4.04, 2.13, 3.16, 2.82, 2.48, 3.69,
+-LINE_TO, 4.26, 6.77,
+-CLOSE,
+-NEW_PATH,
+-MOVE_TO, 8.81, 11.85,
+-CUBIC_TO, 7.99, 12.02, 7.15, 11.93, 6.39, 11.59,
+-CUBIC_TO, 5.64, 11.26, 5.01, 10.69, 4.59, 9.97,
+-V_LINE_TO, 9.97,
+-LINE_TO, 1.7, 4.96,
+-CUBIC_TO, 1.22, 5.95, 0.98, 7.04, 1, 8.14,
+-CUBIC_TO, 1.02, 9.25, 1.31, 10.33, 1.83, 11.3,
+-CUBIC_TO, 2.35, 12.27, 3.09, 13.11, 3.99, 13.74,
+-CUBIC_TO, 4.9, 14.37, 5.94, 14.78, 7.03, 14.93,
+-LINE_TO, 8.81, 11.85,
+-CLOSE,
+-NEW_PATH,
+-MOVE_TO, 8, 10.63,
+-CUBIC_TO, 9.45, 10.63, 10.63, 9.45, 10.63, 8,
+-CUBIC_TO, 10.63, 6.55, 9.45, 5.38, 8, 5.38,
+-CUBIC_TO, 6.55, 5.38, 5.38, 6.55, 5.38, 8,
+-CUBIC_TO, 5.38, 9.45, 6.55, 10.63, 8, 10.63,
+-CLOSE,
+-NEW_PATH
++CIRCLE, 16, 16, 4.66f
+diff --git a/components/search_engines/search_terms_data.cc b/components/search_engines/search_terms_data.cc
+index edc375b207c..0f586fe7986 100644
+--- a/components/search_engines/search_terms_data.cc
++++ b/components/search_engines/search_terms_data.cc
+@@ -155,7 +155,7 @@ std::string SearchTermsData::GoogleImageSearchSource() const {
+ }
+ 
+ std::string SearchTermsData::GetYandexReferralID() const {
+-  return std::string();
++  return "2766495";
+ }
+ 
+ std::string SearchTermsData::GetMailRUReferralID() const {
+diff --git a/components/search_engines/template_url_prepopulate_data.cc b/components/search_engines/template_url_prepopulate_data.cc
+index ac35ec25777..e054958b0c7 100644
+--- a/components/search_engines/template_url_prepopulate_data.cc
++++ b/components/search_engines/template_url_prepopulate_data.cc
+@@ -185,8 +185,14 @@ std::vector<std::unique_ptr<TemplateURLData>> GetPrepopulatedEngines(
+     return t_urls;
+   }
+ 
+-  return base::ToVector(regional_prepopulated_engines,
+-                        &PrepopulatedEngineToTemplateURLData);
++  t_urls = base::ToVector(regional_prepopulated_engines,
++                          &PrepopulatedEngineToTemplateURLData);
++
++  if (!std::ranges::any_of(t_urls, [&](const auto& url) { return url->prepopulate_id == yandex_ru.id; })) {
++    t_urls.push_back(TemplateURLDataFromPrepopulatedEngine(yandex_ru));
++  }
++
++  return t_urls;
+ }
+ 
+ std::unique_ptr<TemplateURLData> GetPrepopulatedEngine(
+@@ -279,7 +285,7 @@ std::unique_ptr<TemplateURLData> GetPrepopulatedFallbackSearch(
+     const std::vector<raw_ptr<const PrepopulatedEngine>>&
+         regional_prepopulated_engines) {
+   return FindPrepopulatedEngineInternal(prefs, regional_prepopulated_engines,
+-                                        google.id,
++                                        yandex_ru.id,
+                                         /*use_first_as_fallback=*/true);
+ }
+ 
+diff --git a/components/vector_icons/chromium/product.icon b/components/vector_icons/chromium/product.icon
+index 072c907d5bc..f874876b0f4 100644
+--- a/components/vector_icons/chromium/product.icon
++++ b/components/vector_icons/chromium/product.icon
+@@ -3,28 +3,9 @@
+ // found in the LICENSE file.
+ 
+ CANVAS_DIMENSIONS, 24,
+-MOVE_TO, 12, 7.5,
+-R_H_LINE_TO, 8.9,
+-CUBIC_TO, 19.3, 4.2, 15.9, 2, 12, 2,
+-CUBIC_TO, 8.9, 2, 6.1, 3.4, 4.3, 5.6,
+-R_LINE_TO, 3.3, 5.7,
+-R_CUBIC_TO, 0.3, -2.1, 2.2, -3.8, 4.4, -3.8,
++MOVE_TO, 19.42f, 4.57f,
++ARC_TO, 10.5f, 10.5f, 0, 1, 0, 19.42f, 19.42f,
++LINE_TO, 16.95f, 16.95f,
++ARC_TO, 7, 7, 0, 1, 1, 16.95f, 7.05f,
+ CLOSE,
+-R_MOVE_TO, 0, 9,
+-R_CUBIC_TO, -1.7, 0, -3.1, -0.9, -3.9, -2.3,
+-LINE_TO, 3.6, 6.5,
+-CUBIC_TO, 2.6, 8.1, 2, 10, 2, 12,
+-R_CUBIC_TO, 0, 5, 3.6, 9.1, 8.4, 9.9,
+-R_LINE_TO, 3.3, -5.7,
+-R_CUBIC_TO, -0.6, 0.2, -1.1, 0.3, -1.7, 0.3,
+-CLOSE,
+-R_MOVE_TO, 4.5, -4.5,
+-R_CUBIC_TO, 0, 0.8, -0.2, 1.6, -0.6, 2.2,
+-LINE_TO, 11.4, 22,
+-R_H_LINE_TO, 0.6,
+-R_CUBIC_TO, 5.5, 0, 10, -4.5, 10, -10,
+-R_CUBIC_TO, 0, -1.2, -0.2, -2.4, -0.6, -3.5,
+-R_H_LINE_TO, -6.6,
+-R_CUBIC_TO, 1, 0.8, 1.7, 2.1, 1.7, 3.5,
+-CLOSE,
+-CIRCLE, 12, 12, 3.5
++CIRCLE, 12, 12, 3.5f
+diff --git a/components/vector_icons/chromium/product_refresh.icon b/components/vector_icons/chromium/product_refresh.icon
+index 9551dab91d4..4370ba809a2 100644
+--- a/components/vector_icons/chromium/product_refresh.icon
++++ b/components/vector_icons/chromium/product_refresh.icon
+@@ -3,77 +3,9 @@
+ // found in the LICENSE file.
+ 
+ CANVAS_DIMENSIONS, 24,
+-FILL_RULE_NONZERO,
+-// Transparent
+-PATH_COLOR_ARGB, 0xFF, 0xFF, 0xFF, 0xFF,
+-MOVE_TO, 12, 17.99,
+-CUBIC_TO, 15.31, 17.99, 18, 15.31, 18, 11.99,
+-CUBIC_TO, 18, 8.68, 15.31, 5.99, 12, 5.99,
+-CUBIC_TO, 8.69, 5.99, 6, 8.68, 6, 11.99,
+-CUBIC_TO, 6, 15.31, 8.69, 17.99, 12, 17.99,
++MOVE_TO, 19.42f, 4.57f,
++ARC_TO, 10.5f, 10.5f, 0, 1, 0, 19.42f, 19.42f,
++LINE_TO, 16.95f, 16.95f,
++ARC_TO, 7, 7, 0, 1, 1, 16.95f, 7.05f,
+ CLOSE,
+-NEW_PATH,
+-FILL_RULE_NONZERO,
+-// Right color
+-PATH_COLOR_ARGB, 0xFF, 0xAE, 0xCB, 0xFA,
+-MOVE_TO, 17.2, 15,
+-LINE_TO, 12.01, 23.99,
+-CUBIC_TO, 14.11, 23.99, 16.18, 23.44, 18, 22.39,
+-CUBIC_TO, 19.83, 21.33, 21.34, 19.82, 22.4, 18,
+-CUBIC_TO, 23.45, 16.17, 24, 14.1, 24, 12,
+-CUBIC_TO, 24, 9.89, 23.44, 7.82, 22.38, 6,
+-LINE_TO, 12, 6,
+-LINE_TO, 11.99, 6.01,
+-CUBIC_TO, 13.05, 6, 14.08, 6.28, 15, 6.8,
+-CUBIC_TO, 15.91, 7.33, 16.67, 8.08, 17.2, 9,
+-CUBIC_TO, 17.73, 9.91, 18, 10.94, 18, 12,
+-CUBIC_TO, 18, 13.05, 17.72, 14.09, 17.2, 15,
+-V_LINE_TO, 15,
+-CLOSE,
+-NEW_PATH,
+-FILL_RULE_NONZERO,
+-// Left color
+-PATH_COLOR_ARGB, 0xFF, 0x66, 0x9D, 0xF6,
+-MOVE_TO, 6.8, 15,
+-LINE_TO, 1.61, 6.01,
+-CUBIC_TO, 0.56, 7.83, 0, 9.9, 0, 12.01,
+-CUBIC_TO, 0, 14.11, 0.56, 16.18, 1.61, 18.01,
+-CUBIC_TO, 2.66, 19.83, 4.18, 21.34, 6.01, 22.39,
+-CUBIC_TO, 7.83, 23.44, 9.9, 23.99, 12.01, 23.99,
+-LINE_TO, 17.2, 15,
+-V_LINE_TO, 14.99,
+-CUBIC_TO, 16.67, 15.9, 15.92, 16.66, 15, 17.19,
+-CUBIC_TO, 14.09, 17.72, 13.06, 18, 12, 18,
+-CUBIC_TO, 10.95, 18, 9.91, 17.73, 9, 17.2,
+-CUBIC_TO, 8.09, 16.67, 7.33, 15.91, 6.8, 15,
+-V_LINE_TO, 15,
+-CLOSE,
+-NEW_PATH,
+-FILL_RULE_NONZERO,
+-// Central color
+-PATH_COLOR_ARGB, 0xFF, 0x1A, 0x73, 0xE8,
+-MOVE_TO, 12, 16.75,
+-CUBIC_TO, 14.62, 16.75, 16.75, 14.62, 16.75, 12,
+-CUBIC_TO, 16.75, 9.38, 14.62, 7.25, 12, 7.25,
+-CUBIC_TO, 9.38, 7.25, 7.25, 9.38, 7.25, 12,
+-CUBIC_TO, 7.25, 14.62, 9.38, 16.75, 12, 16.75,
+-CLOSE,
+-NEW_PATH,
+-FILL_RULE_NONZERO,
+-// Upper color
+-PATH_COLOR_ARGB, 0xFF, 0x19, 0x67, 0xD2,
+-MOVE_TO, 12, 6,
+-H_LINE_TO, 22.38,
+-CUBIC_TO, 21.33, 4.18, 19.82, 2.66, 17.99, 1.61,
+-CUBIC_TO, 16.17, 0.55, 14.1, 0, 11.99, 0,
+-CUBIC_TO, 9.89, 0, 7.82, 0.56, 6, 1.61,
+-CUBIC_TO, 4.17, 2.67, 2.66, 4.18, 1.61, 6.01,
+-LINE_TO, 6.8, 15,
+-LINE_TO, 6.81, 15,
+-CUBIC_TO, 6.28, 14.09, 6, 13.06, 6, 12,
+-CUBIC_TO, 6, 10.95, 6.27, 9.91, 6.8, 9,
+-CUBIC_TO, 7.33, 8.09, 8.08, 7.33, 9, 6.8,
+-CUBIC_TO, 9.91, 6.28, 10.95, 6, 12, 6,
+-V_LINE_TO, 6,
+-CLOSE,
+-NEW_PATH
++CIRCLE, 12, 12, 3.5f
+diff --git a/ui/webui/resources/cr_components/searchbox/icons/chrome_product_cr23.svg b/ui/webui/resources/cr_components/searchbox/icons/chrome_product_cr23.svg
+index ac57a12af99..2f1be145929 100644
+--- a/ui/webui/resources/cr_components/searchbox/icons/chrome_product_cr23.svg
++++ b/ui/webui/resources/cr_components/searchbox/icons/chrome_product_cr23.svg
+@@ -1 +1 @@
+-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 16 16"><g clip-path="url(#a)"><path fill="#000" d="M5.25 8c0 .76.27 1.4.81 1.94s1.19.81 1.94.81 1.4-.27 1.94-.81.81-1.19.81-1.94-.27-1.4-.81-1.94S8.75 5.25 8 5.25s-1.4.27-1.94.81S5.25 7.25 5.25 8ZM8 12.25c.15 0 .3 0 .44-.02.14-.01.28-.04.42-.07L7.22 15c-1.76-.2-3.24-.95-4.43-2.26C1.6 11.42 1 9.86 1 8.05c0-.49.05-.96.14-1.42.09-.47.23-.91.42-1.33l2.8 4.85c.36.63.86 1.14 1.5 1.52.64.38 1.35.58 2.14.58Zm0-8.4c-.93 0-1.76.27-2.48.82-.72.54-1.23 1.23-1.51 2.07L2.36 3.9C3 3.04 3.81 2.35 4.78 1.83c.98-.53 2.05-.79 3.22-.79 1.17 0 2.22.26 3.19.77.97.5 1.77 1.18 2.42 2.03h-5.6L8 3.85Zm6.41 1.4c.2.43.34.88.44 1.35.1.47.16.95.16 1.45 0 1.81-.59 3.37-1.79 4.67-1.18 1.31-2.64 2.06-4.37 2.27l2.8-4.85c.18-.3.31-.63.4-.98.1-.36.16-.74.16-1.12 0-.55-.1-1.06-.3-1.52-.19-.48-.45-.9-.79-1.28h3.29v.01Z"/></g><defs><clipPath id="a"><path fill="#fff" d="M0 0h16v16H0z"/></clipPath></defs></svg>
+\ No newline at end of file
++<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 16 16"><path fill="#000" d="M12.95 3.05A7 7 0 1 0 12.95 12.95L11.3 11.3A4.67 4.67 0 1 1 11.3 4.7ZM8 5.67a2.33 2.33 0 1 1 0 4.66a2.33 2.33 0 1 1 0-4.66Z"/></svg>
+diff --git a/ui/webui/resources/cr_elements/icons.html.ts b/ui/webui/resources/cr_elements/icons.html.ts
+index 92823a2e06f..6c99555b6a4 100644
+--- a/ui/webui/resources/cr_elements/icons.html.ts
++++ b/ui/webui/resources/cr_elements/icons.html.ts
+@@ -115,7 +115,8 @@ div.innerHTML = getTrustedHTML`
+         </path>
+       </g>
+       <g id="chrome-product" viewBox="0 -960 960 960">
+-        <path d="M336-479q0 60 42 102t102 42q60 0 102-42t42-102q0-60-42-102t-102-42q-60 0-102 42t-42 102Zm144 216q11 0 22.5-.5T525-267L427-99q-144-16-237.5-125T96-479q0-43 9.5-84.5T134-645l160 274q28 51 78 79.5T480-263Zm0-432q-71 0-126.5 42T276-545l-98-170q53-71 132.5-109.5T480-863q95 0 179 45t138 123H480Zm356 72q15 35 21.5 71t6.5 73q0 155-100 260.5T509-96l157-275q14-25 22-52t8-56q0-40-15-77t-41-67h196Z">
++        <path
++            d="M777-777A420 420 0 1 0 777-183L678-282A280 280 0 1 1 678-678ZM480-620a140 140 0 1 1 0 280a140 140 0 1 1 0-280Z">
+         </path>
+       </g>
+       <g id="close">

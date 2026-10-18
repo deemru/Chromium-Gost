@@ -27,9 +27,12 @@ call git show-ref --quiet refs/heads/%GOST_BRANCH% && call git branch -D %GOST_B
 call git checkout -f -b %GOST_BRANCH% tags/%CHROMIUM_TAG%
 call git branch -D temp
 call gclient sync --force --reset --upstream -D --with_branch_heads
-call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\extra\extensions-manifestv2_ifdef.patch || goto :finish
-call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\chromium.patch || goto :finish
-call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\extra\services-gate.patch || goto :finish
+call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\extensions-manifest-v2.patch || goto :finish
+call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\fixes.patch || goto :finish
+call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\gostssl-chromium.patch || goto :finish
+call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\extensions-bundled.patch || goto :finish
+call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\branding.patch || goto :finish
+call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\services-gate.patch || goto :finish
 
 call python3 %CHROMIUM_GOST_REPO%\extra\rebrand_strings.py || goto :finish
 copy /y %CHROMIUM_GOST_REPO%\extra\chromium-gost.ico chrome\app\theme\chromium\win\chromium.ico
@@ -65,7 +68,7 @@ call git checkout -f -b temp
 call git show-ref --quiet refs/heads/%GOST_BRANCH% && call git branch -D %GOST_BRANCH%
 call git checkout -f -b %GOST_BRANCH%
 call git branch -D temp
-call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\boringssl.patch || goto :finish
+call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\gostssl-boringssl.patch || goto :finish
 
 cd %SEARCH_ENGINES_PATH%
 call git checkout -f -b temp

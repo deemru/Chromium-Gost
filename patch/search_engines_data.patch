@@ -1,7 +1,7 @@
-From 2043b84032fe79f80379d36d4d2b2678b93683e0 Mon Sep 17 00:00:00 2001
+From 165c3b43d896f229282daccbe491ef2afa7d5d9e Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Thu, 14 May 2026 12:09:52 +0300
-Subject: [PATCH] search_engines_data.patch (yandex)
+Subject: [PATCH] search_engines_data
 
 ---
  definitions/prepopulated_engines.json | 10 +++++-----
