@@ -1,10 +1,10 @@
-From b4af41fa3121d5deafc5220284542dccb09dc4fc Mon Sep 17 00:00:00 2001
+From a77249806d271a4ceebe9dab69464cea13f15bcf Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 13 May 2026 13:13:11 +0300
 Subject: [PATCH] services-gate
 
 ---
- chrome/BUILD.gn                               |  2 +
+ chrome/BUILD.gn                               |  5 +
  chrome/app/settings_strings.grdp              |  2 +-
  chrome/browser/ai/ai_manager.cc               | 29 +-----
  chrome/browser/chrome_browser_main.cc         |  6 +-
@@ -61,6 +61,7 @@ Subject: [PATCH] services-gate
  chrome/installer/linux/common/apt.include     |  6 ++
  chrome/installer/linux/common/installer.py    | 10 ++
  chrome/installer/linux/common/rpm.include     |  8 ++
+ .../installer/mini_installer/chrome.release   |  1 +
  .../autofill_crowdsourcing_manager.cc         |  4 +-
  .../component_updater_service.cc              | 47 +--------
  ...device_head_suggest_component_installer.cc |  9 +-
@@ -89,24 +90,27 @@ Subject: [PATCH] services-gate
  services/network/socket_factory.cc            | 16 ++++
  services/network/tcp_bound_socket.cc          | 11 +++
  services/network/udp_socket.cc                |  7 ++
- 85 files changed, 367 insertions(+), 615 deletions(-)
+ 86 files changed, 371 insertions(+), 615 deletions(-)
  create mode 100644 chrome/browser/resources/spellcheck_dictionaries/BUILD.gn
  create mode 100644 net/base/crgost_egress.cc
  create mode 100644 net/base/crgost_egress.h
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
-index a33fe738ba4..a9e511d6ad3 100644
+index a33fe738ba4..ad3da17ac6d 100644
 --- a/chrome/BUILD.gn
 +++ b/chrome/BUILD.gn
-@@ -385,6 +385,8 @@ if (!is_android && !is_mac) {
-     ]
+@@ -177,6 +177,11 @@ if (!is_android && !is_mac) {
+       deps += [ "//components/webapps/isolated_web_apps:scheme" ]
+     }
  
-     if (is_linux) {
++    if (is_win || is_linux) {
 +      data_deps +=
 +          [ "//chrome/browser/resources/spellcheck_dictionaries:component" ]
-       sources += [
-         "app/chrome_main_linux.cc",
-         "app/chrome_main_linux.h",
++    }
++
+     if (is_chromeos) {
+       data_deps += [ "//sandbox/linux:chrome_sandbox" ]
+       if (build_mojo_proxy) {
 diff --git a/chrome/app/settings_strings.grdp b/chrome/app/settings_strings.grdp
 index f1e1c55ad17..ae8051a775b 100644
 --- a/chrome/app/settings_strings.grdp
@@ -1404,6 +1408,18 @@ index 9965c822705..8b93287681e 100644
  }
  
  update_repo_file() {
+diff --git a/chrome/installer/mini_installer/chrome.release b/chrome/installer/mini_installer/chrome.release
+index cf4c3fa1816..415f9287294 100644
+--- a/chrome/installer/mini_installer/chrome.release
++++ b/chrome/installer/mini_installer/chrome.release
+@@ -42,6 +42,7 @@ v8_context_snapshot.bin: %(VersionDir)s\
+ #
+ Extensions\*.*: %(VersionDir)s\Extensions\
+ locales\*.pak: %(VersionDir)s\Locales
++Dictionaries\*.bdic: %(VersionDir)s\Dictionaries
+ 
+ #
+ # VisualElements sub-dir.
 diff --git a/components/autofill/core/browser/crowdsourcing/autofill_crowdsourcing_manager.cc b/components/autofill/core/browser/crowdsourcing/autofill_crowdsourcing_manager.cc
 index a81af1dac96..d0bd13e2349 100644
 --- a/components/autofill/core/browser/crowdsourcing/autofill_crowdsourcing_manager.cc

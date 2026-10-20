@@ -1,4 +1,4 @@
-From ee5936322f438547f064dd63347150b5e290e764 Mon Sep 17 00:00:00 2001
+From d21a78722397eda70e526fa3f9c19aebd99569ba Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 13 May 2026 13:13:11 +0300
 Subject: [PATCH] gostssl-chromium
@@ -7,13 +7,16 @@ Subject: [PATCH] gostssl-chromium
  chrome/app/app-entitlements.plist             |   8 +
  chrome/browser/browser_resources.grd          |   3 +
  .../net/profile_network_context_service.cc    |  49 +++++
+ .../browser/ssl/ssl_config_service_manager.cc |   4 +
  .../browser/ui/views/certificate_selector.cc  |  20 +-
  chrome/common/net/x509_certificate_model.cc   |   2 +-
  .../service_host/utility_process_host.cc      |   6 +
  content/browser/storage_partition_impl.cc     |   9 +
  net/BUILD.gn                                  |   2 +
  net/base/net_error_list.h                     |   5 +
+ net/cert/caching_cert_verifier.cc             |   8 +
  net/cert/cert_verify_proc.cc                  |  23 ++
+ net/cert/cert_verify_proc_builtin.cc          |  10 +
  net/cert/x509_cert_types.cc                   |  27 +++
  net/cert/x509_cert_types.h                    |   2 +
  net/http/http_network_transaction.cc          |   9 +
@@ -34,11 +37,12 @@ Subject: [PATCH] gostssl-chromium
  net/ssl/ssl_platform_key_util.cc              |  22 ++
  net/ssl/ssl_platform_key_util.h               |   7 +
  sandbox/policy/features.cc                    |   6 +-
- sandbox/policy/mac/common.sb                  |  17 ++
- sandbox/win/src/process_mitigations.cc        |   4 +
+ sandbox/policy/mac/network.sb                 |  17 ++
+ sandbox/policy/win/sandbox_win.cc             |  12 +-
+ .../cert_net_fetcher_url_loader.cc            |  79 ++++++-
  services/network/network_service.cc           |   5 +
  third_party/boringssl/BUILD.gn                |   1 +
- 34 files changed, 748 insertions(+), 9 deletions(-)
+ 38 files changed, 854 insertions(+), 12 deletions(-)
  create mode 100644 net/ssl/gostssl_util.cc
  create mode 100644 net/ssl/gostssl_util.h
 
@@ -155,6 +159,22 @@ index c9ae7f58abd..34953241609 100644
  #if BUILDFLAG(IS_CHROMEOS)
    const policy::PolicyCertService* policy_cert_service =
        policy::PolicyCertServiceFactory::GetForProfile(profile_);
+diff --git a/chrome/browser/ssl/ssl_config_service_manager.cc b/chrome/browser/ssl/ssl_config_service_manager.cc
+index be7fe08f342..b1d4543d142 100644
+--- a/chrome/browser/ssl/ssl_config_service_manager.cc
++++ b/chrome/browser/ssl/ssl_config_service_manager.cc
+@@ -231,7 +231,11 @@ network::mojom::SSLConfigPtr SSLConfigServiceManager::GetNewSSLConfig() const {
+   if (rev_checking_enabled_.IsManaged())
+     config->rev_checking_enabled = rev_checking_enabled_.GetValue();
+   else
++#ifndef NO_GOSTSSL
++    config->rev_checking_enabled = true;
++#else
+     config->rev_checking_enabled = false;
++#endif // GOSTSSL
+   config->rev_checking_required_local_anchors =
+       rev_checking_required_local_anchors_.GetValue();
+   std::string version_min_str = ssl_version_min_.GetValue();
 diff --git a/chrome/browser/ui/views/certificate_selector.cc b/chrome/browser/ui/views/certificate_selector.cc
 index e752e22e93d..487f5d7d832 100644
 --- a/chrome/browser/ui/views/certificate_selector.cc
@@ -306,6 +326,25 @@ index fa9cf124d03..45bff5cbe1e 100644
  // LINT.IfChange
  
  // An asynchronous IO operation is not yet complete.  This usually does not
+diff --git a/net/cert/caching_cert_verifier.cc b/net/cert/caching_cert_verifier.cc
+index 879f43c4d9c..3a839e69520 100644
+--- a/net/cert/caching_cert_verifier.cc
++++ b/net/cert/caching_cert_verifier.cc
+@@ -208,6 +208,14 @@ void CachingCertVerifier::AddResultToCache(
+     return;
+   }
+ 
++#ifndef NO_GOSTSSL
++  // Revocation checking is hard-fail: a transient fetch failure must not
++  // persist after connectivity returns.
++  if (verify_result.cert_status & CERT_STATUS_UNABLE_TO_CHECK_REVOCATION) {
++    return;
++  }
++#endif // GOSTSSL
++
+   // If the configuration has changed since this verification was started,
+   // don't add it to the cache.
+   if (config_id != config_id_)
 diff --git a/net/cert/cert_verify_proc.cc b/net/cert/cert_verify_proc.cc
 index 7dc040dc7fd..f08b5b25ecb 100644
 --- a/net/cert/cert_verify_proc.cc
@@ -347,6 +386,40 @@ index 7dc040dc7fd..f08b5b25ecb 100644
    // Check for mismatched signature algorithms and unknown signature algorithms
    // in the chain. Also fills in the has_* booleans for the digest algorithms
    // present in the chain.
+diff --git a/net/cert/cert_verify_proc_builtin.cc b/net/cert/cert_verify_proc_builtin.cc
+index b2cf33c953a..9bf984064ea 100644
+--- a/net/cert/cert_verify_proc_builtin.cc
++++ b/net/cert/cert_verify_proc_builtin.cc
+@@ -976,19 +976,29 @@ class PathBuilderDelegateImpl : public bssl::SimplePathBuilderDelegate {
+       return policy;
+     }
+ 
++#ifndef NO_GOSTSSL
++    // Use hard-fail revocation checking with CRL fallback for every chain.
++#else
+     // Use soft-fail revocation checking for VERIFY_REV_CHECKING_ENABLED.
++#endif // GOSTSSL
+     if (flags_ & CertVerifyProc::VERIFY_REV_CHECKING_ENABLED) {
+       const bool is_known_root =
+           !certs.empty() && trust_store_->IsKnownRoot(certs.back().get());
+       RevocationPolicy policy;
+       policy.check_revocation = true;
+       policy.networking_allowed = true;
++#ifndef NO_GOSTSSL
++      policy.crl_allowed = true;
++      policy.allow_missing_info = false;
++      policy.allow_unable_to_check = false;
++#else
+       // Publicly trusted certs are required to have OCSP by the Baseline
+       // Requirements and CRLs can be quite large, so disable the fallback to
+       // CRLs for chains to known roots.
+       policy.crl_allowed = !is_known_root;
+       policy.allow_missing_info = true;
+       policy.allow_unable_to_check = true;
++#endif // GOSTSSL
+       policy.enforce_baseline_requirements = is_known_root;
+       return policy;
+     }
 diff --git a/net/cert/x509_cert_types.cc b/net/cert/x509_cert_types.cc
 index 3481e5b3eb0..1368d63c23a 100644
 --- a/net/cert/x509_cert_types.cc
@@ -1292,14 +1365,15 @@ index c617034ea7b..e5508d58c42 100644
  
  // Enables Renderer AppContainer
  BASE_FEATURE(kRendererAppContainer, base::FEATURE_DISABLED_BY_DEFAULT);
-diff --git a/sandbox/policy/mac/common.sb b/sandbox/policy/mac/common.sb
-index f934c3093d1..7dbffeb1926 100644
---- a/sandbox/policy/mac/common.sb
-+++ b/sandbox/policy/mac/common.sb
-@@ -201,6 +201,23 @@
-   (subpath "/Library/Apple/System/Library/PrivateFrameworks")
+diff --git a/sandbox/policy/mac/network.sb b/sandbox/policy/mac/network.sb
+index 27144995fea..466d2c0a326 100644
+--- a/sandbox/policy/mac/network.sb
++++ b/sandbox/policy/mac/network.sb
+@@ -128,3 +128,20 @@
+   (path "/private/etc/krb5.conf")
+   (subpath "/System/Library/KerberosPlugins") ; https://crbug.com/1134449
  )
- 
++
 +(allow file*
 +  (subpath "/opt/cprocsp")
 +  (subpath "/etc/opt/cprocsp")
@@ -1316,46 +1390,172 @@ index f934c3093d1..7dbffeb1926 100644
 +  (global-name "com.apple.UNCUserNotification")
 +  (global-name "com.apple.ctkpcscd")
 +)
+diff --git a/sandbox/policy/win/sandbox_win.cc b/sandbox/policy/win/sandbox_win.cc
+index f2a826791ff..f3666a62448 100644
+--- a/sandbox/policy/win/sandbox_win.cc
++++ b/sandbox/policy/win/sandbox_win.cc
+@@ -506,11 +506,19 @@ ResultCode GenerateConfigForSandboxedProcess(const base::CommandLine& cmd_line,
+     if (!cmd_line.HasSwitch(switches::kAllowThirdPartyModules) &&
+         sandbox_type != Sandbox::kScreenAI &&
+         sandbox_type != Sandbox::kSpeechRecognition &&
+-        sandbox_type != Sandbox::kMediaFoundationCdm) {
++        sandbox_type != Sandbox::kMediaFoundationCdm
++#ifndef NO_GOSTSSL
++        && sandbox_type != Sandbox::kNetwork
++#endif // GOSTSSL
++        ) {
+       mitigations |= MITIGATION_FORCE_MS_SIGNED_BINS;
+     }
+ 
+-    if (sandbox_type == Sandbox::kNetwork || sandbox_type == Sandbox::kAudio ||
++    if (
++#ifdef NO_GOSTSSL
++        sandbox_type == Sandbox::kNetwork ||
++#endif // GOSTSSL
++        sandbox_type == Sandbox::kAudio ||
+         sandbox_type == Sandbox::kIconReader ||
+         sandbox_type == Sandbox::kWebNNModelCompilation ||
+         (sandbox_type == Sandbox::kSpeechRecognition &&
+diff --git a/services/cert_verifier/cert_net_url_loader/cert_net_fetcher_url_loader.cc b/services/cert_verifier/cert_net_url_loader/cert_net_fetcher_url_loader.cc
+index 26aa75cdaaf..b82d91152cd 100644
+--- a/services/cert_verifier/cert_net_url_loader/cert_net_fetcher_url_loader.cc
++++ b/services/cert_verifier/cert_net_url_loader/cert_net_fetcher_url_loader.cc
+@@ -88,6 +88,10 @@
+ #include "net/url_request/redirect_info.h"
+ #include "services/network/public/cpp/resource_request.h"
+ #include "services/network/public/cpp/simple_url_loader.h"
++#ifndef NO_GOSTSSL
++#include "build/build_config.h"
++#include "services/network/public/cpp/simple_url_loader_stream_consumer.h"
++#endif // GOSTSSL
+ #include "services/network/public/mojom/url_loader_factory.mojom.h"
+ #include "services/network/public/mojom/url_response_head.mojom.h"
+ 
+@@ -105,7 +109,18 @@ namespace {
+ // SimpleURLLoader::DownloadToString.
+ 
+ // The maximum size in bytes for the response body when fetching a CRL.
++#ifndef NO_GOSTSSL
++// CRLs of public CAs can exceed what DownloadToString accepts, so larger
++// responses are streamed. 32-bit processes keep a lower cap because a failed
++// allocation crashes the network process.
++#if defined(ARCH_CPU_32_BITS)
++const int kMaxResponseSizeInBytesForCrl = 32 * 1024 * 1024;
++#else
++const int kMaxResponseSizeInBytesForCrl = 128 * 1024 * 1024;
++#endif
++#else
+ const int kMaxResponseSizeInBytesForCrl = 5 * 1024 * 1024;
++#endif // GOSTSSL
+ 
+ // The maximum size in bytes for the response body when fetching an AIA URL
+ // (caIssuers/OCSP).
+@@ -344,7 +359,11 @@ namespace {
+ 
+ // Job tracks an outstanding URLLoader as well as all of the pending requests
+ // for it.
+-class Job {
++class Job
++#ifndef NO_GOSTSSL
++    : public network::SimpleURLLoaderStreamConsumer
++#endif // GOSTSSL
++{
+  public:
+   Job(std::unique_ptr<CertNetFetcherURLLoader::RequestParams> request_params,
+       CertNetFetcherURLLoader::AsyncCertNetFetcherURLLoader* parent);
+@@ -388,6 +407,15 @@ class Job {
+   // Callback for when |url_loader_| has finished.
+   void OnUrlLoaderCompleted(std::optional<std::string> response_body);
+ 
++#ifndef NO_GOSTSSL
++  bool IsStreamed() const;
++  void OnDataReceived(std::string_view data, base::OnceClosure resume) override;
++  void OnComplete(bool success) override;
++  void OnRetry(base::OnceClosure start_retry) override;
 +
- ; Reads from /etc.
- ; This is read by CFPrefs calling getpwuid in a loop. libinfo then fails to
- ; contact any of the opendirectoryd mach services, and falls back to
-diff --git a/sandbox/win/src/process_mitigations.cc b/sandbox/win/src/process_mitigations.cc
-index 38ae75ee7b2..79c2688171d 100644
---- a/sandbox/win/src/process_mitigations.cc
-+++ b/sandbox/win/src/process_mitigations.cc
-@@ -227,6 +227,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags starting_flags,
-     // Verify caller is not accidentally setting both mutually exclusive
-     // policies.
-     DCHECK(!(flags & MITIGATION_DYNAMIC_CODE_DISABLE_WITH_OPT_OUT));
-+#ifdef NO_GOSTSSL
-     PROCESS_MITIGATION_DYNAMIC_CODE_POLICY policy = {};
-     policy.ProhibitDynamicCode = true;
- 
-@@ -235,6 +236,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags starting_flags,
-       return false;
-     }
-     applied_flags |= MITIGATION_DYNAMIC_CODE_DISABLE;
++  std::string streamed_body_;
 +#endif // GOSTSSL
-   }
- 
-   // Enable font policies.
-@@ -254,6 +256,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags starting_flags,
- 
-   // Enable binary signing policies.
-   if (flags & MITIGATION_FORCE_MS_SIGNED_BINS) {
-+#ifdef NO_GOSTSSL
-     PROCESS_MITIGATION_BINARY_SIGNATURE_POLICY policy = {};
-     // Allow only MS signed binaries.
-     policy.MicrosoftSignedOnly = true;
-@@ -266,6 +269,7 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags starting_flags,
-       return false;
-     }
-     applied_flags |= MITIGATION_FORCE_MS_SIGNED_BINS;
++
+   // Called when the Job has completed. The job may finish in response to a
+   // timeout, an invalid URL, or the SimpleURLLoader completing.
+   // This will delete the Job after calling |CompleteAndClearRequests()|.
+@@ -531,6 +559,11 @@ void Job::StartURLLoader(network::mojom::URLLoaderFactory* factory) {
+   // CertNetFetcherURLLoader, since AIA/CRL/OCSP requests must be in HTTP to
+   // avoid circular dependencies.
+   request->load_flags |= net::LOAD_SHOULD_BYPASS_HSTS;
++#ifndef NO_GOSTSSL
++  // A DNS HTTPS record upgrades the fetch to HTTPS; the server certificate is
++  // then verified without network fetches so that verification cannot recurse.
++  request->load_flags |= net::LOAD_DISABLE_CERT_NETWORK_FETCHES;
 +#endif // GOSTSSL
-   }
+   url_loader_ =
+       network::SimpleURLLoader::Create(std::move(request), traffic_annotation);
+   // base::Unretained(this) is safe because |this| owns |url_loader_|, which
+@@ -540,6 +573,12 @@ void Job::StartURLLoader(network::mojom::URLLoaderFactory* factory) {
+   url_loader_->SetOnResponseStartedCallback(
+       base::BindOnce(&Job::OnResponseStarted, base::Unretained(this)));
+   url_loader_->SetTimeoutDuration(request_params_->timeout);
++#ifndef NO_GOSTSSL
++  if (IsStreamed()) {
++    url_loader_->DownloadAsStream(factory, this);
++    return;
++  }
++#endif // GOSTSSL
+   url_loader_->DownloadToString(
+       factory,
+       base::BindOnce(&Job::OnUrlLoaderCompleted, base::Unretained(this)),
+@@ -558,6 +597,16 @@ void Job::OnReceivedRedirect(
+     const net::RedirectInfo& redirect_info,
+     const network::mojom::URLResponseHead& response_head,
+     std::vector<std::string>* removed_headers) {
++#ifndef NO_GOSTSSL
++  GURL::Replacements https;
++  https.SetSchemeStr(url::kHttpsScheme);
++  if (response_head.headers &&
++      response_head.headers->HasHeaderValue("Non-Authoritative-Reason",
++                                            "DNS") &&
++      url_before_redirect.ReplaceComponents(https) == redirect_info.new_url) {
++    return;
++  }
++#endif // GOSTSSL
+   // Ensure that the new URL matches the policy.
+   net::Error error = CanFetchUrl(redirect_info.new_url);
+   if (error != net::OK) {
+@@ -578,6 +627,34 @@ void Job::OnUrlLoaderCompleted(std::optional<std::string> response_body) {
+   OnJobCompleted(error, std::move(response_body));
+ }
  
-   // Enable image load policies.
++#ifndef NO_GOSTSSL
++bool Job::IsStreamed() const {
++  return request_params_->max_response_bytes >
++         network::SimpleURLLoader::kMaxBoundedStringDownloadSize;
++}
++
++void Job::OnDataReceived(std::string_view data, base::OnceClosure resume) {
++  if (data.size() >
++      request_params_->max_response_bytes - streamed_body_.size()) {
++    FailRequest(net::ERR_INSUFFICIENT_RESOURCES);
++    return;
++  }
++  streamed_body_.append(data);
++  std::move(resume).Run();
++}
++
++void Job::OnComplete(bool success) {
++  net::Error error = static_cast<net::Error>(url_loader_->NetError());
++  OnJobCompleted(error, success ? std::make_optional(std::move(streamed_body_))
++                                : std::nullopt);
++}
++
++void Job::OnRetry(base::OnceClosure start_retry) {
++  streamed_body_.clear();
++  std::move(start_retry).Run();
++}
++#endif // GOSTSSL
++
+ void Job::OnJobCompleted(net::Error error,
+                          std::optional<std::string> response_body) {
+   // Reset the SimpleURLLoader.
 diff --git a/services/network/network_service.cc b/services/network/network_service.cc
 index 4718d88c049..c29bc7fe447 100644
 --- a/services/network/network_service.cc
