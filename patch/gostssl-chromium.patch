@@ -1,4 +1,4 @@
-From d21a78722397eda70e526fa3f9c19aebd99569ba Mon Sep 17 00:00:00 2001
+From fc8c9a7008e746788e8ccd0547744b0af7df7ff7 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 13 May 2026 13:13:11 +0300
 Subject: [PATCH] gostssl-chromium
@@ -16,7 +16,7 @@ Subject: [PATCH] gostssl-chromium
  net/base/net_error_list.h                     |   5 +
  net/cert/caching_cert_verifier.cc             |   8 +
  net/cert/cert_verify_proc.cc                  |  23 ++
- net/cert/cert_verify_proc_builtin.cc          |  10 +
+ net/cert/cert_verify_proc_builtin.cc          |  11 +
  net/cert/x509_cert_types.cc                   |  27 +++
  net/cert/x509_cert_types.h                    |   2 +
  net/http/http_network_transaction.cc          |   9 +
@@ -42,7 +42,7 @@ Subject: [PATCH] gostssl-chromium
  .../cert_net_fetcher_url_loader.cc            |  79 ++++++-
  services/network/network_service.cc           |   5 +
  third_party/boringssl/BUILD.gn                |   1 +
- 38 files changed, 854 insertions(+), 12 deletions(-)
+ 38 files changed, 855 insertions(+), 12 deletions(-)
  create mode 100644 net/ssl/gostssl_util.cc
  create mode 100644 net/ssl/gostssl_util.h
 
@@ -387,15 +387,16 @@ index 7dc040dc7fd..f08b5b25ecb 100644
    // in the chain. Also fills in the has_* booleans for the digest algorithms
    // present in the chain.
 diff --git a/net/cert/cert_verify_proc_builtin.cc b/net/cert/cert_verify_proc_builtin.cc
-index b2cf33c953a..9bf984064ea 100644
+index b2cf33c953a..2cc10901adb 100644
 --- a/net/cert/cert_verify_proc_builtin.cc
 +++ b/net/cert/cert_verify_proc_builtin.cc
-@@ -976,19 +976,29 @@ class PathBuilderDelegateImpl : public bssl::SimplePathBuilderDelegate {
+@@ -976,19 +976,30 @@ class PathBuilderDelegateImpl : public bssl::SimplePathBuilderDelegate {
        return policy;
      }
  
 +#ifndef NO_GOSTSSL
-+    // Use hard-fail revocation checking with CRL fallback for every chain.
++    // A certificate without revocation information is accepted; declared
++    // OCSP or CRL must give a status, with CRL fallback for every chain.
 +#else
      // Use soft-fail revocation checking for VERIFY_REV_CHECKING_ENABLED.
 +#endif // GOSTSSL
@@ -407,7 +408,7 @@ index b2cf33c953a..9bf984064ea 100644
        policy.networking_allowed = true;
 +#ifndef NO_GOSTSSL
 +      policy.crl_allowed = true;
-+      policy.allow_missing_info = false;
++      policy.allow_missing_info = true;
 +      policy.allow_unable_to_check = false;
 +#else
        // Publicly trusted certs are required to have OCSP by the Baseline
