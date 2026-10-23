@@ -1,4 +1,4 @@
-From 877152709b93733c46758093edb303c8016afeb8 Mon Sep 17 00:00:00 2001
+From 6ebb419455331e68954a0f2ea95fb59cbb6b4cd6 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 13 May 2026 13:13:11 +0300
 Subject: [PATCH] branding
@@ -33,10 +33,10 @@ Subject: [PATCH] branding
  26 files changed, 108 insertions(+), 347 deletions(-)
 
 diff --git a/chrome/app/generated_resources.grd b/chrome/app/generated_resources.grd
-index 7e4c3abea6c..b7298173320 100644
+index 21e5fd0d925..1a8a777f12a 100644
 --- a/chrome/app/generated_resources.grd
 +++ b/chrome/app/generated_resources.grd
-@@ -7443,10 +7443,8 @@ Keep your key file in a safe place. You will need it to create new versions of y
+@@ -7655,10 +7655,8 @@ Keep your key file in a safe place. You will need it to create new versions of y
          Try again
        </message>
        <message name="IDS_GOOGLE_SEARCH_BOX_EMPTY_HINT_MD" desc="The text displayed in the fakebox (on the New Tab page) when it is empty, Google is the default search engine, and the Material Design UI is enabled.">
@@ -126,7 +126,7 @@ index 31cb949b87c..1e5f99357fc 100644
 -CLOSE
 +CIRCLE, 8, 8, 2.33f
 diff --git a/chrome/browser/profiles/profile_attributes_storage.cc b/chrome/browser/profiles/profile_attributes_storage.cc
-index fa6ba6c6a48..86610bf03cf 100644
+index bba21bed411..60aa2b1592b 100644
 --- a/chrome/browser/profiles/profile_attributes_storage.cc
 +++ b/chrome/browser/profiles/profile_attributes_storage.cc
 @@ -309,6 +309,23 @@ ProfileAttributesStorage::ProfileAttributesStorage(
@@ -154,7 +154,7 @@ index fa6ba6c6a48..86610bf03cf 100644
    // profile names.
    if (!disable_avatar_download_for_testing_)
 diff --git a/chrome/browser/resources/new_tab_page/logo.css b/chrome/browser/resources/new_tab_page/logo.css
-index 7153f6db34a..1bede421775 100644
+index a788ecb2f79..35f1330e099 100644
 --- a/chrome/browser/resources/new_tab_page/logo.css
 +++ b/chrome/browser/resources/new_tab_page/logo.css
 @@ -42,10 +42,7 @@
@@ -170,7 +170,7 @@ index 7153f6db34a..1bede421775 100644
  
  :host(:not([single-colored])) #logo {
 diff --git a/chrome/browser/resources/settings/icons.html.ts b/chrome/browser/resources/settings/icons.html.ts
-index 2d5fa2e9be7..5643708154a 100644
+index bd369ccfa5a..9813046622f 100644
 --- a/chrome/browser/resources/settings/icons.html.ts
 +++ b/chrome/browser/resources/settings/icons.html.ts
 @@ -33,7 +33,7 @@ NOTE: Chrome OS icons go in ./chromeos/os_icons.html.
@@ -182,7 +182,7 @@ index 2d5fa2e9be7..5643708154a 100644
        <g id="credit-card"><path d="M18 5.5v9c0 .402-.148.754-.441 1.05-.293.302-.645.45-1.059.45h-13c-.402 0-.754-.148-1.05-.45-.302-.296-.45-.648-.45-1.05v-9c0-.402.148-.754.45-1.05.296-.302.648-.45 1.05-.45h13c.414 0 .766.148 1.059.45.293.296.441.648.441 1.05ZM3.5 7h13V5.5h-13Zm0 3v4.5h13V10Zm0 4.5v-9Zm0 0"></path></g>
        <g id="dashboard"><path d="M11 6.25V3.73c0-.207.07-.382.21-.52a.698.698 0 0 1 .52-.21h4.532a.718.718 0 0 1 .738.73v2.52c0 .21-.07.39-.21.535a.687.687 0 0 1-.52.215h-4.532a.707.707 0 0 1-.531-.215A.753.753 0 0 1 11 6.25Zm-8 4.02V3.73c0-.207.07-.382.215-.52A.742.742 0 0 1 3.754 3H8.27c.195 0 .367.07.511.21A.69.69 0 0 1 9 3.73v6.54a.704.704 0 0 1-.219.511.704.704 0 0 1-.511.219H3.754a.733.733 0 0 1-.54-.219A.7.7 0 0 1 3 10.27Zm8 5.98v-6.5c0-.21.07-.39.21-.535A.687.687 0 0 1 11.73 9h4.532c.215 0 .39.07.531.215A.753.753 0 0 1 17 9.75v6.5c0 .21-.07.39-.21.535a.687.687 0 0 1-.52.215h-4.532a.707.707 0 0 1-.531-.215.753.753 0 0 1-.207-.535Zm-8 0v-2.543c0-.207.07-.379.215-.52a.756.756 0 0 1 .539-.207H8.27c.195 0 .367.07.511.207.145.141.219.313.219.52v2.543a.73.73 0 0 1-.219.535.7.7 0 0 1-.511.215H3.754a.73.73 0 0 1-.54-.215A.727.727 0 0 1 3 16.25ZM4.5 9.5h3v-5h-3Zm8 6h3v-5h-3Zm0-9.98h3V4.5h-3Zm-8 9.98h3v-1.02h-3Zm3-6Zm5-3.98Zm0 4.98Zm-5 3.98Zm0 0"></path></g>
        <g id="bar-chart"><path d="M13.754 16c-.211 0-.39-.07-.535-.215A.73.73 0 0 1 13 15.25v-4.5c0-.21.07-.39.215-.535A.721.721 0 0 1 13.75 10h1.496c.211 0 .39.07.535.215a.73.73 0 0 1 .219.535v4.5c0 .21-.07.39-.215.535a.721.721 0 0 1-.535.215Zm-4.5 0c-.211 0-.39-.07-.535-.215a.73.73 0 0 1-.219-.535V4.758a.73.73 0 0 1 .215-.54A.725.725 0 0 1 9.25 4h1.496c.211 0 .39.07.535.215a.73.73 0 0 1 .219.535v10.492a.73.73 0 0 1-.215.54.725.725 0 0 1-.535.218Zm-4.5 0c-.211 0-.39-.07-.535-.215A.73.73 0 0 1 4 15.25V8.746c0-.207.07-.383.215-.527A.725.725 0 0 1 4.75 8h1.496c.211 0 .39.07.535.215A.73.73 0 0 1 7 8.75v6.504c0 .207-.07.383-.215.527A.725.725 0 0 1 6.25 16Zm0 0"></path></g>
-@@ -269,7 +269,7 @@ NOTE: Chrome OS icons go in ./chromeos/os_icons.html.
+@@ -271,7 +271,7 @@ NOTE: Chrome OS icons go in ./chromeos/os_icons.html.
        <g id="broken-image"><path fill-rule="evenodd" clip-rule="evenodd" d="M15.8333 2.5H4.16667C3.25 2.5 2.5 3.25 2.5 4.16667V15.8333C2.5 16.75 3.25 17.5 4.16667 17.5H15.8333C16.75 17.5 17.5 16.75 17.5 15.8333V4.16667C17.5 3.25 16.75 2.5 15.8333 2.5ZM15.8333 4.16667V9.29167L14 7L11.3333 10.3333L8.66667 7L6 10.3333L4.16667 8.04167V4.16667H15.8333ZM4.16667 10.7083V15.8333H15.8417V11.9583L14.0083 9.66667L11.3333 13L8.66667 9.66667L6 13L4.16667 10.7083Z"></path></g>
        <g id="button-auto" viewBox="0 -960 960 960"><path d="M480-480ZM160-280q-33 0-56.5-23.5T80-360v-240q0-33 23.5-56.5T160-680h320v80H160v240h640v-120h80v120q0 33-23.5 56.5T800-280H160Zm580-280q-6 0-8-6-16-61-60.5-105.5T566-732q-6-2-6-8 0-7 6-8 61-16 105.5-60.5T732-914q2-6 8-6 7 0 8 6 17 61 61 105.5T914-748q6 1 6 8 0 6-6 8-61 16-105.5 60.5T748-566q-1 6-8 6Z"></path></g>
        <g id="checklist"><path d="M4.833 15.5 2 12.667l1.062-1.063 1.75 1.771 3.542-3.542 1.084 1.063Zm0-6.5L2 6.167l1.062-1.063 1.771 1.771 3.521-3.542 1.084 1.063ZM11 14v-1.5h7V14Zm0-6.5V6h7v1.5Z"></path></g>
@@ -201,12 +201,12 @@ index 83221a8e6f9..58ecce6415e 100644
 +<svg id="miniNewTabPage" width="240" height="126" viewBox="0 0 240 126" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#a)"><path fill="var(--color-side-panel-customize-chrome-mini-ntp-background)" d="M0 0h240v126H0z"/><path d="M0 0h240v40H0V0Z" fill="var(--color-side-panel-customize-chrome-mini-ntp-tab-strip-background)"/><rect x="6" y="6" width="28" height="28" rx="10" fill="var(--color-side-panel-customize-chrome-mini-ntp-caron-container)"/><g clip-path="url(#b)"><path d="m24 19-4 4-4-4 1.06-1.06L20 20.88l2.94-2.94L24 19Z" fill="var(--color-side-panel-customize-chrome-mini-ntp-caron)"/></g><path fill="var(--color-side-panel-customize-chrome-mini-ntp-background)" d="M0 86h240v40H0zm0-38a8 8 0 0 1 8-8h224a8 8 0 0 1 8 8v38H0V48Z"/><g clip-path="url(#c)"><path d="M22 69.083 15.917 63 22 56.917l1.23 1.229-3.98 3.979h8.833v1.75H19.25l3.98 3.98L22 69.082Z" fill="var(--color-side-panel-customize-chrome-mini-ntp-arrows-and-refresh-button)"/></g><g clip-path="url(#d)"><path d="m58 69.083-1.23-1.229 3.98-3.979h-8.833v-1.75h8.833l-3.98-3.98L58 56.918 64.083 63 58 69.083Z" fill="var(--color-side-panel-customize-chrome-mini-ntp-arrows-and-refresh-button)"/></g><g clip-path="url(#e)"><path d="M93.98 69.167c-1.71 0-3.168-.598-4.376-1.792-1.194-1.208-1.791-2.667-1.791-4.375 0-1.708.597-3.16 1.791-4.354 1.209-1.209 2.667-1.813 4.375-1.813.93 0 1.792.195 2.584.584a6.203 6.203 0 0 1 2.041 1.541v-2.125h1.584v5.25h-5.25V60.5h2.708a4.378 4.378 0 0 0-3.667-1.938c-1.236 0-2.285.431-3.146 1.292-.86.861-1.291 1.91-1.291 3.146s.43 2.285 1.291 3.146c.861.86 1.91 1.291 3.146 1.291 1.153 0 2.14-.374 2.959-1.124a4.404 4.404 0 0 0 1.416-2.813h1.771c-.125 1.597-.778 2.944-1.958 4.042-1.167 1.083-2.563 1.625-4.188 1.625Z" fill="var(--color-side-panel-customize-chrome-mini-ntp-arrows-and-refresh-button)"/></g><path d="M120 63c0-7.18 5.82-13 13-13h107v26H133c-7.18 0-13-5.82-13-13Z" fill="var(--color-side-panel-customize-chrome-mini-ntp-omnibox)"/><path d="M40 16c0-5.523 4.477-10 10-10h190v34H40V16Z" fill="var(--color-side-panel-customize-chrome-mini-ntp-background)"/><path fill-rule="evenodd" clip-rule="evenodd" d="M40 28v12H28c6.627 0 12-5.373 12-12Z" fill="var(--color-side-panel-customize-chrome-mini-ntp-background)"/><g clip-path="url(#f)"><g clip-path="url(#g)"><path transform="translate(48 12)" d="M12.95 3.05A7 7 0 1 0 12.95 12.95L11.3 11.3A4.67 4.67 0 1 1 11.3 4.7ZM8 5.67a2.33 2.33 0 1 1 0 4.66a2.33 2.33 0 1 1 0-4.66Z" fill="var(--color-side-panel-customize-chrome-mini-ntp-chrome-logo)"/></g></g><path fill="var(--color-side-panel-customize-chrome-mini-ntp-border)" d="M0 86h240v-1H0z"/></g><defs><clipPath id="a"><path fill="var(--color-side-panel-customize-chrome-mini-ntp-background)" d="M0 0h240v126H0z"/></clipPath><clipPath id="b"><path fill="var(--color-side-panel-customize-chrome-mini-ntp-background)" transform="rotate(-90 20 8)" d="M0 0h16v16H0z"/></clipPath><clipPath id="c"><path fill="var(--color-side-panel-customize-chrome-mini-ntp-background)" transform="translate(12 53)" d="M0 0h20v20H0z"/></clipPath><clipPath id="d"><path fill="var(--color-side-panel-customize-chrome-mini-ntp-background)" transform="translate(48 53)" d="M0 0h20v20H0z"/></clipPath><clipPath id="e"><path fill="var(--color-side-panel-customize-chrome-mini-ntp-background)" transform="translate(84 53)" d="M0 0h20v20H0z"/></clipPath><clipPath id="f"><path fill="var(--color-side-panel-customize-chrome-mini-ntp-background)" transform="translate(48 12)" d="M0 0h16v16H0z"/></clipPath><clipPath id="g"><path fill="var(--color-side-panel-customize-chrome-mini-ntp-background)" transform="translate(48 12)" d="M0 0h16v16H0z"/></clipPath></defs></svg>
 \ No newline at end of file
 diff --git a/chrome/browser/resources/webui_toolbar/icons.ts b/chrome/browser/resources/webui_toolbar/icons.ts
-index 7e03659f08d..2565defb2d0 100644
+index b20410e8699..a0af900b02b 100644
 --- a/chrome/browser/resources/webui_toolbar/icons.ts
 +++ b/chrome/browser/resources/webui_toolbar/icons.ts
-@@ -29,7 +29,7 @@ iconset.registerIcons(
-           getTrustedHTML`<svg><g id="cast_warning" viewBox="0 0 20 20"><path d="M 10 10 Z m 6.5 6 h -4.29 c -0.21 0 -0.39 -0.07 -0.53 -0.21 a 0.72 0.72 0 0 1 -0.22 -0.53 c 0 -0.21 0.07 -0.39 0.22 -0.53 a 0.72 0.72 0 0 1 0.53 -0.22 H 16.5 v -2.75 c 0 -0.21 0.07 -0.39 0.22 -0.53 a 0.71 0.71 0 0 1 0.53 -0.21 c 0.21 0 0.39 0.07 0.54 0.22 a 0.73 0.73 0 0 1 0.22 0.54 v 2.75 c 0 0.41 -0.15 0.77 -0.44 1.06 A 1.44 1.44 0 0 1 16.5 16 Z M 2.75 6.63 c -0.21 0 -0.39 -0.07 -0.53 -0.21 A 0.73 0.73 0 0 1 2 5.88 V 5.5 c 0 -0.41 0.15 -0.77 0.44 -1.06 A 1.44 1.44 0 0 1 3.5 4 h 4.75 c 0.21 0 0.39 0.07 0.54 0.22 c 0.14 0.14 0.22 0.32 0.22 0.53 c 0 0.21 -0.07 0.39 -0.21 0.54 a 0.73 0.73 0 0 1 -0.53 0.22 H 3.5 v 0.38 c 0 0.21 -0.07 0.39 -0.21 0.54 a 0.71 0.71 0 0 1 -0.53 0.22 Z m 8.91 1.7 A 3.87 3.87 0 0 1 10.5 5.5 c 0 -1.11 0.39 -2.05 1.17 -2.83 A 3.87 3.87 0 0 1 14.5 1.5 c 1.11 0 2.05 0.39 2.83 1.17 A 3.87 3.87 0 0 1 18.5 5.5 c 0 1.11 -0.39 2.05 -1.17 2.83 A 3.87 3.87 0 0 1 14.5 9.5 c -1.11 0 -2.05 -0.39 -2.83 -1.17 Z M 14.5 7.5 a 0.49 0.49 0 0 0 0.35 -0.14 A 0.48 0.48 0 0 0 15 7 c 0 -0.14 -0.05 -0.26 -0.15 -0.35 A 0.49 0.49 0 0 0 14.5 6.5 a 0.49 0.49 0 0 0 -0.35 0.14 A 0.48 0.48 0 0 0 14 7 c 0 0.14 0.05 0.26 0.15 0.36 a 0.49 0.49 0 0 0 0.35 0.14 Z m 0 -2 c 0.13 0 0.25 -0.05 0.35 -0.15 A 0.49 0.49 0 0 0 15 5 V 4 c 0 -0.13 -0.05 -0.25 -0.15 -0.35 A 0.49 0.49 0 0 0 14.5 3.5 c -0.13 0 -0.25 0.05 -0.35 0.15 A 0.49 0.49 0 0 0 14 4 v 1 c 0 0.13 0.05 0.25 0.15 0.35 a 0.49 0.49 0 0 0 0.35 0.15 Z M 3 16 a 0.96 0.96 0 0 1 -0.71 -0.29 A 0.96 0.96 0 0 1 2 15 c 0 -0.28 0.1 -0.52 0.29 -0.71 A 0.96 0.96 0 0 1 3 14 c 0.28 0 0.52 0.1 0.71 0.29 c 0.2 0.19 0.29 0.43 0.29 0.71 a 0.96 0.96 0 0 1 -0.29 0.71 A 0.96 0.96 0 0 1 3 16 Z m 3.25 0 a 0.88 0.88 0 0 1 -0.53 -0.18 a 0.69 0.69 0 0 1 -0.28 -0.47 a 3.49 3.49 0 0 0 -0.98 -1.83 a 3.41 3.41 0 0 0 -1.84 -0.96 a 0.63 0.63 0 0 1 -0.46 -0.28 a 0.88 0.88 0 0 1 -0.17 -0.52 c 0 -0.2 0.06 -0.37 0.18 -0.53 a 0.48 0.48 0 0 1 0.47 -0.19 a 4.94 4.94 0 0 1 2.89 1.41 a 4.91 4.91 0 0 1 1.43 2.88 a 0.52 0.52 0 0 1 -0.18 0.48 a 0.79 0.79 0 0 1 -0.53 0.19 Z m 3 0 a 0.76 0.76 0 0 1 -0.52 -0.21 a 0.83 0.83 0 0 1 -0.27 -0.5 a 6.34 6.34 0 0 0 -1.87 -3.92 C 5.5 10.29 4.19 9.67 2.65 9.52 a 0.69 0.69 0 0 1 -0.47 -0.25 A 0.81 0.81 0 0 1 2 8.75 a 0.69 0.69 0 0 1 0.24 -0.53 a 0.66 0.66 0 0 1 0.56 -0.18 c 1.91 0.19 3.54 0.97 4.89 2.32 c 1.34 1.35 2.1 2.99 2.28 4.91 a 0.58 0.58 0 0 1 -0.17 0.51 a 0.73 0.73 0 0 1 -0.53 0.22 Z" fill="currentColor"/></g></svg>`,
-       'chat': () => getTrustedHTML`<svg><g id="chat" viewBox="0 0 20 20"><path d="m 5 15 l -1.73 1.73 c -0.24 0.24 -0.51 0.29 -0.82 0.16 c -0.3 -0.13 -0.46 -0.36 -0.46 -0.7 V 3.5 c 0 -0.41 0.15 -0.77 0.44 -1.06 A 1.44 1.44 0 0 1 3.5 2 h 13 c 0.41 0 0.77 0.15 1.06 0.44 c 0.29 0.29 0.44 0.65 0.44 1.06 v 10 c 0 0.41 -0.15 0.77 -0.44 1.06 A 1.44 1.44 0 0 1 16.5 15 Z m -0.62 -1.5 H 16.5 v -10 h -13 v 10.88 Z m -0.87 0 v -10 Z M 5.75 12 h 5.5 c 0.21 0 0.39 -0.07 0.54 -0.21 a 0.71 0.71 0 0 0 0.22 -0.53 c 0 -0.21 -0.07 -0.39 -0.21 -0.53 a 0.73 0.73 0 0 0 -0.53 -0.22 h -5.5 c -0.21 0 -0.39 0.07 -0.53 0.22 a 0.71 0.71 0 0 0 -0.21 0.53 c 0 0.21 0.07 0.39 0.22 0.54 A 0.73 0.73 0 0 0 5.75 12 Z m 0 -2.75 h 8.5 c 0.21 0 0.39 -0.07 0.54 -0.21 A 0.71 0.71 0 0 0 15 8.5 c 0 -0.21 -0.07 -0.39 -0.21 -0.53 a 0.73 0.73 0 0 0 -0.53 -0.22 h -8.5 c -0.21 0 -0.39 0.07 -0.53 0.22 A 0.71 0.71 0 0 0 5 8.5 c 0 0.21 0.07 0.39 0.22 0.54 a 0.73 0.73 0 0 0 0.54 0.22 Z m 0 -2.75 h 8.5 c 0.21 0 0.39 -0.07 0.54 -0.21 A 0.71 0.71 0 0 0 15 5.75 c 0 -0.21 -0.07 -0.39 -0.21 -0.53 A 0.73 0.73 0 0 0 14.25 5 h -8.5 c -0.21 0 -0.39 0.07 -0.53 0.22 A 0.71 0.71 0 0 0 5 5.75 c 0 0.21 0.07 0.39 0.22 0.54 a 0.73 0.73 0 0 0 0.54 0.22 Z" fill="currentColor"/></g></svg>`,
+@@ -47,7 +47,7 @@ iconset.registerIcons(
+       'chrome_extension_off': () =>
+           getTrustedHTML`<svg><g id="chrome_extension_off" viewBox="0 0 20 20"><path d="M 15.48 17.58 L 2.4 4.52 a 0.73 0.73 0 0 1 -0.23 -0.53 c 0 -0.2 0.07 -0.38 0.23 -0.53 a 0.73 0.73 0 0 1 0.54 -0.23 a 0.71 0.71 0 0 1 0.53 0.23 l 13.08 13.08 c 0.16 0.16 0.23 0.33 0.23 0.53 a 0.69 0.69 0 0 1 -0.23 0.52 a 0.71 0.71 0 0 1 -0.53 0.23 a 0.75 0.75 0 0 1 -0.54 -0.23 Z M 19 10 c 0 0.56 -0.19 1.03 -0.58 1.42 A 1.94 1.94 0 0 1 17 12 v 1.25 c 0 0.25 -0.08 0.44 -0.23 0.56 a 0.81 0.81 0 0 1 -0.52 0.19 a 0.79 0.79 0 0 1 -0.52 -0.19 c -0.16 -0.13 -0.23 -0.32 -0.23 -0.56 V 4.5 H 6.75 c -0.25 0 -0.44 -0.08 -0.56 -0.23 a 0.81 0.81 0 0 1 0 -1.03 C 6.31 3.08 6.5 3 6.75 3 H 8 c 0 -0.56 0.19 -1.03 0.58 -1.42 c 0.39 -0.39 0.86 -0.58 1.42 -0.58 c 0.56 0 1.03 0.19 1.42 0.58 c 0.39 0.39 0.58 0.86 0.58 1.42 h 3.5 c 0.41 0 0.77 0.15 1.06 0.44 c 0.29 0.29 0.44 0.65 0.44 1.06 V 8 a 1.94 1.94 0 0 1 1.42 0.58 c 0.39 0.39 0.58 0.86 0.58 1.42 Z M 11.54 8.52 Z m -2.15 2.15 Z M 4.5 17 c -0.41 0 -0.77 -0.15 -1.06 -0.44 A 1.44 1.44 0 0 1 3 15.5 v -2.89 c 0 -0.18 0.06 -0.34 0.17 -0.48 a 0.65 0.65 0 0 1 0.44 -0.25 a 2.28 2.28 0 0 0 1 -0.73 C 4.87 10.81 5 10.43 5 10 c 0 -0.43 -0.13 -0.81 -0.39 -1.14 a 2.28 2.28 0 0 0 -1 -0.73 a 0.64 0.64 0 0 1 -0.44 -0.25 A 0.78 0.78 0 0 1 3 7.38 V 4.52 c 0 -0.2 0.05 -0.38 0.14 -0.56 c 0.09 -0.17 0.21 -0.32 0.36 -0.46 l 1 1 v 2.33 a 3.23 3.23 0 0 1 1.47 1.28 C 6.32 8.69 6.5 9.32 6.5 10 c 0 0.7 -0.18 1.33 -0.53 1.91 A 3.12 3.12 0 0 1 4.5 13.17 V 15.5 h 11 l 1 1 c -0.15 0.14 -0.32 0.25 -0.49 0.33 c -0.18 0.09 -0.36 0.14 -0.56 0.17 Z" fill="currentColor"/></g></svg>`,
        'chrome_product': () =>
 -          getTrustedHTML`<svg><g id="chrome_product" viewBox="0 0 24 24"><path d="M 9.18 14.9 c 0.78 0.79 1.72 1.18 2.82 1.18 c 1.1 0 2.04 -0.39 2.82 -1.18 c 0.79 -0.78 1.18 -1.72 1.18 -2.82 c 0 -1.1 -0.39 -2.04 -1.18 -2.82 c -0.78 -0.78 -1.72 -1.18 -2.82 -1.18 c -1.1 0 -2.04 0.39 -2.82 1.18 C 8.39 10.04 8 10.98 8 12.07 c 0 1.1 0.39 2.04 1.18 2.82 Z M 12 18.07 c 0.22 0 0.43 -0.01 0.63 -0.02 c 0.2 -0.02 0.4 -0.05 0.6 -0.1 L 10.88 22 c -2.52 -0.28 -4.62 -1.36 -6.32 -3.24 C 2.85 16.89 2 14.66 2 12.07 c 0 -0.7 0.07 -1.38 0.2 -2.03 c 0.13 -0.66 0.34 -1.29 0.6 -1.89 l 4 6.93 a 5.97 5.97 0 0 0 2.15 2.18 c 0.92 0.55 1.93 0.82 3.05 0.82 Z m 0 -12 c -1.33 0 -2.52 0.39 -3.55 1.16 C 7.42 8.01 6.7 9 6.3 10.2 L 3.95 6.15 a 10.3 10.3 0 0 1 3.46 -2.96 c 1.39 -0.74 2.92 -1.11 4.59 -1.11 c 1.65 0 3.17 0.36 4.55 1.09 A 10.17 10.17 0 0 1 20 6.07 Z m 9.15 2 c 0.29 0.62 0.5 1.26 0.64 1.93 c 0.14 0.67 0.21 1.36 0.21 2.07 c 0 2.59 -0.85 4.81 -2.54 6.68 c -1.69 1.87 -3.78 2.95 -6.26 3.25 l 4 -6.93 c 0.25 -0.43 0.45 -0.9 0.59 -1.41 c 0.14 -0.51 0.21 -1.04 0.21 -1.59 c 0 -0.78 -0.14 -1.51 -0.41 -2.19 a 6.07 6.07 0 0 0 -1.14 -1.81 Z" fill="currentColor"/></g></svg>`,
 +          getTrustedHTML`<svg><g id="chrome_product" viewBox="0 0 24 24"><path d="M19.43 4.57A10.5 10.5 0 1 0 19.43 19.43L16.95 16.95A7 7 0 1 1 16.95 7.05ZM12 8.5a3.5 3.5 0 1 1 0 7a3.5 3.5 0 1 1 0-7Z" fill="currentColor"/></g></svg>`,
@@ -214,7 +214,7 @@ index 7e03659f08d..2565defb2d0 100644
            getTrustedHTML`<svg><g id="close" viewBox="0 0 24 24"><path d="m 12 13.4 l -4.9 4.9 a 0.95 0.95 0 0 1 -0.7 0.27 a 0.95 0.95 0 0 1 -0.7 -0.27 a 0.95 0.95 0 0 1 -0.27 -0.7 c 0 -0.28 0.09 -0.52 0.27 -0.7 L 10.6 12 L 5.7 7.1 a 0.95 0.95 0 0 1 -0.27 -0.7 c 0 -0.28 0.09 -0.51 0.27 -0.7 a 0.95 0.95 0 0 1 0.7 -0.27 c 0.28 0 0.52 0.09 0.7 0.27 L 12 10.6 l 4.9 -4.9 a 0.95 0.95 0 0 1 0.7 -0.27 c 0.28 0 0.52 0.09 0.7 0.27 a 0.95 0.95 0 0 1 0.27 0.7 a 0.95 0.95 0 0 1 -0.27 0.7 L 13.4 12 l 4.9 4.9 a 0.95 0.95 0 0 1 0.27 0.7 c 0 0.28 -0.09 0.52 -0.27 0.7 a 0.95 0.95 0 0 1 -0.7 0.27 a 0.95 0.95 0 0 1 -0.7 -0.27 Z" fill="currentColor"/></g></svg>`,
        'code': () =>
 diff --git a/chrome/browser/shell_integration_linux.cc b/chrome/browser/shell_integration_linux.cc
-index 2c071e6ba81..057cdda1a13 100644
+index bc6dc20d5ba..17dd39d1383 100644
 --- a/chrome/browser/shell_integration_linux.cc
 +++ b/chrome/browser/shell_integration_linux.cc
 @@ -471,7 +471,7 @@ std::string GetIconName() {
@@ -227,7 +227,7 @@ index 2c071e6ba81..057cdda1a13 100644
  }
  
 diff --git a/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc b/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
-index 8dac79b3147..fdfc46aa227 100644
+index e0a1557cae7..e0e3b321847 100644
 --- a/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
 +++ b/chrome/browser/ui/views/toolbar/browser_app_menu_button.cc
 @@ -210,8 +210,13 @@ SkColor BrowserAppMenuButton::GetForegroundColor(ButtonState state) const {
@@ -259,10 +259,10 @@ index f6bcb3cc8e8..dc53b2f53f8 100644
  }
  #endif  // BUILDFLAG(IS_LINUX)
 diff --git a/chrome/installer/linux/BUILD.gn b/chrome/installer/linux/BUILD.gn
-index f7b8679690f..4c76e864197 100644
+index 2a75b4c07d1..b825ef7be20 100644
 --- a/chrome/installer/linux/BUILD.gn
 +++ b/chrome/installer/linux/BUILD.gn
-@@ -313,7 +313,7 @@ action("deb_repo_package") {
+@@ -322,7 +322,7 @@ action("deb_repo_package") {
    if (is_chrome_branded) {
      package = "google-chrome-repo"
    } else {
@@ -271,7 +271,7 @@ index f7b8679690f..4c76e864197 100644
    }
  
    outputs = [ "$root_out_dir/${package}_${deb_arch}.deb" ]
-@@ -398,6 +398,9 @@ copy("theme_files") {
+@@ -407,6 +407,9 @@ copy("theme_files") {
      "$branding_dir_100/linux/product_logo_16.png",
      "$branding_dir_100/linux/product_logo_32.png",
    ]
@@ -281,7 +281,7 @@ index f7b8679690f..4c76e864197 100644
    if (is_chrome_branded) {
      sources += [
        "$branding_dir/linux/product_logo_128_beta.png",
-@@ -540,7 +543,7 @@ template("linux_package") {
+@@ -565,7 +568,7 @@ template("linux_package") {
    if (is_chrome_branded) {
      package = "google-chrome"
    } else {
@@ -326,12 +326,12 @@ index 395c019f7dd..91fa16c4ed3 100644
  # Package maintainer information.
  MAINTNAME="Chromium Linux Team"
 diff --git a/chrome/installer/linux/common/installer.py b/chrome/installer/linux/common/installer.py
-index 7646f80c840..d279483191a 100644
+index a665f75dc61..9473b390f21 100644
 --- a/chrome/installer/linux/common/installer.py
 +++ b/chrome/installer/linux/common/installer.py
-@@ -800,6 +800,18 @@ class InstallerConfig:
-                 dst_base="staging_dir",
-             ))
+@@ -922,6 +922,18 @@ class InstallerConfig:
+             )
+         )
  
 +        # symbolic icon for desktop shells that draw monochrome app icons
 +        if self.branding != "google_chrome":
@@ -348,19 +348,19 @@ index 7646f80c840..d279483191a 100644
          # desktop file
          self.extra_desktop_entries = ""
          artifacts.append(
-@@ -908,6 +920,7 @@ class Installer:
-             (self.config.staging_dir /
-              "usr/share/gnome-control-center/default-apps"),
-             self.config.staging_dir / "usr/share/man/man1",
-+            self.config.staging_dir / "usr/share/icons/hicolor/symbolic/apps",
-             install_dir / "apparmor.d",
-         ]
+@@ -1046,6 +1058,7 @@ class Installer:
+                     / "usr/share/gnome-control-center/default-apps"
+                 ),
+                 self.config.staging_dir / "usr/share/man/man1",
++                self.config.staging_dir / "usr/share/icons/hicolor/symbolic/apps",
+                 install_dir / "apparmor.d",
+             ]
          for d in dirs:
 diff --git a/chrome/installer/linux/debian/build_repo_package.py b/chrome/installer/linux/debian/build_repo_package.py
-index 2e1a450fe7d..a704e36d061 100755
+index d524265e566..71c4c11cb46 100755
 --- a/chrome/installer/linux/debian/build_repo_package.py
 +++ b/chrome/installer/linux/debian/build_repo_package.py
-@@ -53,8 +53,8 @@ def main() -> None:
+@@ -56,8 +56,8 @@ def main() -> None:
          config.info_vars["INSTALLDIR"] = "/opt/google/chrome-repo"
          config.info_vars["PACKAGE"] = "google-chrome-repo"
      else:
@@ -384,10 +384,10 @@ index c76a259c77f..a30dda5cfe6 100644
  # These two files will be the same on non-stable channels.
  /usr/share/man/man1/@@PACKAGE.1.gz
 diff --git a/components/embedder_support/user_agent_utils.cc b/components/embedder_support/user_agent_utils.cc
-index 3f87ec84fb3..7f6febaf576 100644
+index e699a6a394f..5c0a795eb2a 100644
 --- a/components/embedder_support/user_agent_utils.cc
 +++ b/components/embedder_support/user_agent_utils.cc
-@@ -925,7 +925,7 @@ std::string BuildUserAgentFromOSAndProduct(const std::string& os_info,
+@@ -937,7 +937,7 @@ std::string BuildUserAgentFromOSAndProduct(const std::string& os_info,
    // compatible with Safari, we hope!!
    std::string user_agent;
    base::StringAppendF(&user_agent,
@@ -624,10 +624,10 @@ index edc375b207c..0f586fe7986 100644
  
  std::string SearchTermsData::GetMailRUReferralID() const {
 diff --git a/components/search_engines/template_url_prepopulate_data.cc b/components/search_engines/template_url_prepopulate_data.cc
-index ac35ec25777..e054958b0c7 100644
+index 85b0c960533..f5eb71ff98d 100644
 --- a/components/search_engines/template_url_prepopulate_data.cc
 +++ b/components/search_engines/template_url_prepopulate_data.cc
-@@ -185,8 +185,14 @@ std::vector<std::unique_ptr<TemplateURLData>> GetPrepopulatedEngines(
+@@ -192,8 +192,14 @@ std::vector<std::unique_ptr<TemplateURLData>> GetPrepopulatedEngines(
      return t_urls;
    }
  
@@ -644,7 +644,7 @@ index ac35ec25777..e054958b0c7 100644
  }
  
  std::unique_ptr<TemplateURLData> GetPrepopulatedEngine(
-@@ -279,7 +285,7 @@ std::unique_ptr<TemplateURLData> GetPrepopulatedFallbackSearch(
+@@ -318,7 +324,7 @@ std::unique_ptr<TemplateURLData> GetPrepopulatedFallbackSearch(
      const std::vector<raw_ptr<const PrepopulatedEngine>>&
          regional_prepopulated_engines) {
    return FindPrepopulatedEngineInternal(prefs, regional_prepopulated_engines,
@@ -779,19 +779,19 @@ index 9551dab91d4..4370ba809a2 100644
 -NEW_PATH
 +CIRCLE, 12, 12, 3.5f
 diff --git a/ui/webui/resources/cr_components/searchbox/icons/chrome_product_cr23.svg b/ui/webui/resources/cr_components/searchbox/icons/chrome_product_cr23.svg
-index ac57a12af99..2f1be145929 100644
+index 94d7f791dd4..2f1be145929 100644
 --- a/ui/webui/resources/cr_components/searchbox/icons/chrome_product_cr23.svg
 +++ b/ui/webui/resources/cr_components/searchbox/icons/chrome_product_cr23.svg
 @@ -1 +1 @@
--<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 16 16"><g clip-path="url(#a)"><path fill="#000" d="M5.25 8c0 .76.27 1.4.81 1.94s1.19.81 1.94.81 1.4-.27 1.94-.81.81-1.19.81-1.94-.27-1.4-.81-1.94S8.75 5.25 8 5.25s-1.4.27-1.94.81S5.25 7.25 5.25 8ZM8 12.25c.15 0 .3 0 .44-.02.14-.01.28-.04.42-.07L7.22 15c-1.76-.2-3.24-.95-4.43-2.26C1.6 11.42 1 9.86 1 8.05c0-.49.05-.96.14-1.42.09-.47.23-.91.42-1.33l2.8 4.85c.36.63.86 1.14 1.5 1.52.64.38 1.35.58 2.14.58Zm0-8.4c-.93 0-1.76.27-2.48.82-.72.54-1.23 1.23-1.51 2.07L2.36 3.9C3 3.04 3.81 2.35 4.78 1.83c.98-.53 2.05-.79 3.22-.79 1.17 0 2.22.26 3.19.77.97.5 1.77 1.18 2.42 2.03h-5.6L8 3.85Zm6.41 1.4c.2.43.34.88.44 1.35.1.47.16.95.16 1.45 0 1.81-.59 3.37-1.79 4.67-1.18 1.31-2.64 2.06-4.37 2.27l2.8-4.85c.18-.3.31-.63.4-.98.1-.36.16-.74.16-1.12 0-.55-.1-1.06-.3-1.52-.19-.48-.45-.9-.79-1.28h3.29v.01Z"/></g><defs><clipPath id="a"><path fill="#fff" d="M0 0h16v16H0z"/></clipPath></defs></svg>
+-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><path d="M6.3 9.715a2.303 2.303 0 0 0 1.7.703c.668 0 1.234-.234 1.7-.703a2.3 2.3 0 0 0 .698-1.7c0-.663-.23-1.23-.699-1.699A2.314 2.314 0 0 0 8 5.617c-.668 0-1.234.235-1.7.7a2.311 2.311 0 0 0-.698 1.699A2.3 2.3 0 0 0 6.3 9.715ZM8 11.617c.121 0 .246-.004.375-.008.129-.007.254-.027.375-.058l-1.633 2.8c-1.601-.18-2.922-.874-3.957-2.085-1.039-1.211-1.558-2.625-1.558-4.25a6.283 6.283 0 0 1 .632-2.766l2.664 4.566A3.366 3.366 0 0 0 6.2 11.141 3.579 3.579 0 0 0 8 11.617Zm0-7.199c-.79 0-1.492.23-2.11.7a3.627 3.627 0 0 0-1.288 1.8L2.965 4.082a5.994 5.994 0 0 1 2.21-1.824A6.42 6.42 0 0 1 8 1.618c1.055 0 2.05.25 2.984.75a6.49 6.49 0 0 1 2.301 2.05Zm5.934 1.2c.168.386.285.78.359 1.183.07.398.105.804.105 1.215 0 1.722-.554 3.171-1.664 4.343-1.113 1.172-2.527 1.852-4.25 2.04l2.618-4.583c.152-.277.277-.566.363-.867.09-.3.137-.61.137-.933 0-.446-.086-.871-.25-1.282a3.94 3.94 0 0 0-.684-1.117Zm0 0"/></svg>
 \ No newline at end of file
 +<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 16 16"><path fill="#000" d="M12.95 3.05A7 7 0 1 0 12.95 12.95L11.3 11.3A4.67 4.67 0 1 1 11.3 4.7ZM8 5.67a2.33 2.33 0 1 1 0 4.66a2.33 2.33 0 1 1 0-4.66Z"/></svg>
 diff --git a/ui/webui/resources/cr_elements/icons.html.ts b/ui/webui/resources/cr_elements/icons.html.ts
-index 92823a2e06f..6c99555b6a4 100644
+index d3f4f9fb266..1d104f875b2 100644
 --- a/ui/webui/resources/cr_elements/icons.html.ts
 +++ b/ui/webui/resources/cr_elements/icons.html.ts
-@@ -115,7 +115,8 @@ div.innerHTML = getTrustedHTML`
-         </path>
+@@ -318,7 +318,8 @@ if (document.documentElement.hasAttribute('webui-rounded-icons')) {
+         <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path>
        </g>
        <g id="chrome-product" viewBox="0 -960 960 960">
 -        <path d="M336-479q0 60 42 102t102 42q60 0 102-42t42-102q0-60-42-102t-102-42q-60 0-102 42t-42 102Zm144 216q11 0 22.5-.5T525-267L427-99q-144-16-237.5-125T96-479q0-43 9.5-84.5T134-645l160 274q28 51 78 79.5T480-263Zm0-432q-71 0-126.5 42T276-545l-98-170q53-71 132.5-109.5T480-863q95 0 179 45t138 123H480Zm356 72q15 35 21.5 71t6.5 73q0 155-100 260.5T509-96l157-275q14-25 22-52t8-56q0-40-15-77t-41-67h196Z">

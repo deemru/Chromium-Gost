@@ -667,8 +667,9 @@ static int gostssl_cert_cb( GostSSL_Worker * w )
             }
         }
 
+        uint8_t alert = SSL_AD_INTERNAL_ERROR;
         int ret = s->config->cert->cert_cb(
-            w->s, s->config->cert->cert_cb_arg );
+            w->s, s->config->cert->cert_cb_arg, &alert );
 
         if( !gcert )
         {

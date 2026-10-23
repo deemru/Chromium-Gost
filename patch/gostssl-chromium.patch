@@ -1,4 +1,4 @@
-From fc8c9a7008e746788e8ccd0547744b0af7df7ff7 Mon Sep 17 00:00:00 2001
+From 9d40816c3bcd09117c77bd02c766f378f6adab7e Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 13 May 2026 13:13:11 +0300
 Subject: [PATCH] gostssl-chromium
@@ -65,12 +65,12 @@ index 79bf119fba7..2350f4b1d19 100644
  </dict>
  </plist>
 diff --git a/chrome/browser/browser_resources.grd b/chrome/browser/browser_resources.grd
-index 108c7135be6..1cf55878fd1 100644
+index e8b4901c994..393010f65fd 100644
 --- a/chrome/browser/browser_resources.grd
 +++ b/chrome/browser/browser_resources.grd
-@@ -100,6 +100,9 @@
+@@ -107,6 +107,9 @@
+       </if>
  
-       <include name="IDR_SEARCH_ENGINE_PREPOPULATED_ENGINES_JSON" file="../../third_party/search_engines_data/resources/definitions/prepopulated_engines.json" type="BINDATA" />
        <include name="IDR_AD_NETWORK_HASHES" file="resources\ad_networks.dat" type="BINDATA" />
 +      <include name="IDR_RUSSIAN_TRUSTED_ROOT_CA" file="resources\bundled_ca\russian_trusted_root_ca.der" type="BINDATA" />
 +      <include name="IDR_RUSSIAN_TRUSTED_SUB_CA" file="resources\bundled_ca\russian_trusted_sub_ca.der" type="BINDATA" />
@@ -79,7 +79,7 @@ index 108c7135be6..1cf55878fd1 100644
          <include name="IDR_CHROME_APP_MANIFEST" file="resources\chrome_app\manifest.json" type="BINDATA" />
          <include name="IDR_URL_MOJOM_LITE_JS" file="${root_gen_dir}\url\mojom\url.mojom-lite.js" use_base_dir="false" type="BINDATA" />
 diff --git a/chrome/browser/net/profile_network_context_service.cc b/chrome/browser/net/profile_network_context_service.cc
-index c9ae7f58abd..34953241609 100644
+index 028fe9924cd..585d2c9b4f6 100644
 --- a/chrome/browser/net/profile_network_context_service.cc
 +++ b/chrome/browser/net/profile_network_context_service.cc
 @@ -53,6 +53,7 @@
@@ -90,7 +90,7 @@ index c9ae7f58abd..34953241609 100644
  #include "components/certificate_transparency/pref_names.h"
  #include "components/content_settings/core/browser/cookie_settings.h"
  #include "components/content_settings/core/browser/host_content_settings_map.h"
-@@ -100,6 +101,7 @@
+@@ -99,6 +100,7 @@
  #include "services/network/public/mojom/network_context.mojom.h"
  #include "services/network/public/mojom/network_service.mojom.h"
  #include "third_party/blink/public/common/features.h"
@@ -98,7 +98,7 @@ index c9ae7f58abd..34953241609 100644
  
  #if BUILDFLAG(IS_CHROMEOS)
  #include "ash/constants/ash_features.h"
-@@ -199,6 +201,51 @@ bool* g_discard_domain_reliability_uploads_for_testing = nullptr;
+@@ -195,6 +197,51 @@ bool* g_discard_domain_reliability_uploads_for_testing = nullptr;
  const char kHttpCacheFinchExperimentGroups[] =
      "profile_network_context_service.http_cache_finch_experiment_groups";
  
@@ -150,7 +150,7 @@ index c9ae7f58abd..34953241609 100644
  std::vector<std::string> TranslateStringArray(const base::ListValue& list) {
    std::vector<std::string> strings;
    for (const base::Value& value : list) {
-@@ -775,6 +822,8 @@ ProfileNetworkContextService::GetCertificatePolicy(
+@@ -766,6 +813,8 @@ ProfileNetworkContextService::GetCertificatePolicy(
    auto additional_certificates =
        cert_verifier::mojom::AdditionalCertificates::New();
  
@@ -160,10 +160,10 @@ index c9ae7f58abd..34953241609 100644
    const policy::PolicyCertService* policy_cert_service =
        policy::PolicyCertServiceFactory::GetForProfile(profile_);
 diff --git a/chrome/browser/ssl/ssl_config_service_manager.cc b/chrome/browser/ssl/ssl_config_service_manager.cc
-index be7fe08f342..b1d4543d142 100644
+index a3c6c3ece0f..e42ce84e33a 100644
 --- a/chrome/browser/ssl/ssl_config_service_manager.cc
 +++ b/chrome/browser/ssl/ssl_config_service_manager.cc
-@@ -231,7 +231,11 @@ network::mojom::SSLConfigPtr SSLConfigServiceManager::GetNewSSLConfig() const {
+@@ -284,7 +284,11 @@ network::mojom::SSLConfigPtr SSLConfigServiceManager::GetNewSSLConfig() const {
    if (rev_checking_enabled_.IsManaged())
      config->rev_checking_enabled = rev_checking_enabled_.GetValue();
    else
@@ -176,10 +176,10 @@ index be7fe08f342..b1d4543d142 100644
        rev_checking_required_local_anchors_.GetValue();
    std::string version_min_str = ssl_version_min_.GetValue();
 diff --git a/chrome/browser/ui/views/certificate_selector.cc b/chrome/browser/ui/views/certificate_selector.cc
-index e752e22e93d..487f5d7d832 100644
+index 98e63b81b59..6d3054f6579 100644
 --- a/chrome/browser/ui/views/certificate_selector.cc
 +++ b/chrome/browser/ui/views/certificate_selector.cc
-@@ -69,8 +69,8 @@ bool UseGlicDevFlow(content::WebContents* contents) {
+@@ -72,8 +72,8 @@ bool UseGlicDevFlow(content::WebContents* contents) {
  
  }  // namespace
  
@@ -190,7 +190,7 @@ index e752e22e93d..487f5d7d832 100644
  
  class CertificateSelector::CertificateTableModel : public ui::TableModel {
   public:
-@@ -92,6 +92,7 @@ class CertificateSelector::CertificateTableModel : public ui::TableModel {
+@@ -95,6 +95,7 @@ class CertificateSelector::CertificateTableModel : public ui::TableModel {
      std::u16string issuer;
      std::u16string provider;
      std::u16string serial;
@@ -198,7 +198,7 @@ index e752e22e93d..487f5d7d832 100644
    };
    std::vector<Row> rows_;
  };
-@@ -109,6 +110,15 @@ CertificateSelector::CertificateTableModel::CertificateTableModel(
+@@ -112,6 +113,15 @@ CertificateSelector::CertificateTableModel::CertificateTableModel(
      if (cert->serial_number().size() < std::numeric_limits<size_t>::max() / 2) {
        row.serial = base::UTF8ToUTF16(base::HexEncode(cert->serial_number()));
      }
@@ -214,7 +214,7 @@ index e752e22e93d..487f5d7d832 100644
      rows_.push_back(row);
    }
  }
-@@ -132,6 +142,8 @@ std::u16string CertificateSelector::CertificateTableModel::GetText(
+@@ -135,6 +145,8 @@ std::u16string CertificateSelector::CertificateTableModel::GetText(
        return row.provider;
      case IDS_CERT_SELECTOR_SERIAL_COLUMN:
        return row.serial;
@@ -223,7 +223,7 @@ index e752e22e93d..487f5d7d832 100644
      default:
        NOTREACHED();
    }
-@@ -269,14 +281,14 @@ void CertificateSelector::InitWithText(
+@@ -272,14 +284,14 @@ void CertificateSelector::InitWithText(
  
    std::vector<ui::TableColumn> columns;
    columns.emplace_back(IDS_CERT_SELECTOR_SUBJECT_COLUMN, ui::TableColumn::LEFT,
@@ -241,7 +241,7 @@ index e752e22e93d..487f5d7d832 100644
    for (auto& column : columns) {
      column.sortable = true;
 diff --git a/chrome/common/net/x509_certificate_model.cc b/chrome/common/net/x509_certificate_model.cc
-index d67ecdf7582..9d46a89259a 100644
+index 797725b9846..fde65e04347 100644
 --- a/chrome/common/net/x509_certificate_model.cc
 +++ b/chrome/common/net/x509_certificate_model.cc
 @@ -325,7 +325,7 @@ std::string ProcessRDN(const bssl::RelativeDistinguishedName& rdn) {
@@ -254,7 +254,7 @@ index d67ecdf7582..9d46a89259a 100644
      rv += " = ";
      if (name_attribute.type == bssl::der::Input(bssl::kTypeCommonNameOid)) {
 diff --git a/content/browser/service_host/utility_process_host.cc b/content/browser/service_host/utility_process_host.cc
-index e61d4e83128..53c3edc12c4 100644
+index 1be5471d947..8f809315c43 100644
 --- a/content/browser/service_host/utility_process_host.cc
 +++ b/content/browser/service_host/utility_process_host.cc
 @@ -403,6 +403,12 @@ bool UtilityProcessHost::StartProcess() {
@@ -271,10 +271,10 @@ index e61d4e83128..53c3edc12c4 100644
        network::switches::kForceEffectiveConnectionType,
        network::switches::kHostResolverRules,
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
-index 532b0e72704..e68359d8538 100644
+index 8efd6fe771b..04a63a4e2b8 100644
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
-@@ -172,6 +172,10 @@
+@@ -173,6 +173,10 @@
  #include "services/service_manager/public/cpp/interface_provider.h"
  #endif  // BUILDFLAG(IS_ANDROID)
  
@@ -285,10 +285,10 @@ index 532b0e72704..e68359d8538 100644
  #if BUILDFLAG(ENABLE_LIBRARY_CDMS)
  #include "content/browser/media/cdm_storage_common.h"
  #include "content/browser/media/cdm_storage_manager.h"
-@@ -642,6 +646,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
+@@ -640,6 +644,11 @@ class SSLClientAuthDelegate : public SSLClientAuthHandler::Delegate {
        scoped_refptr<net::X509Certificate> cert,
        scoped_refptr<net::SSLPrivateKey> private_key) override {
-     DCHECK_CURRENTLY_ON(BrowserThread::UI);
+     CHECK_CURRENTLY_ON(BrowserThread::UI, base::NotFatalUntil::M159);
 +#ifndef NO_GOSTSSL
 +    if (cert && !private_key) {
 +        private_key = net::GetEmptyPrivateKey();
@@ -298,10 +298,10 @@ index 532b0e72704..e68359d8538 100644
      if (cert && private_key) {
        mojo::PendingRemote<network::mojom::SSLPrivateKey> ssl_private_key;
 diff --git a/net/BUILD.gn b/net/BUILD.gn
-index d2fda49ebd4..9bc810251cc 100644
+index ba081007c65..e344c346f89 100644
 --- a/net/BUILD.gn
 +++ b/net/BUILD.gn
-@@ -1127,6 +1127,8 @@ component("net") {
+@@ -1162,6 +1162,8 @@ component("net") {
      "ssl/crypto_private_key.cc",
      "ssl/crypto_private_key.h",
      "ssl/ech_mode_getter.h",
@@ -346,10 +346,10 @@ index 879f43c4d9c..3a839e69520 100644
    // don't add it to the cache.
    if (config_id != config_id_)
 diff --git a/net/cert/cert_verify_proc.cc b/net/cert/cert_verify_proc.cc
-index 7dc040dc7fd..f08b5b25ecb 100644
+index 042b35bec90..9b1dc0427eb 100644
 --- a/net/cert/cert_verify_proc.cc
 +++ b/net/cert/cert_verify_proc.cc
-@@ -429,6 +429,12 @@ CertVerifyProc::CertVerifyProc(scoped_refptr<CRLSet> crl_set)
+@@ -433,6 +433,12 @@ CertVerifyProc::CertVerifyProc(scoped_refptr<CRLSet> crl_set)
    CHECK(crl_set_);
  }
  
@@ -362,7 +362,7 @@ index 7dc040dc7fd..f08b5b25ecb 100644
  CertVerifyProc::~CertVerifyProc() = default;
  
  int CertVerifyProc::Verify(X509Certificate* cert,
-@@ -466,6 +472,23 @@ int CertVerifyProc::Verify(X509Certificate* cert,
+@@ -470,6 +476,23 @@ int CertVerifyProc::Verify(X509Certificate* cert,
               verify_result->public_key_hashes.size());
    }
  
@@ -387,10 +387,10 @@ index 7dc040dc7fd..f08b5b25ecb 100644
    // in the chain. Also fills in the has_* booleans for the digest algorithms
    // present in the chain.
 diff --git a/net/cert/cert_verify_proc_builtin.cc b/net/cert/cert_verify_proc_builtin.cc
-index b2cf33c953a..2cc10901adb 100644
+index 284bab5a034..0eaff81c278 100644
 --- a/net/cert/cert_verify_proc_builtin.cc
 +++ b/net/cert/cert_verify_proc_builtin.cc
-@@ -976,19 +976,30 @@ class PathBuilderDelegateImpl : public bssl::SimplePathBuilderDelegate {
+@@ -1038,19 +1038,30 @@ class PathBuilderDelegateImpl : public bssl::SimplePathBuilderDelegate {
        return policy;
      }
  
@@ -481,10 +481,10 @@ index c6c544bec55..11c9d941f21 100644
    std::string state_or_province_name;
    std::string country_name;
 diff --git a/net/http/http_network_transaction.cc b/net/http/http_network_transaction.cc
-index c3fc06e7eb0..fe9cbccd168 100644
+index c1719e11208..e004c9f583d 100644
 --- a/net/http/http_network_transaction.cc
 +++ b/net/http/http_network_transaction.cc
-@@ -2049,6 +2049,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
+@@ -2117,6 +2117,15 @@ int HttpNetworkTransaction::HandleSSLClientAuthError(int error) {
        return OK;
      }
    }
@@ -516,7 +516,7 @@ index 64e08182d66..c52bc4bfb34 100644
    virtual ~Socket();
  
 diff --git a/net/socket/ssl_client_socket.cc b/net/socket/ssl_client_socket.cc
-index 5823b33b852..9b229bc5590 100644
+index 2b6cb80c2ed..672fcdd7596 100644
 --- a/net/socket/ssl_client_socket.cc
 +++ b/net/socket/ssl_client_socket.cc
 @@ -23,6 +23,10 @@
@@ -543,10 +543,10 @@ index 5823b33b852..9b229bc5590 100644
  
  SSLClientContext::~SSLClientContext() {
 diff --git a/net/socket/ssl_client_socket.h b/net/socket/ssl_client_socket.h
-index cb52207b20d..25530af3ebe 100644
+index 4046a961c9c..17dab6bacbd 100644
 --- a/net/socket/ssl_client_socket.h
 +++ b/net/socket/ssl_client_socket.h
-@@ -257,6 +257,10 @@ class NET_EXPORT SSLClientContext : public SSLConfigService::Observer,
+@@ -265,6 +265,10 @@ class NET_EXPORT SSLClientContext : public SSLConfigService::Observer,
    void OnTrustStoreChanged() override;
    void OnClientCertStoreChanged() override;
  
@@ -558,7 +558,7 @@ index cb52207b20d..25530af3ebe 100644
    void NotifySSLConfigChanged(SSLConfigChangeType change_type);
    void NotifySSLConfigForServersChanged(
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index 2d1d88a5db7..ce4b2f0b5ba 100644
+index f586acfe0f0..06e05fe33f4 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
 @@ -14,6 +14,7 @@
@@ -748,7 +748,7 @@ index 2d1d88a5db7..ce4b2f0b5ba 100644
    CHECK(cipher);
    // Historically, the "group" was known as "curve".
    ssl_info->key_exchange_group = SSL_get_curve_id(ssl_.get());
-@@ -945,6 +1083,9 @@ int SSLClientSocketImpl::DoHandshake() {
+@@ -932,6 +1070,9 @@ int SSLClientSocketImpl::DoHandshake() {
        return ERR_IO_PENDING;
      }
      if (ssl_error == SSL_ERROR_WANT_CERTIFICATE_VERIFY) {
@@ -758,7 +758,7 @@ index 2d1d88a5db7..ce4b2f0b5ba 100644
        DCHECK(cert_verifier_request_);
        next_handshake_state_ = STATE_HANDSHAKE;
        return ERR_IO_PENDING;
-@@ -1129,6 +1270,53 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
+@@ -1116,6 +1257,53 @@ ssl_verify_result_t SSLClientSocketImpl::VerifyCert() {
      return HandleVerifyResult();
    }
  
@@ -812,7 +812,7 @@ index 2d1d88a5db7..ce4b2f0b5ba 100644
    std::string_view ech_name_override = GetECHNameOverride();
    if (!ech_name_override.empty()) {
      // If ECH was offered but not negotiated, BoringSSL will ask to verify a
-@@ -1571,6 +1759,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
+@@ -1558,6 +1746,18 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
      return -1;
    }
  
@@ -863,10 +863,10 @@ index 3b10cead520..6ecace485a2 100644
    // The given hostname will be compared with the name(s) in the server's
    // certificate during the SSL handshake.  |ssl_config| specifies the SSL
 diff --git a/net/spdy/spdy_session.cc b/net/spdy/spdy_session.cc
-index db8fcac08d8..5c99c506998 100644
+index 7740ebcab80..edf05586869 100644
 --- a/net/spdy/spdy_session.cc
 +++ b/net/spdy/spdy_session.cc
-@@ -1558,6 +1558,11 @@ void SpdySession::RemovePooledAlias(const SpdySessionKey& alias_key) {
+@@ -1555,6 +1555,11 @@ void SpdySession::RemovePooledAlias(const SpdySessionKey& alias_key) {
  }
  
  bool SpdySession::HasAcceptableTransportSecurity() const {
@@ -879,10 +879,10 @@ index db8fcac08d8..5c99c506998 100644
    CHECK(GetSSLInfo(&ssl_info));
  
 diff --git a/net/ssl/client_cert_store_mac.cc b/net/ssl/client_cert_store_mac.cc
-index c92d91d72dd..66cdbe8cca8 100644
+index 4266f469451..95078015a19 100644
 --- a/net/ssl/client_cert_store_mac.cc
 +++ b/net/ssl/client_cert_store_mac.cc
-@@ -298,6 +298,12 @@ void AddIdentity(ScopedCFTypeRef<SecIdentityRef> sec_identity,
+@@ -297,6 +297,12 @@ void AddIdentity(ScopedCFTypeRef<SecIdentityRef> sec_identity,
    }
  }
  
@@ -895,7 +895,7 @@ index c92d91d72dd..66cdbe8cca8 100644
  ClientCertIdentityList GetClientCertsOnBackgroundThread(
      scoped_refptr<const SSLCertRequestInfo> request) {
    std::string server_domain = request->host_and_port.host();
-@@ -353,6 +359,51 @@ ClientCertIdentityList GetClientCertsOnBackgroundThread(
+@@ -352,6 +358,51 @@ ClientCertIdentityList GetClientCertsOnBackgroundThread(
    GetClientCertsImpl(std::move(preferred_identity),
                       std::move(regular_identities), *request, true,
                       &selected_identities);
@@ -1267,10 +1267,10 @@ index c97eaf3c238..b909eb7d5e8 100644
  
    obsolete_ssl |= ObsoleteSSLStatusForSignature(signature_algorithm);
 diff --git a/net/ssl/ssl_config_service.cc b/net/ssl/ssl_config_service.cc
-index 5b2219462a2..6b57b9f25b2 100644
+index 01aa93324f9..49b3c5d80c1 100644
 --- a/net/ssl/ssl_config_service.cc
 +++ b/net/ssl/ssl_config_service.cc
-@@ -27,7 +27,7 @@ namespace {
+@@ -21,7 +21,7 @@ namespace {
  // group (X25519MLKEM768) to BoringSSL's kDefaultSupportedGroupIds and
  // evaluating BoringSSL's default logic for selecting key shares.
  const SSLNamedGroupInfo kDefaultSSLSupportedGroups[] = {
@@ -1280,10 +1280,10 @@ index 5b2219462a2..6b57b9f25b2 100644
      {.group_id = SSL_GROUP_SECP256R1, .send_key_share = false},
      {.group_id = SSL_GROUP_SECP384R1, .send_key_share = false},
 diff --git a/net/ssl/ssl_platform_key_util.cc b/net/ssl/ssl_platform_key_util.cc
-index 987a2254cf6..04da6ab681c 100644
+index 52938fc7cd8..d8cb38bc860 100644
 --- a/net/ssl/ssl_platform_key_util.cc
 +++ b/net/ssl/ssl_platform_key_util.cc
-@@ -51,6 +51,28 @@ scoped_refptr<base::SingleThreadTaskRunner> GetSSLPlatformKeyTaskRunner() {
+@@ -50,6 +50,28 @@ scoped_refptr<base::SingleThreadTaskRunner> GetSSLPlatformKeyTaskRunner() {
    return instance->task_runner();
  }
  
@@ -1313,7 +1313,7 @@ index 987a2254cf6..04da6ab681c 100644
      const X509Certificate* certificate) {
    crypto::OpenSSLErrStackTracer tracker(FROM_HERE);
 diff --git a/net/ssl/ssl_platform_key_util.h b/net/ssl/ssl_platform_key_util.h
-index 2b2634c6888..3884282913f 100644
+index b32f3d1f876..71d7dd36ad4 100644
 --- a/net/ssl/ssl_platform_key_util.h
 +++ b/net/ssl/ssl_platform_key_util.h
 @@ -15,6 +15,9 @@
@@ -1338,7 +1338,7 @@ index 2b2634c6888..3884282913f 100644
  NET_EXPORT_PRIVATE bssl::UniquePtr<EVP_PKEY> GetClientCertPublicKey(
      const X509Certificate* certificate);
 diff --git a/sandbox/policy/features.cc b/sandbox/policy/features.cc
-index c617034ea7b..e5508d58c42 100644
+index 78f061c0e10..5dc6d382a1d 100644
 --- a/sandbox/policy/features.cc
 +++ b/sandbox/policy/features.cc
 @@ -25,13 +25,13 @@ BASE_FEATURE(kNetworkServiceSandbox, base::FEATURE_DISABLED_BY_DEFAULT);
@@ -1367,10 +1367,10 @@ index c617034ea7b..e5508d58c42 100644
  // Enables Renderer AppContainer
  BASE_FEATURE(kRendererAppContainer, base::FEATURE_DISABLED_BY_DEFAULT);
 diff --git a/sandbox/policy/mac/network.sb b/sandbox/policy/mac/network.sb
-index 27144995fea..466d2c0a326 100644
+index 08904e5047a..d12032c0007 100644
 --- a/sandbox/policy/mac/network.sb
 +++ b/sandbox/policy/mac/network.sb
-@@ -128,3 +128,20 @@
+@@ -122,3 +122,20 @@
    (path "/private/etc/krb5.conf")
    (subpath "/System/Library/KerberosPlugins") ; https://crbug.com/1134449
  )
@@ -1392,15 +1392,15 @@ index 27144995fea..466d2c0a326 100644
 +  (global-name "com.apple.ctkpcscd")
 +)
 diff --git a/sandbox/policy/win/sandbox_win.cc b/sandbox/policy/win/sandbox_win.cc
-index f2a826791ff..f3666a62448 100644
+index b6eccdade4f..7cb99242ba0 100644
 --- a/sandbox/policy/win/sandbox_win.cc
 +++ b/sandbox/policy/win/sandbox_win.cc
-@@ -506,11 +506,19 @@ ResultCode GenerateConfigForSandboxedProcess(const base::CommandLine& cmd_line,
-     if (!cmd_line.HasSwitch(switches::kAllowThirdPartyModules) &&
+@@ -507,11 +507,19 @@ ResultCode GenerateConfigForSandboxedProcess(const base::CommandLine& cmd_line,
          sandbox_type != Sandbox::kScreenAI &&
          sandbox_type != Sandbox::kSpeechRecognition &&
--        sandbox_type != Sandbox::kMediaFoundationCdm) {
-+        sandbox_type != Sandbox::kMediaFoundationCdm
+         sandbox_type != Sandbox::kMediaFoundationCdm &&
+-        sandbox_type != Sandbox::kPlatformRuntime) {
++        sandbox_type != Sandbox::kPlatformRuntime
 +#ifndef NO_GOSTSSL
 +        && sandbox_type != Sandbox::kNetwork
 +#endif // GOSTSSL
@@ -1418,7 +1418,7 @@ index f2a826791ff..f3666a62448 100644
          sandbox_type == Sandbox::kWebNNModelCompilation ||
          (sandbox_type == Sandbox::kSpeechRecognition &&
 diff --git a/services/cert_verifier/cert_net_url_loader/cert_net_fetcher_url_loader.cc b/services/cert_verifier/cert_net_url_loader/cert_net_fetcher_url_loader.cc
-index 26aa75cdaaf..b82d91152cd 100644
+index 8ec90db3dc8..256367ce6ca 100644
 --- a/services/cert_verifier/cert_net_url_loader/cert_net_fetcher_url_loader.cc
 +++ b/services/cert_verifier/cert_net_url_loader/cert_net_fetcher_url_loader.cc
 @@ -88,6 +88,10 @@
@@ -1558,7 +1558,7 @@ index 26aa75cdaaf..b82d91152cd 100644
                           std::optional<std::string> response_body) {
    // Reset the SimpleURLLoader.
 diff --git a/services/network/network_service.cc b/services/network/network_service.cc
-index 4718d88c049..c29bc7fe447 100644
+index 539cc8e82ed..8b7927ba22e 100644
 --- a/services/network/network_service.cc
 +++ b/services/network/network_service.cc
 @@ -81,6 +81,7 @@
@@ -1569,7 +1569,7 @@ index 4718d88c049..c29bc7fe447 100644
  #include "net/ssl/ssl_key_logger_impl.h"
  #include "net/url_request/url_request_context.h"
  #include "services/network/dns_config_change_manager.h"
-@@ -431,6 +432,10 @@ void NetworkService::Initialize(mojom::NetworkServiceParamsPtr params,
+@@ -424,6 +425,10 @@ void NetworkService::Initialize(mojom::NetworkServiceParamsPtr params,
  
    initialized_ = true;
  
@@ -1581,10 +1581,10 @@ index 4718d88c049..c29bc7fe447 100644
    // Measure Android kernels with missing AT_HWCAP2 auxv fields. See
    // https://crbug.com/boringssl/46.
 diff --git a/third_party/boringssl/BUILD.gn b/third_party/boringssl/BUILD.gn
-index c77dc412979..242263ec534 100644
+index f4e51bfcfc4..802ad5710db 100644
 --- a/third_party/boringssl/BUILD.gn
 +++ b/third_party/boringssl/BUILD.gn
-@@ -157,6 +157,7 @@ if (is_msan) {
+@@ -160,6 +160,7 @@ if (is_msan) {
  
  component("boringssl") {
    sources = rebase_path(all_sources, ".", "src")

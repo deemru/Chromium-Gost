@@ -1,4 +1,4 @@
-From f9709d11c81e37d5a339596d6ed54cf5a27ea234 Mon Sep 17 00:00:00 2001
+From 15a00d537e8cdd2ce783492506173492797251ab Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Fri, 13 Mar 2026 01:50:48 +0300
 Subject: [PATCH] extensions-manifest-v2
@@ -11,10 +11,10 @@ Subject: [PATCH] extensions-manifest-v2
  4 files changed, 12 insertions(+), 1 deletion(-)
 
 diff --git a/chrome/browser/extensions/api/developer_private/extension_info_generator.cc b/chrome/browser/extensions/api/developer_private/extension_info_generator.cc
-index 64c57f2ca21..057691ff773 100644
+index d4ef0e322ba..be5a6ac6bff 100644
 --- a/chrome/browser/extensions/api/developer_private/extension_info_generator.cc
 +++ b/chrome/browser/extensions/api/developer_private/extension_info_generator.cc
-@@ -602,6 +602,7 @@ void ExtensionInfoGenerator::FillExtensionInfo(const Extension& extension,
+@@ -604,6 +604,7 @@ void ExtensionInfoGenerator::FillExtensionInfo(const Extension& extension,
      info.controlled_info.emplace();
      info.controlled_info->text =
          l10n_util::GetStringUTF8(IDS_EXTENSIONS_INSTALL_LOCATION_ENTERPRISE);
@@ -22,7 +22,7 @@ index 64c57f2ca21..057691ff773 100644
    } else {
      // Create Safety Hub information for any non-enterprise extension.
      developer::SafetyCheckWarningReason warning_reason =
-@@ -613,6 +614,7 @@ void ExtensionInfoGenerator::FillExtensionInfo(const Extension& extension,
+@@ -615,6 +616,7 @@ void ExtensionInfoGenerator::FillExtensionInfo(const Extension& extension,
            ExtensionSafetyCheckUtils::GetSafetyCheckWarningStrings(
                warning_reason, state);
      }
@@ -31,10 +31,10 @@ index 64c57f2ca21..057691ff773 100644
  
    bool is_enabled = state == developer::ExtensionState::kEnabled;
 diff --git a/chrome/browser/ui/webui/extensions/extensions_ui.cc b/chrome/browser/ui/webui/extensions/extensions_ui.cc
-index 0a0eb5d94e9..fbad7c1944d 100644
+index 0513e23fd14..04c0eeee46c 100644
 --- a/chrome/browser/ui/webui/extensions/extensions_ui.cc
 +++ b/chrome/browser/ui/webui/extensions/extensions_ui.cc
-@@ -490,7 +490,7 @@ content::WebUIDataSource* CreateAndAddExtensionsSource(Profile* profile,
+@@ -508,7 +508,7 @@ content::WebUIDataSource* CreateAndAddExtensionsSource(Profile* profile,
            extensions_features::kExtensionsMenuAccessControlWithPermittedSites));
    source->AddBoolean(
        "safetyHubThreeDotDetails",
@@ -69,7 +69,7 @@ index 08d7786b3bb..9acd5f88258 100644
  
  }  // namespace extensions::manifest_v2_util
 diff --git a/extensions/common/extension.cc b/extensions/common/extension.cc
-index 9413abec978..64aa1965389 100644
+index 28a3cac3756..de9de9fb456 100644
 --- a/extensions/common/extension.cc
 +++ b/extensions/common/extension.cc
 @@ -97,12 +97,14 @@ bool IsManifestSupported(int manifest_version,

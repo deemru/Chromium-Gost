@@ -1,4 +1,4 @@
-From 6ce1f094b717327500e2b51f1c4afcecd2604320 Mon Sep 17 00:00:00 2001
+From 1b8755ddf633e3224dba6d9e9549fdee893b9d2b Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 13 May 2026 13:13:11 +0300
 Subject: [PATCH] fixes
@@ -19,10 +19,10 @@ Subject: [PATCH] fixes
  12 files changed, 79 insertions(+), 10 deletions(-)
 
 diff --git a/BUILD.gn b/BUILD.gn
-index 0bd5d40ff70..c4c69e2a941 100644
+index 29478cec804..f1c9e3e3ed3 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
-@@ -605,7 +605,7 @@ group("gn_all") {
+@@ -614,7 +614,7 @@ group("gn_all") {
        }
  
        if (!is_debug && !is_component_build && !is_castos) {
@@ -32,10 +32,10 @@ index 0bd5d40ff70..c4c69e2a941 100644
      }
  
 diff --git a/chrome/app/resources/generated_resources_ru.xtb b/chrome/app/resources/generated_resources_ru.xtb
-index 81e7f45885c..f11fd63c4e7 100644
+index 0dbb5f6f0af..ccb71bbd4f3 100644
 --- a/chrome/app/resources/generated_resources_ru.xtb
 +++ b/chrome/app/resources/generated_resources_ru.xtb
-@@ -5427,7 +5427,7 @@
+@@ -5480,7 +5480,7 @@
  <translation id="5153234146675181447">Удаление телефона</translation>
  <translation id="5153907427821264830"><ph name="STATUS" /> • <ph name="MESSAGE" /></translation>
  <translation id="5154108062446123722"><ph name="PRINTING_DESTINATION" /> – дополнительные настройки</translation>
@@ -45,10 +45,10 @@ index 81e7f45885c..f11fd63c4e7 100644
  <translation id="5155299520372681119">Время загрузки истекло. Файл удален.</translation>
  <translation id="5156638757840305347">Выделять текстовый курсор, когда он движется или появляется</translation>
 diff --git a/chrome/browser/ui/startup/startup_browser_creator.cc b/chrome/browser/ui/startup/startup_browser_creator.cc
-index b080481bfdd..b808c61fd1b 100644
+index be05049fb59..95f4e68b97c 100644
 --- a/chrome/browser/ui/startup/startup_browser_creator.cc
 +++ b/chrome/browser/ui/startup/startup_browser_creator.cc
-@@ -939,7 +939,7 @@ void StartupBrowserCreator::RegisterLocalStatePrefs(
+@@ -976,7 +976,7 @@ void StartupBrowserCreator::RegisterLocalStatePrefs(
    registry->RegisterBooleanPref(prefs::kCommandLineFlagSecurityWarningsEnabled,
                                  true);
  #endif
@@ -140,10 +140,10 @@ index d6080c3a460..47e74211680 100644
  # For OS integration.
  xdg-utils
 diff --git a/chrome/installer/setup/install_worker.cc b/chrome/installer/setup/install_worker.cc
-index dd67b7827ab..55889b7b9d9 100644
+index 1a930947cc1..78a9abecf63 100644
 --- a/chrome/installer/setup/install_worker.cc
 +++ b/chrome/installer/setup/install_worker.cc
-@@ -109,6 +109,7 @@ void AddInstallerCopyTasks(const InstallParams& install_params,
+@@ -110,6 +110,7 @@ void AddInstallerCopyTasks(const InstallParams& install_params,
    }
  }
  
@@ -151,7 +151,7 @@ index dd67b7827ab..55889b7b9d9 100644
  // Adds work items to register the Elevation Service with Windows. Only for
  // system level installs.
  void AddElevationServiceWorkItems(const base::FilePath& elevation_service_path,
-@@ -132,6 +133,7 @@ void AddElevationServiceWorkItems(const base::FilePath& elevation_service_path,
+@@ -133,6 +134,7 @@ void AddElevationServiceWorkItems(const base::FilePath& elevation_service_path,
        install_static::GetOldElevatorIids());
    list->AddWorkItem(install_service_work_item);
  }
@@ -159,7 +159,7 @@ index dd67b7827ab..55889b7b9d9 100644
  
  // Create Version key for a product (if not already present) and sets the new
  // product version as the last step.
-@@ -309,12 +311,14 @@ void AddChromeWorkItems(const InstallParams& install_params,
+@@ -314,12 +316,14 @@ void AddChromeWorkItems(const InstallParams& install_params,
    // Copy installer in install directory.
    AddInstallerCopyTasks(install_params, install_list);
  
@@ -336,7 +336,7 @@ index 5d8ad66686e..a3090f5e2e7 100644
    command_line.AppendSwitchASCII(switches::kOzonePlatform, "x11");
  #endif
 diff --git a/ui/qt/qt_ui.cc b/ui/qt/qt_ui.cc
-index b546b546e06..366cd888ec9 100644
+index 3a037164761..2c7314ad807 100644
 --- a/ui/qt/qt_ui.cc
 +++ b/ui/qt/qt_ui.cc
 @@ -340,6 +340,17 @@ bool QtUi::Initialize() {
