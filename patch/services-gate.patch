@@ -1,4 +1,4 @@
-From d73aa9f803d45ee9c720a1abc12a2d1cb15d46b3 Mon Sep 17 00:00:00 2001
+From 7113d7bc96327165a3eb88b67708b07b6079c0de Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 13 May 2026 13:13:11 +0300
 Subject: [PATCH] services-gate
@@ -57,9 +57,9 @@ Subject: [PATCH] services-gate
  .../browser/ui/webui/settings/settings_ui.cc  |   4 +-
  .../ui/webui/whats_new/whats_new_util.cc      |   2 +-
  .../chrome_authenticator_request_delegate.cc  |   2 -
- chrome/installer/linux/BUILD.gn               |   5 +
+ chrome/installer/linux/BUILD.gn               |   3 +
  chrome/installer/linux/common/apt.include     |   6 +
- chrome/installer/linux/common/installer.py    |  29 +++++
+ chrome/installer/linux/common/installer.py    |  10 ++
  chrome/installer/linux/common/rpm.include     |   8 ++
  .../installer/mini_installer/chrome.release   |   1 +
  .../autofill_crowdsourcing_manager.cc         |   4 +-
@@ -90,7 +90,7 @@ Subject: [PATCH] services-gate
  services/network/socket_factory.cc            |  16 +++
  services/network/tcp_bound_socket.cc          |  11 ++
  services/network/udp_socket.cc                |   7 ++
- 86 files changed, 385 insertions(+), 669 deletions(-)
+ 86 files changed, 364 insertions(+), 669 deletions(-)
  create mode 100644 chrome/browser/resources/spellcheck_dictionaries/BUILD.gn
  create mode 100644 net/base/crgost_egress.cc
  create mode 100644 net/base/crgost_egress.h
@@ -1291,21 +1291,19 @@ index 64cc5836faf..2db434ab19f 100644
      // caBLE and the enclave depend on the network context factory.
      // TODO(nsatragno): this should probably use a storage partition network
 diff --git a/chrome/installer/linux/BUILD.gn b/chrome/installer/linux/BUILD.gn
-index b825ef7be20..0ff53b0766b 100644
+index b825ef7be20..8852b7ec815 100644
 --- a/chrome/installer/linux/BUILD.gn
 +++ b/chrome/installer/linux/BUILD.gn
-@@ -114,6 +114,10 @@ packaging_files = packaging_files_binaries + [
+@@ -114,6 +114,8 @@ packaging_files = packaging_files_binaries + [
                      "$root_out_dir/locales/en-US.pak",
                      "$root_out_dir/MEIPreload/manifest.json",
                      "$root_out_dir/MEIPreload/preloaded_data.pb",
 +                    "$root_out_dir/Dictionaries/en-US-10-2.bdic",
 +                    "$root_out_dir/Dictionaries/ru-RU-3-0.bdic",
-+                    "$root_out_dir/PrivacySandboxAttestationsPreloaded/manifest.json",
-+                    "$root_out_dir/PrivacySandboxAttestationsPreloaded/privacy-sandbox-attestations.dat",
                    ]
  if (enable_swiftshader) {
    packaging_files += [ "$root_out_dir/vk_swiftshader_icd.json" ]
-@@ -491,6 +495,7 @@ group("installer_deps") {
+@@ -491,6 +493,7 @@ group("installer_deps") {
      "//chrome:packed_resources",
      "//chrome/browser/enterprise/connectors/device_trust/key_management/installer/management_service:chrome_management_service",
      "//chrome/browser/resources/media/mei_preload:component",
@@ -1364,10 +1362,10 @@ index b3368c18c9b..341918e192d 100644
 +  fi
  }
 diff --git a/chrome/installer/linux/common/installer.py b/chrome/installer/linux/common/installer.py
-index 9473b390f21..4b6e85e8e4b 100644
+index 9473b390f21..eb690ed4f13 100644
 --- a/chrome/installer/linux/common/installer.py
 +++ b/chrome/installer/linux/common/installer.py
-@@ -779,6 +779,35 @@ class InstallerConfig:
+@@ -779,6 +779,16 @@ class InstallerConfig:
                  )
              )
  
@@ -1377,25 +1375,6 @@ index 9473b390f21..4b6e85e8e4b 100644
 +                Artifact(
 +                    bdic.relative_to(self.output_dir),
 +                    pathlib.Path("Dictionaries") / bdic.name,
-+                    ArtifactType.RESOURCE,
-+                    StandardPermissions.REGULAR,
-+                ))
-+
-+        # Privacy Sandbox Attestation
-+        psa_dir = "PrivacySandboxAttestationsPreloaded"
-+        psa_manifest = self.output_dir / psa_dir / "manifest.json"
-+        if psa_manifest.exists():
-+            artifacts.append(
-+                Artifact(
-+                    f"{psa_dir}/manifest.json",
-+                    f"{psa_dir}/manifest.json",
-+                    ArtifactType.RESOURCE,
-+                    StandardPermissions.REGULAR,
-+                ))
-+            artifacts.append(
-+                Artifact(
-+                    f"{psa_dir}/privacy-sandbox-attestations.dat",
-+                    f"{psa_dir}/privacy-sandbox-attestations.dat",
 +                    ArtifactType.RESOURCE,
 +                    StandardPermissions.REGULAR,
 +                ))
