@@ -1,4 +1,4 @@
-From 7113d7bc96327165a3eb88b67708b07b6079c0de Mon Sep 17 00:00:00 2001
+From a1182696ef0b1c9f9166549fc884c4bca0778264 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 13 May 2026 13:13:11 +0300
 Subject: [PATCH] services-gate
@@ -52,10 +52,12 @@ Subject: [PATCH] services-gate
  chrome/browser/ui/startup/infobar_utils.cc    |  16 ---
  .../ui/startup/startup_browser_creator.cc     |   2 +-
  .../toolbar/chrome_labs/chrome_labs_utils.cc  |   2 +
+ chrome/browser/ui/ui_features.cc              |   2 +-
  .../ui/views/profiles/profile_menu_view.cc    |  22 +---
  .../ui/webui/settings/safety_hub_handler.cc   |   1 +
  .../browser/ui/webui/settings/settings_ui.cc  |   4 +-
  .../ui/webui/whats_new/whats_new_util.cc      |   2 +-
+ .../user_education_service_factory.cc         |   2 +-
  .../chrome_authenticator_request_delegate.cc  |   2 -
  chrome/installer/linux/BUILD.gn               |   3 +
  chrome/installer/linux/common/apt.include     |   6 +
@@ -90,7 +92,7 @@ Subject: [PATCH] services-gate
  services/network/socket_factory.cc            |  16 +++
  services/network/tcp_bound_socket.cc          |  11 ++
  services/network/udp_socket.cc                |   7 ++
- 86 files changed, 364 insertions(+), 669 deletions(-)
+ 88 files changed, 366 insertions(+), 671 deletions(-)
  create mode 100644 chrome/browser/resources/spellcheck_dictionaries/BUILD.gn
  create mode 100644 net/base/crgost_egress.cc
  create mode 100644 net/base/crgost_egress.h
@@ -1204,6 +1206,19 @@ index f7c81500b2e..556660a961b 100644
    // Always early out on the stable channel regardless of other conditions.
    if (chrome::GetChannel() == version_info::Channel::STABLE) {
      return false;
+diff --git a/chrome/browser/ui/ui_features.cc b/chrome/browser/ui/ui_features.cc
+index 562d8529586..cf3c33a9da7 100644
+--- a/chrome/browser/ui/ui_features.cc
++++ b/chrome/browser/ui/ui_features.cc
+@@ -377,7 +377,7 @@ BASE_FEATURE(kNonMilestoneUpdateToast, base::FEATURE_ENABLED_BY_DEFAULT);
+ BASE_FEATURE(kRespectShouldTriggerSessionRestoreOnDesktop,
+              base::FEATURE_ENABLED_BY_DEFAULT);
+ 
+-BASE_FEATURE(kSessionRestoreInfobar, base::FEATURE_ENABLED_BY_DEFAULT);
++BASE_FEATURE(kSessionRestoreInfobar, base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE_PARAM(bool,
+                    kSetDefaultToContinueSession,
 diff --git a/chrome/browser/ui/views/profiles/profile_menu_view.cc b/chrome/browser/ui/views/profiles/profile_menu_view.cc
 index cea47235846..dc70b033384 100644
 --- a/chrome/browser/ui/views/profiles/profile_menu_view.cc
@@ -1277,6 +1292,19 @@ index 72f8a1070f1..6aeafa34a3a 100644
  #endif
  }
  
+diff --git a/chrome/browser/user_education/user_education_service_factory.cc b/chrome/browser/user_education/user_education_service_factory.cc
+index 41d1ff9404f..26b941682f2 100644
+--- a/chrome/browser/user_education/user_education_service_factory.cc
++++ b/chrome/browser/user_education/user_education_service_factory.cc
+@@ -156,7 +156,7 @@ bool UserEducationServiceFactory::ProfileAllowsUserEducation(Profile* profile) {
+     return false;
+   }
+ 
+-  return true;
++  return false;
+ }
+ 
+ std::unique_ptr<KeyedService>
 diff --git a/chrome/browser/webauthn/chrome_authenticator_request_delegate.cc b/chrome/browser/webauthn/chrome_authenticator_request_delegate.cc
 index 64cc5836faf..2db434ab19f 100644
 --- a/chrome/browser/webauthn/chrome_authenticator_request_delegate.cc
