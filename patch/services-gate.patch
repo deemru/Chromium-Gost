@@ -1,4 +1,4 @@
-From a1182696ef0b1c9f9166549fc884c4bca0778264 Mon Sep 17 00:00:00 2001
+From bd48242ae5bab3877cba788e135316d1910a1846 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 13 May 2026 13:13:11 +0300
 Subject: [PATCH] services-gate
@@ -578,7 +578,7 @@ index 69ba78f694f..12fbe21a8f6 100644
  }
  
 diff --git a/chrome/browser/renderer_context_menu/render_view_context_menu.cc b/chrome/browser/renderer_context_menu/render_view_context_menu.cc
-index abdfdada9bf..283d715c3e1 100644
+index b55c138d48f..8c7ac96e094 100644
 --- a/chrome/browser/renderer_context_menu/render_view_context_menu.cc
 +++ b/chrome/browser/renderer_context_menu/render_view_context_menu.cc
 @@ -1048,13 +1048,6 @@ bool RenderViewContextMenu::IsDevToolsURL(const GURL& url) {
