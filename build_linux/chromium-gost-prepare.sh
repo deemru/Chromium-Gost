@@ -34,6 +34,7 @@ git am --3way --ignore-space-change < $CHROMIUM_GOST_REPO/patch/gostssl-chromium
 git am --3way --ignore-space-change < $CHROMIUM_GOST_REPO/patch/extensions-bundled.patch || exit
 git am --3way --ignore-space-change < $CHROMIUM_GOST_REPO/patch/branding.patch || exit
 git am --3way --ignore-space-change < $CHROMIUM_GOST_REPO/patch/services-gate.patch || exit
+git am --3way --ignore-space-change < $CHROMIUM_GOST_REPO/patch/widevine.patch || exit
 
 python3 $CHROMIUM_GOST_REPO/extra/rebrand_strings.py || exit
 cp -f $CHROMIUM_GOST_REPO/extra/exit_0.sh chrome/installer/linux/common/repo.cron

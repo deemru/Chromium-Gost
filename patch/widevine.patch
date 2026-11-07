@@ -1,0 +1,608 @@
+From 5c106e60e822fe8f0080d86fdad79a9f481405b7 Mon Sep 17 00:00:00 2001
+From: Dmitrii Pichulin <deem@deem.ru>
+Date: Sat, 7 Nov 2026 12:59:28 +0300
+Subject: [PATCH] widevine
+
+---
+ chrome/app/generated_resources.grd            |  18 ++
+ .../app/resources/generated_resources_ru.xtb  |   4 +
+ chrome/browser/BUILD.gn                       |   7 +
+ chrome/browser/chrome_browser_main.cc         |  10 +
+ .../browser/chrome_content_browser_client.cc  |  12 ++
+ .../browser/chrome_content_browser_client.h   |   2 +
+ .../widevine_cdm_component_installer.cc       |   7 +
+ .../widevine_cdm_component_installer.h        |   6 +-
+ .../widevine_install_infobar_delegate.cc      | 199 ++++++++++++++++++
+ .../media/widevine_install_infobar_delegate.h |  16 ++
+ .../ui/views/infobars/confirm_infobar.cc      |  23 +-
+ .../component_updater_service.cc              |  43 +++-
+ .../component_updater_service.h               |   1 +
+ components/infobars/core/infobar_delegate.h   |   1 +
+ .../browser/media/key_system_support_impl.cc  |   4 +
+ .../public/browser/content_browser_client.h   |   3 +
+ 16 files changed, 351 insertions(+), 5 deletions(-)
+ create mode 100644 chrome/browser/media/widevine_install_infobar_delegate.cc
+ create mode 100644 chrome/browser/media/widevine_install_infobar_delegate.h
+
+diff --git a/chrome/app/generated_resources.grd b/chrome/app/generated_resources.grd
+index 1a8a777f12a..1ea79e1f35c 100644
+--- a/chrome/app/generated_resources.grd
++++ b/chrome/app/generated_resources.grd
+@@ -19567,6 +19567,24 @@ Please help our engineers fix this problem. Tell us what happened right before y
+       <message name="IDS_TOAST_CLOSE_TOOLTIP" desc="Tooltip for the X button on a toast notification that closes the toast.">
+         Close
+       </message>
++      <message name="IDS_CRGOST_WIDEVINE_INSTALL_PROMPT" desc="Message on the infobar offering to download the proprietary Widevine module.">
++        Protected video needs the proprietary Widevine module from Google servers.
++      </message>
++      <message name="IDS_CRGOST_WIDEVINE_DOWNLOAD" desc="Button on the infobar that downloads the Widevine module.">
++        Download
++      </message>
++      <message name="IDS_CRGOST_WIDEVINE_RESTART_PROMPT" desc="Message on the infobar shown after the Widevine module is downloaded.">
++        Widevine module downloaded. Restart the browser.
++      </message>
++      <message name="IDS_CRGOST_WIDEVINE_RELOAD_PROMPT" desc="Message on the infobar shown after the Widevine module is downloaded and can be used after reloading the page.">
++        Widevine module downloaded. Reload the page.
++      </message>
++      <message name="IDS_CRGOST_WIDEVINE_RESTART" desc="Button on the infobar that restarts the browser after the Widevine module is downloaded.">
++        Restart
++      </message>
++      <message name="IDS_CRGOST_WIDEVINE_DOWNLOAD_FAILED" desc="Message on the infobar shown when the Widevine module download fails.">
++        Couldn&apos;t download the Widevine module.
++      </message>
+       <message name="IDS_NON_MILESTONE_UPDATE_TOAST_BODY" desc="Text on a toast notification that is shown when a non milestone update is complete.">
+         Chrome was updated
+       </message>
+diff --git a/chrome/app/resources/generated_resources_ru.xtb b/chrome/app/resources/generated_resources_ru.xtb
+index ccb71bbd4f3..4f4a8312798 100644
+--- a/chrome/app/resources/generated_resources_ru.xtb
++++ b/chrome/app/resources/generated_resources_ru.xtb
+@@ -10854,4 +10854,8 @@
+ <translation id="998347228911661591">Синхронизируйте группы вкладок</translation>
+ <translation id="998747458861718449">П&amp;росмотреть код</translation>
+ <translation id="998852291477823323">Действие запрещено согласно настроенным правилам.</translation>
++<translation id="7288567071813947025">Для защищённого видео нужен закрытый модуль Widevine с серверов Google.</translation>
++<translation id="3000360203259398490">Модуль Widevine скачан. Перезапустите браузер.</translation>
++<translation id="2727797295339928549">Не удалось скачать модуль Widevine.</translation>
++<translation id="3459418121609294948">Модуль Widevine скачан. Обновите страницу.</translation>
+ </translationbundle>
+\ No newline at end of file
+diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
+index 5aa5b0447d6..b089e7c1ea8 100644
+--- a/chrome/browser/BUILD.gn
++++ b/chrome/browser/BUILD.gn
+@@ -880,6 +880,13 @@ source_set("core") {
+     defines += [ "USE_OFFICIAL_ENTERPRISE_CONNECTORS_API_KEYS=1" ]
+   }
+ 
++  if (enable_widevine_cdm_component) {
++    sources += [
++      "media/widevine_install_infobar_delegate.cc",
++      "media/widevine_install_infobar_delegate.h",
++    ]
++  }
++
+   deps = [
+     ":active_use_util",
+     ":after_startup_task_utils",
+diff --git a/chrome/browser/chrome_browser_main.cc b/chrome/browser/chrome_browser_main.cc
+index 4feaf808e3e..b09cdecb263 100644
+--- a/chrome/browser/chrome_browser_main.cc
++++ b/chrome/browser/chrome_browser_main.cc
+@@ -142,6 +142,7 @@
+ #include "services/tracing/public/cpp/stack_sampling/tracing_sampler_profiler.h"
+ #include "third_party/blink/public/common/origin_trials/origin_trials_settings_provider.h"
+ #include "third_party/perfetto/include/perfetto/tracing/track.h"
++#include "third_party/widevine/cdm/buildflags.h"
+ #include "ui/base/l10n/l10n_util.h"
+ #include "ui/color/color_provider_manager.h"
+ #include "ui/gl/gl_switches.h"
+@@ -351,6 +352,10 @@
+ #include "chrome/browser/enterprise/platform_auth/platform_auth_features.h"
+ #endif
+ 
++#if BUILDFLAG(ENABLE_WIDEVINE_CDM_COMPONENT)
++#include "chrome/browser/component_updater/widevine_cdm_component_installer.h"
++#endif
++
+ #if BUILDFLAG(CHROME_FOR_TESTING)
+ #include "chrome/browser/chrome_for_testing/chrome_browser_main_extra_parts_cft.h"
+ #include "chrome/browser/chrome_for_testing/config.h"
+@@ -1954,6 +1959,11 @@ int ChromeBrowserMainParts::PreMainMessageLoopRunImpl() {
+     g_browser_process->CreateDevToolsAutoOpener();
+   }
+ 
++#if BUILDFLAG(ENABLE_WIDEVINE_CDM_COMPONENT)
++  component_updater::RegisterWidevineCdmComponent(
++      g_browser_process->component_updater());
++#endif
++
+   // Needs to be done before PostProfileInit, since the SODA Installer setup is
+   // called inside PostProfileInit and depends on it.
+ 
+diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
+index aa8b16f4672..68038fa8df6 100644
+--- a/chrome/browser/chrome_content_browser_client.cc
++++ b/chrome/browser/chrome_content_browser_client.cc
+@@ -444,6 +444,7 @@
+ #include "third_party/blink/public/mojom/navigation/navigation_params.mojom.h"
+ #include "third_party/blink/public/mojom/use_counter/metrics/web_feature.mojom.h"
+ #include "third_party/blink/public/public_buildflags.h"
++#include "third_party/widevine/cdm/buildflags.h"
+ #include "ui/base/clipboard/clipboard_format_type.h"
+ #include "ui/base/clipboard/clipboard_metadata.h"
+ #include "ui/base/page_transition_types.h"
+@@ -812,6 +813,10 @@
+ #include "components/on_device_translation/component_manager.h"
+ #endif  // BUILDFLAG(ENABLE_ON_DEVICE_TRANSLATION)
+ 
++#if BUILDFLAG(ENABLE_WIDEVINE_CDM_COMPONENT)
++#include "chrome/browser/media/widevine_install_infobar_delegate.h"
++#endif
++
+ #if BUILDFLAG(ENABLE_REQUEST_HEADER_INTEGRITY)
+ #include "chrome/common/request_header_integrity/request_header_integrity_url_loader_throttle.h"  // nogncheck crbug.com/40147906
+ #endif
+@@ -9855,3 +9860,10 @@ bool ChromeContentBrowserClient::ShouldAllowSystemUiPopups(
+   return !(tab_interface && actor_service->IsActiveOnTab(*tab_interface));
+ }
+ #endif
++
++void ChromeContentBrowserClient::OnKeySystemSupportRequested(
++    content::RenderFrameHost* render_frame_host) {
++#if BUILDFLAG(ENABLE_WIDEVINE_CDM_COMPONENT)
++  MaybeShowWidevineInstallInfoBar(render_frame_host);
++#endif
++}
+diff --git a/chrome/browser/chrome_content_browser_client.h b/chrome/browser/chrome_content_browser_client.h
+index 1c972e4e276..5ab01cabf55 100644
+--- a/chrome/browser/chrome_content_browser_client.h
++++ b/chrome/browser/chrome_content_browser_client.h
+@@ -291,6 +291,8 @@ class ChromeContentBrowserClient : public content::ContentBrowserClient {
+       const GURL& url,
+       network::mojom::URLResponseHead* response_head,
+       const std::optional<content::FrameTreeNodeId>& frame_tree_node) override;
++  void OnKeySystemSupportRequested(
++      content::RenderFrameHost* render_frame_host) override;
+   bool ShouldTryToUseExistingProcessHost(
+       content::BrowserContext* browser_context,
+       const GURL& url) override;
+diff --git a/chrome/browser/component_updater/widevine_cdm_component_installer.cc b/chrome/browser/component_updater/widevine_cdm_component_installer.cc
+index c88a637e727..6f1b11fcfea 100644
+--- a/chrome/browser/component_updater/widevine_cdm_component_installer.cc
++++ b/chrome/browser/component_updater/widevine_cdm_component_installer.cc
+@@ -25,6 +25,7 @@
+ #include "base/version.h"
+ #include "build/build_config.h"
+ #include "build/chromeos_buildflags.h"
++#include "chrome/browser/browser_process.h"
+ #include "components/cdm/common/cdm_manifest.h"
+ #include "components/component_updater/component_installer.h"
+ #include "components/component_updater/component_updater_service.h"
+@@ -435,6 +436,12 @@ void WidevineCdmComponentInstallerPolicy::UpdateCdmPath(
+ #endif
+ }
+ 
++void UpdateWidevineCdmComponentOnDemand(Callback callback) {
++  g_browser_process->component_updater()->GetOnDemandUpdater().OnDemandUpdate(
++      "oimompecagnajdejgnnjijobebaeigek", OnDemandUpdater::Priority::FOREGROUND,
++      std::move(callback));
++}
++
+ void RegisterWidevineCdmComponent(ComponentUpdateService* cus) {
+   auto installer = base::MakeRefCounted<ComponentInstaller>(
+       std::make_unique<WidevineCdmComponentInstallerPolicy>());
+diff --git a/chrome/browser/component_updater/widevine_cdm_component_installer.h b/chrome/browser/component_updater/widevine_cdm_component_installer.h
+index 232974f8990..4415b38c424 100644
+--- a/chrome/browser/component_updater/widevine_cdm_component_installer.h
++++ b/chrome/browser/component_updater/widevine_cdm_component_installer.h
+@@ -5,9 +5,10 @@
+ #ifndef CHROME_BROWSER_COMPONENT_UPDATER_WIDEVINE_CDM_COMPONENT_INSTALLER_H_
+ #define CHROME_BROWSER_COMPONENT_UPDATER_WIDEVINE_CDM_COMPONENT_INSTALLER_H_
+ 
++#include "components/component_updater/component_updater_service.h"
++
+ namespace component_updater {
+ 
+-class ComponentUpdateService;
+ 
+ // Our job is to:
+ // 1) Find what Widevine CDM is installed (if any).
+@@ -18,6 +19,9 @@ class ComponentUpdateService;
+ // The first part is IO intensive so we do it asynchronously in the file thread.
+ void RegisterWidevineCdmComponent(ComponentUpdateService* cus);
+ 
++// Downloads the Widevine CDM component; called only on explicit user consent.
++void UpdateWidevineCdmComponentOnDemand(Callback callback);
++
+ }  // namespace component_updater
+ 
+ #endif  // CHROME_BROWSER_COMPONENT_UPDATER_WIDEVINE_CDM_COMPONENT_INSTALLER_H_
+diff --git a/chrome/browser/media/widevine_install_infobar_delegate.cc b/chrome/browser/media/widevine_install_infobar_delegate.cc
+new file mode 100644
+index 00000000000..c32fce94c5b
+--- /dev/null
++++ b/chrome/browser/media/widevine_install_infobar_delegate.cc
+@@ -0,0 +1,199 @@
++// Copyright 2026 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/media/widevine_install_infobar_delegate.h"
++
++#include <memory>
++#include <string>
++
++#include "base/functional/bind.h"
++#include "build/build_config.h"
++#include "chrome/browser/browser_process.h"
++#include "chrome/browser/component_updater/widevine_cdm_component_installer.h"
++#include "chrome/browser/infobars/confirm_infobar_creator.h"
++#include "chrome/browser/lifetime/application_lifetime.h"
++#include "chrome/grit/generated_resources.h"
++#include "components/component_updater/component_updater_service.h"
++#include "components/infobars/content/content_infobar_manager.h"
++#include "components/infobars/core/confirm_infobar_delegate.h"
++#include "components/infobars/core/infobar.h"
++#include "components/strings/grit/components_strings.h"
++#include "components/vector_icons/vector_icons.h"
++#include "content/public/browser/navigation_controller.h"
++#include "content/public/browser/reload_type.h"
++#include "content/public/browser/render_frame_host.h"
++#include "content/public/browser/web_contents.h"
++#include "ui/base/l10n/l10n_util.h"
++#include "url/gurl.h"
++
++namespace {
++
++constexpr char kWidevineComponentId[] = "oimompecagnajdejgnnjijobebaeigek";
++constexpr char kLearnMoreUrl[] =
++    "https://github.com/deemru/Chromium-Gost/issues/147";
++
++enum class State { kIdle, kDeclined, kInstalling, kInstalled };
++State g_state = State::kIdle;
++
++bool IsWidevineInstalled() {
++  for (const auto& info :
++       g_browser_process->component_updater()->GetComponents()) {
++    if (info.id == kWidevineComponentId) {
++      return info.version.IsValid() && info.version != base::Version("0.0.0.0");
++    }
++  }
++  return false;
++}
++
++void ShowInfoBar(content::WebContents* web_contents,
++                 std::unique_ptr<ConfirmInfoBarDelegate> delegate) {
++  auto* manager =
++      infobars::ContentInfoBarManager::FromWebContents(web_contents);
++  if (manager) {
++    manager->AddInfoBar(CreateConfirmInfoBar(std::move(delegate)));
++  }
++}
++
++class WidevineInfoBarDelegate : public ConfirmInfoBarDelegate {
++ public:
++  WidevineInfoBarDelegate(std::u16string message, int buttons)
++      : message_(std::move(message)), buttons_(buttons) {}
++
++  infobars::InfoBarDelegate::InfoBarIdentifier GetIdentifier() const override {
++    return CRGOST_WIDEVINE_INFOBAR_DELEGATE;
++  }
++  const gfx::VectorIcon& GetVectorIcon() const override {
++    return vector_icons::kInfoIcon;
++  }
++  std::u16string GetMessageText() const override { return message_; }
++  int GetButtons() const override { return buttons_; }
++  std::u16string GetLinkText() const override {
++    return l10n_util::GetStringUTF16(IDS_LEARN_MORE);
++  }
++  GURL GetLinkURL() const override { return GURL(kLearnMoreUrl); }
++  bool ShouldShowLinkBeforeButton() const override { return true; }
++
++ private:
++  const std::u16string message_;
++  const int buttons_;
++};
++
++#if BUILDFLAG(IS_LINUX)
++// The zygote loads CDMs before entering the sandbox, so a new CDM needs a
++// browser restart.
++class InstalledInfoBarDelegate : public WidevineInfoBarDelegate {
++ public:
++  explicit InstalledInfoBarDelegate(content::WebContents* web_contents)
++      : WidevineInfoBarDelegate(
++            l10n_util::GetStringUTF16(IDS_CRGOST_WIDEVINE_RESTART_PROMPT),
++            BUTTON_OK) {}
++  std::u16string GetButtonLabel(InfoBarButton button) const override {
++    return l10n_util::GetStringUTF16(IDS_CRGOST_WIDEVINE_RESTART);
++  }
++  bool ShouldExpire(const NavigationDetails& details) const override {
++    return false;
++  }
++  bool Accept() override {
++    chrome::AttemptRelaunch();
++    return false;
++  }
++};
++#else
++class InstalledInfoBarDelegate : public WidevineInfoBarDelegate {
++ public:
++  explicit InstalledInfoBarDelegate(content::WebContents* web_contents)
++      : WidevineInfoBarDelegate(
++            l10n_util::GetStringUTF16(IDS_CRGOST_WIDEVINE_RELOAD_PROMPT),
++            BUTTON_OK),
++        web_contents_(web_contents->GetWeakPtr()) {}
++  std::u16string GetButtonLabel(InfoBarButton button) const override {
++    return l10n_util::GetStringUTF16(IDS_RELOAD);
++  }
++  bool Accept() override {
++    if (web_contents_) {
++      web_contents_->GetController().Reload(content::ReloadType::NORMAL, true);
++    }
++    return true;
++  }
++
++ private:
++  base::WeakPtr<content::WebContents> web_contents_;
++};
++#endif
++
++void OnDownloaded(base::WeakPtr<content::WebContents> web_contents,
++                  update_client::Error error) {
++  const bool installed = IsWidevineInstalled();
++#if BUILDFLAG(IS_LINUX)
++  g_state = installed ? State::kInstalled : State::kIdle;
++#else
++  g_state = State::kIdle;
++#endif
++  if (!web_contents) {
++    return;
++  }
++  if (installed) {
++    ShowInfoBar(web_contents.get(),
++                std::make_unique<InstalledInfoBarDelegate>(web_contents.get()));
++  } else {
++    ShowInfoBar(
++        web_contents.get(),
++        std::make_unique<WidevineInfoBarDelegate>(
++            l10n_util::GetStringUTF16(IDS_CRGOST_WIDEVINE_DOWNLOAD_FAILED),
++            ConfirmInfoBarDelegate::BUTTON_NONE));
++  }
++}
++
++class InstallInfoBarDelegate : public WidevineInfoBarDelegate {
++ public:
++  explicit InstallInfoBarDelegate(content::WebContents* web_contents)
++      : WidevineInfoBarDelegate(
++            l10n_util::GetStringUTF16(IDS_CRGOST_WIDEVINE_INSTALL_PROMPT),
++            BUTTON_OK),
++        web_contents_(web_contents->GetWeakPtr()) {}
++  std::u16string GetButtonLabel(InfoBarButton button) const override {
++    return l10n_util::GetStringUTF16(IDS_CRGOST_WIDEVINE_DOWNLOAD);
++  }
++  bool Accept() override {
++    if (g_state == State::kInstalling) {
++      return true;
++    }
++    if (IsWidevineInstalled()) {
++      OnDownloaded(web_contents_, update_client::Error::NONE);
++      return true;
++    }
++    g_state = State::kInstalling;
++    component_updater::UpdateWidevineCdmComponentOnDemand(
++        base::BindOnce(&OnDownloaded, web_contents_));
++    return true;
++  }
++  void InfoBarDismissed() override {
++    if (g_state == State::kIdle) {
++      g_state = State::kDeclined;
++    }
++    ConfirmInfoBarDelegate::InfoBarDismissed();
++  }
++
++ private:
++  base::WeakPtr<content::WebContents> web_contents_;
++};
++
++}  // namespace
++
++void MaybeShowWidevineInstallInfoBar(content::RenderFrameHost* frame) {
++  auto* web_contents = content::WebContents::FromRenderFrameHost(frame);
++  if (!web_contents) {
++    return;
++  }
++  if (g_state == State::kInstalled) {
++    ShowInfoBar(web_contents,
++                std::make_unique<InstalledInfoBarDelegate>(web_contents));
++    return;
++  }
++  if (g_state != State::kIdle || IsWidevineInstalled()) {
++    return;
++  }
++  ShowInfoBar(web_contents,
++              std::make_unique<InstallInfoBarDelegate>(web_contents));
++}
+diff --git a/chrome/browser/media/widevine_install_infobar_delegate.h b/chrome/browser/media/widevine_install_infobar_delegate.h
+new file mode 100644
+index 00000000000..7cac6b52ed3
+--- /dev/null
++++ b/chrome/browser/media/widevine_install_infobar_delegate.h
+@@ -0,0 +1,16 @@
++// Copyright 2026 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_MEDIA_WIDEVINE_INSTALL_INFOBAR_DELEGATE_H_
++#define CHROME_BROWSER_MEDIA_WIDEVINE_INSTALL_INFOBAR_DELEGATE_H_
++
++namespace content {
++class RenderFrameHost;
++}
++
++// Widevine CDM is never fetched in the background: when a page starts using
++// encrypted media and the CDM is missing, the user is asked to download it.
++void MaybeShowWidevineInstallInfoBar(content::RenderFrameHost* frame);
++
++#endif  // CHROME_BROWSER_MEDIA_WIDEVINE_INSTALL_INFOBAR_DELEGATE_H_
+diff --git a/chrome/browser/ui/views/infobars/confirm_infobar.cc b/chrome/browser/ui/views/infobars/confirm_infobar.cc
+index e1c67ffc080..d45f4c22cf4 100644
+--- a/chrome/browser/ui/views/infobars/confirm_infobar.cc
++++ b/chrome/browser/ui/views/infobars/confirm_infobar.cc
+@@ -36,13 +36,25 @@ std::unique_ptr<ConfirmInfoBar> ConfirmInfoBar::Create(
+   return std::make_unique<ConfirmInfoBarWithNormalLabel>(std::move(delegate));
+ }
+ 
++namespace {
++
++// Matches the visible gap between the 20 px infobar icon, centered in its
++// 24 px slot, and the message.
++int InfoBarControlSpacing() {
++  return ChromeLayoutProvider::Get()->GetDistanceMetric(
++             DISTANCE_INFOBAR_HORIZONTAL_ICON_LABEL_PADDING) +
++         2;
++}
++
++}  // namespace
++
+ template <typename T>
+ T* ConfirmInfoBar::AssignMessageLabel(std::unique_ptr<T> view) {
+   auto* message_label = content_container()->AddChildViewAt(std::move(view), 0);
+   int kHorizontalDistanceLabel = ChromeLayoutProvider::Get()->GetDistanceMetric(
+       views::DISTANCE_UNRELATED_CONTROL_HORIZONTAL);
+   if (GetDelegate()->ShouldShowLinkBeforeButton()) {
+-    kHorizontalDistanceLabel = 4;
++    kHorizontalDistanceLabel = InfoBarControlSpacing();
+   }
+   // Set horizontal distance for label for flex layout.
+   message_label->SetProperty(views::kMarginsKey,
+@@ -156,8 +168,13 @@ ConfirmInfoBar::ConfirmInfoBar(std::unique_ptr<ConfirmInfoBarDelegate> delegate)
+     }
+     link_->SetProperty(views::kFlexBehaviorKey, kRigidFlex);
+     // Add margins for spacing for flex layout.
+-    link_->SetProperty(views::kMarginsKey, std::make_unique<gfx::Insets>(
+-                                               gfx::Insets::TLBR(0, 0, 0, 0)));
++    const int leading_spacing =
++        delegate_ptr->ShouldShowLinkBeforeButton()
++            ? InfoBarControlSpacing()
++            : 0;
++    link_->SetProperty(views::kMarginsKey,
++                       std::make_unique<gfx::Insets>(
++                           gfx::Insets::TLBR(0, leading_spacing, 0, 0)));
+   }
+ }
+ 
+diff --git a/components/component_updater/component_updater_service.cc b/components/component_updater/component_updater_service.cc
+index 4fcff02bf34..7c624064bf7 100644
+--- a/components/component_updater/component_updater_service.cc
++++ b/components/component_updater/component_updater_service.cc
+@@ -202,7 +202,48 @@ void CrxUpdateService::Stop() {
+ // it will be replaced.
+ bool CrxUpdateService::RegisterComponent(
+     const ComponentRegistration& component) {
+-  return false;
++  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
++  // Widevine CDM is the only component; it is fetched on demand only.
++  if (component.app_id != "oimompecagnajdejgnnjijobebaeigek") {
++    return false;
++  }
++  if (component.app_id.empty() || !component.version.IsValid() ||
++      !component.installer) {
++    return false;
++  }
++
++  // Cancel any pending unregistration for this component.
++  std::erase(components_pending_unregistration_, component.app_id);
++
++  // Update the registration data if the component has been registered before.
++  auto it = components_.find(component.app_id);
++  if (it != components_.end()) {
++    it->second = component;
++    return true;
++  }
++
++  components_.insert(std::make_pair(component.app_id, component));
++  components_order_.push_back(component.app_id);
++
++  // Create an initial state for this component. The state is mutated in
++  // response to events from the UpdateClient instance.
++  CrxUpdateItem item;
++  item.id = component.app_id;
++  item.component = ToCrxComponent(component);
++  const auto [unused, inserted] =
++      component_states_.insert(std::make_pair(component.app_id, item));
++  CHECK(inserted);
++
++#if BUILDFLAG(CHROME_FOR_TESTING)
++  if (required_components_controller_ &&
++      required_components_controller_->RequestComponentUpdate(component)) {
++    OnDemandUpdateInternal(component.app_id,
++                           OnDemandUpdater::Priority::FOREGROUND,
++                           base::DoNothing());
++  }
++#endif
++
++  return true;
+ }
+ 
+ bool CrxUpdateService::UnregisterComponent(const std::string& id) {
+diff --git a/components/component_updater/component_updater_service.h b/components/component_updater/component_updater_service.h
+index 999198d5e16..207d56c7065 100644
+--- a/components/component_updater/component_updater_service.h
++++ b/components/component_updater/component_updater_service.h
+@@ -247,6 +247,7 @@ class OnDemandUpdater {
+   friend class PlatformRuntimeComponentInstallerPolicy;
+   friend void UpdateAIEmbeddingsComponentOnDemand(Priority priority,
+                                                   Callback callback);
++  friend void UpdateWidevineCdmComponentOnDemand(Callback callback);
+ 
+   // Triggers an update check for a component. |id| is a value
+   // returned by GetCrxComponentID(). If an update for this component is already
+diff --git a/components/infobars/core/infobar_delegate.h b/components/infobars/core/infobar_delegate.h
+index 5c0c180b102..acb165398e4 100644
+--- a/components/infobars/core/infobar_delegate.h
++++ b/components/infobars/core/infobar_delegate.h
+@@ -213,6 +213,7 @@ class InfoBarDelegate {
+     FORMS_AI_PRIVATE_INFERENCE_INFOBAR_DELEGATE_IOS = 138,
+     PASSWORD_SAVED_INFOBAR_DELEGATE_IOS = 139,
+     CONTEXTUAL_CUE_INFOBAR_DELEGATE_IOS = 140,
++    CRGOST_WIDEVINE_INFOBAR_DELEGATE = 141,
+   };
+   // LINT.ThenChange(//tools/metrics/histograms/metadata/browser/enums.xml:InfoBarIdentifier)
+ 
+diff --git a/content/browser/media/key_system_support_impl.cc b/content/browser/media/key_system_support_impl.cc
+index 1f0f711ac46..966dc01e50e 100644
+--- a/content/browser/media/key_system_support_impl.cc
++++ b/content/browser/media/key_system_support_impl.cc
+@@ -8,6 +8,8 @@
+ #include "content/browser/permissions/permission_util.h"
+ #include "content/browser/web_contents/web_contents_impl.h"
+ #include "content/public/browser/browser_context.h"
++#include "content/public/browser/content_browser_client.h"
++#include "content/public/common/content_client.h"
+ #include "content/public/browser/permission_descriptor_util.h"
+ #include "content/public/browser/render_frame_host.h"
+ 
+@@ -80,6 +82,8 @@ void KeySystemSupportImpl::SetObserver(
+   }
+ 
+   observer_remote_.Bind(std::move(observer));
++  GetContentClient()->browser()->OnKeySystemSupportRequested(
++      &render_frame_host());
+ 
+   // If `key_system_support_` is already available, notify the new observer
+   // immediately. All observers will be notified if there are updates later.
+diff --git a/content/public/browser/content_browser_client.h b/content/public/browser/content_browser_client.h
+index 6e730455c66..c8443cd54f8 100644
+--- a/content/public/browser/content_browser_client.h
++++ b/content/public/browser/content_browser_client.h
+@@ -734,6 +734,9 @@ class CONTENT_EXPORT ContentBrowserClient {
+       network::mojom::URLResponseHead* response_head,
+       const std::optional<FrameTreeNodeId>& frame_tree_node);
+ 
++  // Called when a document starts using Encrypted Media Extensions.
++  virtual void OnKeySystemSupportRequested(RenderFrameHost* render_frame_host) {}
++
+   // Returns whether a new process should be created or an existing one should
+   // be reused based on the URL we want to load. This should return false,
+   // unless there is a good reason otherwise.

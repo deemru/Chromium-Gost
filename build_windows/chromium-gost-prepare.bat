@@ -33,6 +33,7 @@ call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\gostssl-ch
 call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\extensions-bundled.patch || goto :finish
 call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\branding.patch || goto :finish
 call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\services-gate.patch || goto :finish
+call git am --3way --ignore-space-change < %CHROMIUM_GOST_REPO%\patch\widevine.patch || goto :finish
 
 call python3 %CHROMIUM_GOST_REPO%\extra\rebrand_strings.py || goto :finish
 copy /y %CHROMIUM_GOST_REPO%\extra\chromium-gost.ico chrome\app\theme\chromium\win\chromium.ico

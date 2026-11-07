@@ -1,4 +1,4 @@
-From 5ef44eba48f1dbc62276e15a0f9a4d60ff4a641f Mon Sep 17 00:00:00 2001
+From fe2881b823d61d0fd216e70bdc5ad26d2f2c96f4 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Thu, 2 Oct 2025 13:57:57 +0300
 Subject: [PATCH] gostssl-boringssl
