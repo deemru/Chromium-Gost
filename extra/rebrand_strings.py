@@ -14,8 +14,9 @@ sys.path.insert(0, 'tools/grit')
 from grit import grd_reader  # noqa: E402
 
 PRODUCT = 'Chromium-Gost'
-# (product mention to rename, every occurrence of the word)
-CHROMIUM = (re.compile(r'Chromium(?! Authors)'), re.compile(r'Chromium'))
+# (product mention to rename, every occurrence of the word); the link text of the Chromium project is kept
+CHROMIUM = (re.compile(r'Chromium(?! Authors|<ph name="END_LINK_CHROMIUM")'),
+            re.compile(r'Chromium(?!<ph name="END_LINK_CHROMIUM")'))
 CHROME = (re.compile(r'(?<!Google )\bChrome\b(?! Web Store| OS| for Testing| Remote Desktop'
                      r'| Enterprise| Root)'), re.compile(r'\bChrome\b'))
 RESOURCES = [
