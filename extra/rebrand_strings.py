@@ -19,12 +19,16 @@ CHROMIUM = (re.compile(r'Chromium(?! Authors|<ph name="END_LINK_CHROMIUM")'),
             re.compile(r'Chromium(?!<ph name="END_LINK_CHROMIUM")'))
 CHROME = (re.compile(r'(?<!Google )\bChrome\b(?! Web Store| OS| for Testing| Remote Desktop'
                      r'| Enterprise| Root)'), re.compile(r'\bChrome\b'))
+BOTH = tuple(re.compile(f'{a.pattern}|{b.pattern}') for a, b in zip(CHROMIUM, CHROME))
+# Russian translations that name the product while their source does not.
+RUSSIAN = re.compile(r'(?<!Google )(?<!Авторы )(?<!магазин )(?<!магазина )(?<!магазине )(?<!стола )'
+                     r'\b(?:Chrome|Chromium)\b(?! для тестирования| Web Store| OS| Remote)')
 RESOURCES = [
     ('chrome/app/chromium_strings.grd', CHROMIUM),
     ('components/components_chromium_strings.grd', CHROMIUM),
-    ('chrome/app/generated_resources.grd', CHROME),
-    ('components/components_strings.grd', CHROME),
-    ('components/privacy_sandbox_strings.grd', CHROME),
+    ('chrome/app/generated_resources.grd', BOTH),
+    ('components/components_strings.grd', BOTH),
+    ('components/privacy_sandbox_strings.grd', BOTH),
 ]
 GRIT_BUILTINS = {'and', 'or', 'not', 'in', 'lang', 'pp_ifdef', 'is_linux', 'is_win',
                  'is_macosx', 'is_android', 'is_ios', 'is_chromeos', 'is_posix',
@@ -78,9 +82,17 @@ def rebrand(grd, rule):
         if not path.exists():
             continue
 
+        seen = set()
+
         def translation(m):
             new_id, whole = remap.get(m[2], (m[2], False))
+            # Chrome and Chromium variants of one message can become identical; keep one translation.
+            if new_id in seen:
+                return ''
+            seen.add(new_id)
             body = pattern.sub(PRODUCT, m[4]) if whole else m[4]
+            if m[2] not in remap and path.name.endswith('_ru.xtb'):
+                body = RUSSIAN.sub(PRODUCT, body)
             return m[1] + new_id + m[3] + body + m[5]
         text = re.sub(r'(<translation id=")(\d+)(">)(.*?)(</translation>)', translation,
                       path.read_bytes().decode('utf-8'), flags=re.S)
