@@ -1,4 +1,4 @@
-From 0303d7688977ef70c130b48c7b3a187f912982ec Mon Sep 17 00:00:00 2001
+From 2604cf7166a914629d700bda87a7b6e2508d47e5 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 13 May 2026 13:13:11 +0300
 Subject: [PATCH] gostssl-chromium
@@ -558,7 +558,7 @@ index 4046a961c9c..17dab6bacbd 100644
    void NotifySSLConfigChanged(SSLConfigChangeType change_type);
    void NotifySSLConfigForServersChanged(
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
-index f586acfe0f0..06e05fe33f4 100644
+index f586acfe0f0..da48fcafaa6 100644
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
 @@ -14,6 +14,7 @@
@@ -642,7 +642,6 @@ index f586acfe0f0..06e05fe33f4 100644
 +    cert_status |= CERT_STATUS_COMMON_NAME_INVALID;
 +    break;
 +  case (uint32_t)CERT_E_UNTRUSTEDROOT:
-+  case (uint32_t)TRUST_E_CERT_SIGNATURE:
 +  case (uint32_t)CERT_E_UNTRUSTEDTESTROOT:
 +  case (uint32_t)CERT_E_CHAINING:
 +    gost_rv = ERR_CERT_AUTHORITY_INVALID;
@@ -666,6 +665,7 @@ index f586acfe0f0..06e05fe33f4 100644
 +    gost_rv = ERR_CERT_REVOKED;
 +    cert_status |= CERT_STATUS_REVOKED;
 +    break;
++  case (uint32_t)TRUST_E_CERT_SIGNATURE:
 +  default:
 +    gost_rv = ERR_CERT_INVALID;
 +    cert_status |= CERT_STATUS_INVALID;
