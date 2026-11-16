@@ -20,9 +20,10 @@ CHROMIUM = (re.compile(r'Chromium(?! Authors|<ph name="END_LINK_CHROMIUM")'),
 CHROME = (re.compile(r'(?<!Google )\bChrome\b(?! Web Store| OS| for Testing| Remote Desktop'
                      r'| Enterprise| Root)'), re.compile(r'\bChrome\b'))
 BOTH = tuple(re.compile(f'{a.pattern}|{b.pattern}') for a, b in zip(CHROMIUM, CHROME))
-# Russian translations that name the product while their source does not.
+# Product names left in Russian translations, including Chrome where the source says Chromium.
 RUSSIAN = re.compile(r'(?<!Google )(?<!Авторы )(?<!магазин )(?<!магазина )(?<!магазине )(?<!стола )'
-                     r'\b(?:Chrome|Chromium)\b(?! для тестирования| Web Store| OS| Remote)')
+                     r'\b(?:Chrome|Chromium)\b(?!-Gost| для тестирования| Web Store| OS| Remote| Enterprise| Root'
+                     r'|<ph name="END_LINK_CHROMIUM")')
 RESOURCES = [
     ('chrome/app/chromium_strings.grd', CHROMIUM),
     ('components/components_chromium_strings.grd', CHROMIUM),
@@ -91,7 +92,7 @@ def rebrand(grd, rule):
                 return ''
             seen.add(new_id)
             body = pattern.sub(PRODUCT, m[4]) if whole else m[4]
-            if m[2] not in remap and path.name.endswith('_ru.xtb'):
+            if path.name.endswith('_ru.xtb') and (whole or m[2] not in remap):
                 body = RUSSIAN.sub(PRODUCT, body)
             return m[1] + new_id + m[3] + body + m[5]
         text = re.sub(r'(<translation id=")(\d+)(">)(.*?)(</translation>)', translation,
