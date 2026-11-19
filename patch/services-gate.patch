@@ -1,4 +1,4 @@
-From 16fecc0aaee9ea9e4fa96fa1aad22188279dd3e2 Mon Sep 17 00:00:00 2001
+From 3619a4486418fa0e8c7e6f59dfe537ba45ea2266 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 13 May 2026 13:13:11 +0300
 Subject: [PATCH] services-gate
@@ -2208,7 +2208,7 @@ index 3ae12b5b081..bdba13e2452 100644
      OnCallToDelegate(NetLogEventType::NETWORK_DELEGATE_BEFORE_URL_REQUEST);
      int error = network_delegate()->NotifyBeforeURLRequest(
 diff --git a/services/network/network_context.cc b/services/network/network_context.cc
-index 66e2d045051..c260b2d46ea 100644
+index 1e95112e679..b135b77e134 100644
 --- a/services/network/network_context.cc
 +++ b/services/network/network_context.cc
 @@ -64,6 +64,7 @@
@@ -2233,10 +2233,10 @@ index 66e2d045051..c260b2d46ea 100644
    if (url_request_context_->http_user_agent_settings()) {
      user_agent =
 diff --git a/services/network/p2p/socket_manager.cc b/services/network/p2p/socket_manager.cc
-index 3a814c12d15..9aad3a8b75d 100644
+index d92d91fa980..c657cc181a2 100644
 --- a/services/network/p2p/socket_manager.cc
 +++ b/services/network/p2p/socket_manager.cc
-@@ -16,6 +16,7 @@
+@@ -17,6 +17,7 @@
  #include "base/task/thread_pool.h"
  #include "net/base/address_family.h"
  #include "net/base/address_list.h"
@@ -2244,7 +2244,7 @@ index 3a814c12d15..9aad3a8b75d 100644
  #include "net/base/net_errors.h"
  #include "net/base/network_anonymization_key.h"
  #include "net/base/network_handle.h"
-@@ -411,6 +412,11 @@ void P2PSocketManager::CreateSocket(
+@@ -425,6 +426,11 @@ void P2PSocketManager::CreateSocket(
      const std::optional<base::UnguessableToken>& devtools_token,
      mojo::PendingRemote<mojom::P2PSocketClient> client,
      mojo::PendingReceiver<mojom::P2PSocket> receiver) {

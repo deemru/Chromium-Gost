@@ -1,4 +1,4 @@
-From 30d7f149facf2113266a1fba5b47fb81c2a18112 Mon Sep 17 00:00:00 2001
+From b305ebdd267b1d2694a4c0c89737b4206e04cbf9 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Wed, 13 May 2026 13:13:11 +0300
 Subject: [PATCH] fixes
@@ -32,7 +32,7 @@ index 29478cec804..f1c9e3e3ed3 100644
      }
  
 diff --git a/chrome/app/resources/generated_resources_ru.xtb b/chrome/app/resources/generated_resources_ru.xtb
-index 0dbb5f6f0af..ccb71bbd4f3 100644
+index 384228766ea..d779c501cd3 100644
 --- a/chrome/app/resources/generated_resources_ru.xtb
 +++ b/chrome/app/resources/generated_resources_ru.xtb
 @@ -5480,7 +5480,7 @@

@@ -1,4 +1,4 @@
-From 5c106e60e822fe8f0080d86fdad79a9f481405b7 Mon Sep 17 00:00:00 2001
+From efc24c3949dd227b01fd99667fec3173bfedfa23 Mon Sep 17 00:00:00 2001
 From: Dmitrii Pichulin <deem@deem.ru>
 Date: Sat, 7 Nov 2026 12:59:28 +0300
 Subject: [PATCH] widevine
@@ -54,7 +54,7 @@ index 1a8a777f12a..1ea79e1f35c 100644
          Chrome was updated
        </message>
 diff --git a/chrome/app/resources/generated_resources_ru.xtb b/chrome/app/resources/generated_resources_ru.xtb
-index ccb71bbd4f3..4f4a8312798 100644
+index d779c501cd3..e53493fd004 100644
 --- a/chrome/app/resources/generated_resources_ru.xtb
 +++ b/chrome/app/resources/generated_resources_ru.xtb
 @@ -10854,4 +10854,8 @@
